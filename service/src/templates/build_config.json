@@ -1,0 +1,46 @@
+{
+    "apiVersion": "v1",
+    "kind": "BuildConfig",
+    "metadata": {
+        "name": "eodc-benchmark"
+    },
+    "spec": {
+        "output": {
+            "to": {
+                "kind": "ImageStreamTag",
+                "name": "eodc-benchmark:latest"
+            }
+        },
+        "source": {
+            "git": {
+                "uri": "%s",
+                "ref": "%s"
+            },
+            "sourceSecret": {
+                "name": "eodc-builder"
+            },
+            "type": "Git"
+        },
+        "strategy": {
+            "dockerStrategy": {
+                "dockerfilePath": "Dockerfile"
+            }
+        },
+        "triggers": [
+            {
+                "github": {
+                    "secret": "%s"
+                },
+                "type": "GitHub"
+            },
+            {
+                "type": "ConfigChange"
+            },
+            {
+                "imageChange": {
+                },
+                "type": "ImageChange"
+            }
+        ]
+    }
+}

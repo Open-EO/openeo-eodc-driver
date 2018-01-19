@@ -1,0 +1,28 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: launchpad-builder522
+  annotations:
+    description: This template creates a Build Configuration using an S2I builder.
+    tags: instant-app
+  namespace: myproject
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: nodejs-rest-http222
+    namespace: myproject
+  spec: {}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    generation: 1
+    labels:
+      app: launchpad-builder3
+    name: nodejs-rest-http22
+    namespace: myproject
+spec:
+  lookupPolicy:
+    local: false
+name: nodejs-rest-http
+namespace: myproject
