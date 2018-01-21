@@ -1,10 +1,10 @@
 ''' Process Graph Parser '''
 
-from json import loads
-from requests import get
+from json import loads, dumps
+from requests import get, post
 from flask import current_app
-from tmp_data import filterbbox, filterdaterange, ndvi, mintime, extractfromstorage
-from filter import Filter, parse_urls
+from service.src.tmp_processes import filterbbox, filterdaterange, ndvi, mintime, extractfromstorage
+from service.src.filter import Filter, parse_urls
 
 class ParsingException(Exception):
     ''' Parsing Exception raises if process_graph is not processable '''
@@ -50,8 +50,19 @@ class Node:
     ''' Executable node objects of the process graph '''
 
     def __init__(self, process_id, process_args, process_template):
-        self.process_id = process_id
-        self.process_args = self.parse_args(process_args, process_template["args"])
+        if process_template["type"] == "filter":
+            # TODO: Auch noch process template?
+            # TODO: Add correct url from environ
+            filter_graph = Filter(process_id, process_args)
+            filter_urls = parse_urls("http://127.0.0.1:9002/data?p=0", filter_graph)
+
+            self.process_id = "extract-from-storage"
+            self.process_template = get_process_from_registry(self.process_id)
+            self.process_args = {"urls": filter_urls}
+        else:
+            self.process_id = process_id
+            self.process_template = process_template
+            self.process_args = self.parse_args(process_args, process_template["args"])
 
     def parse_args(self, process_args, validate_args):
         ''' Validates the arguments triggers recursive Node parsing. '''
@@ -70,34 +81,42 @@ class Node:
                 process_args = collection["args"]
                 process_template = get_process_from_registry(collection["process_id"])
 
-                if process_template["type"] == "filter":
-                    # TODO: Auch noch process template?
-                    filter_graph = Filter(process_id, process_args)
-                    # TODO: Add correct url from environ
-                    filter_urls = parse_urls("http://www.test.de", filter_graph)
-
-                    process_id = "extract-from-storage"
-                    parsed_collections.append(Node(
-                        process_id,
-                        {"urls": filter_urls},
-                        get_process_from_registry(process_id)
-                    ))
-                else:
-                    parsed_collections.append(Node(
+                parsed_collections.append(
+                    Node(
                         process_id,
                         process_args,
                         process_template
-                    ))
+                    )
+                )
 
             process_args["collections"] = parsed_collections
 
         return process_args
 
-        def execute(self):
-            return "Not yet implemented"
+    def execute(self):
+        return "Not yet implemented"
 
-        def build(self):
-            return "Not yet implemented"
+    def build(self):
+        data = {
+            "build_id": self.process_id,
+            "build_namespace": "sandbox",
+            "git_uri": self.process_template["git_uri"],
+            "git_ref": self.process_template["git_ref"],
+        }
 
-        def deploy(self):
-            return "Not yet implemented"
+        response = post("{0}/build".format(current_app.config["BUILD_CONTROLLER"]), json=data)
+
+        if response.status_code != 201:
+            raise ParsingException("Process {0} could not be build.".format(self.process_id))
+
+
+    def deploy(self):
+        data = {
+            "build_id": self.process_id,
+            "deploay_id": self.process_id,
+            "args": self.process_args
+        }
+
+        response = post("{0}/deploy".format(current_app.config["DEPLOY_CONTROLLER"]), json=data)
+
+        return "Not yet implemented"
