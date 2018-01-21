@@ -1,28 +1,21 @@
-''' Benchmark Service '''
+''' EODC Job Service  '''
 
-import os
-from flask  import Flask
+from os import getenv
+from flask import Flask
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
 
+def create_service():
+    ''' Create EODC Job Service '''
 
-db = SQLAlchemy()
+    service = Flask(__name__)
+    CORS(service)
 
-
-def create_app():
-    ''' Create Flask App '''
-
-    app = Flask(__name__)
-    CORS(app)
-
-    app_settings = os.getenv('APP_SETTINGS')
-    app.config.from_object(app_settings)
-
-    db.init_app(app)
+    service_settings = getenv('SERVICE_SETTINGS')
+    service.config.from_object(service_settings)
 
     from service.api.health import HEALTH_BLUEPRINT
     from service.api.jobs import JOBS_BLUEPRINT
-    app.register_blueprint(HEALTH_BLUEPRINT)
-    app.register_blueprint(JOBS_BLUEPRINT)
+    service.register_blueprint(HEALTH_BLUEPRINT)
+    service.register_blueprint(JOBS_BLUEPRINT)
 
-    return app
+    return service

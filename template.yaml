@@ -2,50 +2,50 @@
 kind: Template
 apiVersion: v1
 metadata:
-  name: eodc-benchmark
+  name: eodc-service-job
   annotations:
-    description: EODC benchmark-service based on Flask
-    tags: benchmark,python,flask
+    description: EODC Job Service
     iconClass: icon-python
 labels:
-  application: eodc-benchmark
+  service: eodc-service-job
   provider: eodc
   project: eodc-services
   version: 0.0.1
 
-
 parameters:
-- name: APPLICATION_NAME
-  displayName: Application Name
-  description: Name of the application
-  value: eodc-benchmark
+# Service
+- name: SERVICE_NAME
+  displayName: Service Name
+  description: Name of the service
+  value: eodc-service-job
   required: true
-
-- name: APP_SETTINGS
-  displayName: Application Config Setting
-  description: Setting for the benchmark service (e.g. service.config.ProductionConfig)
+- name: SERVICE_SETTINGS
+  displayName: Service Config Setting
+  description: Setting for the EODC Job Service
   value: service.config.ProductionConfig
+  required: true
+- name: MEMORY_LIMIT_SERVICE
+  displayName: Memory Limit
+  description: Maximum amount of memory the service can use.
+  value: 256Mi
   required: true
 
 # GIT
 - name: GIT_URI
   displayName: Git URI
-  description: Git source URI for application
-  value: git@git.eodc.eu:HQ-S2/eodc-benchmark-service.git
+  description: Git source URI for service
+  value: git@git.eodc.eu:eodc-services/eodc-service-job.git
   required: true
-
 - name: GIT_REF
   displayName: Git Reference
   description: Git branch/tag reference
   value: master
   required: true
-
 - name: GIT_SECRET
   displayName: Git Secret
   description: Deployment secret for accessing GitLab
   value: eodc-builder
   required: true
-
 - name: GITLAB_SECRET
   displayName: Gitlab Trigger Secret
   description: Secret for Gitlab trigger hock
@@ -53,100 +53,13 @@ parameters:
   generate: expression
   required: true
 
-# POSTGRES
-- name: POSTGRESQL_USER
-  displayName: PostgreSQL Connection Username
-  description: Username for PostgreSQL user that will be used for accessing the database.
-  generate: expression
-  from: user[A-Z0-9]{3}
-  required: true
-
-- name: POSTGRESQL_PASSWORD
-  displayName: PostgreSQL Connection Password
-  description: Password for the PostgreSQL connection user.
-  generate: expression
-  from: "[a-zA-Z0-9]{16}"
-  required: true
-
-- name: POSTGRESQL_DATABASE
-  displayName: PostgreSQL Database Name
-  description: Name of the PostgreSQL database accessed.
-  value: users
-  required: true
-
-- name: POSTGRESQL_VERSION
-  displayName: Version of PostgreSQL Image
-  description: Version of PostgreSQL image to be used (9.2, 9.4, 9.5 or latest).
-  value: '9.5'
-  required: true
-
-# REDIS
-- name: REDIS_PASSWORD
-  displayName: Redis Connection Password
-  description: Password for the Redis connection user.
-  generate: expression
-  from: "[a-zA-Z0-9]{16}"
-  required: true
-
-- name: REDIS_VERSION
-  displayName: Version of Redis Image
-  description: Version of Redis image to be used (3.2 or latest).
-  value: '3.2'
-  required: true
-
-# RESSOURCES
-- name: MEMORY_LIMIT_SERVICE
-  displayName: Memory Limit
-  description: Maximum amount of memory the service can use.
-  value: 256Mi
-  required: true
-
-- name: MEMORY_LIMIT_POSTGRES
-  displayName: Memory Limit
-  description: Maximum amount of memory Postgres can use.
-  value: 256Mi
-  required: true
-
-- name: MEMORY_LIMIT_REDIS
-  displayName: Memory Limit
-  description: Maximum amount of memory Redis can use.
-  value: 256Mi
-  required: true
-
-- name: VOLUME_CAPACITY_POSTGRES
-  displayName: Volume Capacity
-  description: Volume space available for Postgres data, e.g. 512Mi, 2Gi.
-  value: 5Gi
-  required: true
-
-- name: VOLUME_CAPACITY_REDIS
-  displayName: Volume Capacity
-  description: Volume space available for Redis data, e.g. 512Mi, 2Gi.
-  value: 5Gi
-  required: true
-
-
 objects:
-- kind: Secret
-  apiVersion: v1
-  metadata:
-    name: "${APPLICATION_NAME}-postgres"
-  stringData:
-    database-user: "${POSTGRESQL_USER}"
-    database-password: "${POSTGRESQL_PASSWORD}"
-    database-name: "${POSTGRESQL_DATABASE}"
 
-- kind: Secret
-  apiVersion: v1
-  metadata:
-    name: "${APPLICATION_NAME}-redis"
-  stringData:
-    database-password: "${REDIS_PASSWORD}"
-
+# SERVICE
 - kind: ImageStream
   apiVersion: v1
   metadata:
-    name: "${APPLICATION_NAME}"
+    name: "${SERVICE_NAME}"
   spec:
     dockerImageRepository:
     tags:
@@ -155,7 +68,7 @@ objects:
 - kind: BuildConfig
   apiVersion: v1
   metadata:
-    name: "${APPLICATION_NAME}"
+    name: "${SERVICE_NAME}"
   spec:
     source:
       type: Git
@@ -170,7 +83,7 @@ objects:
     output:
       to:
         kind: ImageStreamTag
-        name: "${APPLICATION_NAME}:latest"
+        name: "${SERVICE_NAME}:latest"
     triggers:
     - type: GitLab
       gitlab:
@@ -182,9 +95,9 @@ objects:
 - kind: DeploymentConfig
   apiVersion: v1
   metadata:
-    name: "${APPLICATION_NAME}"
+    name: "${SERVICE_NAME}"
     labels:
-      name: "${APPLICATION_NAME}"
+      name: "${SERVICE_NAME}"
   spec:
     strategy:
       type: Recreate
@@ -193,22 +106,22 @@ objects:
       imageChangeParams:
         automatic: true
         containerNames:
-        - "${APPLICATION_NAME}"
+        - "${SERVICE_NAME}"
         from:
           kind: ImageStreamTag
-          name: "${APPLICATION_NAME}:latest"
+          name: "${SERVICE_NAME}:latest"
     - type: ConfigChange
     replicas: 1
     selector:
-      name: "${APPLICATION_NAME}"
+      name: "${SERVICE_NAME}"
     template:
       metadata:
         labels:
-          name: "${APPLICATION_NAME}"
+          name: "${SERVICE_NAME}"
       spec:
         containers:
-        - name: "${APPLICATION_NAME}"
-          image: "${APPLICATION_NAME}"
+        - name: "${SERVICE_NAME}"
+          image: "${SERVICE_NAME}"
           ports:
           - containerPort: 5000
             protocol: TCP
@@ -222,14 +135,8 @@ objects:
             tcpSocket:
               port: 5000
           env:
-          - name: APP_SETTINGS
-            value: "${APP_SETTINGS}"
-          - name: POSTGRES_URL
-            value: "postgres://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@${APPLICATION_NAME}-postgres:5432/${POSTGRESQL_DATABASE}"
-          - name: POSTGRES_TEST_URL
-            value: "postgres://postgres:postgres@{APPLICATION_NAME}-postgres:5432/${POSTGRESQL_DATABASE}_test"
-          - name: REDIS_URL
-            value: "redis://{APPLICATION_NAME}-redis:6379/0"
+          - name: SERVICE_SETTINGS
+            value: "${SERVICE_SETTINGS}"
           resources:
             limits:
               memory: "${MEMORY_LIMIT_SERVICE}"
@@ -241,236 +148,27 @@ objects:
         restartPolicy: Always
         dnsPolicy: ClusterFirst
 
-- kind: DeploymentConfig
-  apiVersion: v1
-  metadata:
-    name: "${APPLICATION_NAME}-postgres"
-    annotations:
-      template.alpha.openshift.io/wait-for-ready: 'true'
-  spec:
-    strategy:
-      type: Recreate
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - postgresql
-        from:
-          kind: ImageStreamTag
-          name: "postgresql:${POSTGRESQL_VERSION}"
-          namespace: openshift
-        lastTriggeredImage:
-    - type: ConfigChange
-    replicas: 1
-    selector:
-      name: "${APPLICATION_NAME}-postgres"
-    template:
-      metadata:
-        labels:
-          name: "${APPLICATION_NAME}-postgres"
-      spec:
-        containers:
-        - name: postgresql
-          image:
-          ports:
-          - containerPort: 5432
-            protocol: TCP
-          readinessProbe:
-            timeoutSeconds: 1
-            initialDelaySeconds: 5
-            exec:
-              command:
-              - "/bin/sh"
-              - "-i"
-              - "-c"
-              - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c
-                'SELECT 1'
-          livenessProbe:
-            timeoutSeconds: 1
-            initialDelaySeconds: 30
-            tcpSocket:
-              port: 5432
-          env:
-          - name: POSTGRESQL_USER
-            valueFrom:
-              secretKeyRef:
-                name: "${APPLICATION_NAME}-postgres"
-                key: database-user
-          - name: POSTGRESQL_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: "${APPLICATION_NAME}-postgres"
-                key: database-password
-          - name: POSTGRESQL_DATABASE
-            valueFrom:
-              secretKeyRef:
-                name: "${APPLICATION_NAME}-postgres"
-                key: database-name
-          resources:
-            limits:
-              memory: "${MEMORY_LIMIT_POSTGRES}"
-          volumeMounts:
-          - name: vol-${APPLICATION_NAME}-postgres
-            mountPath: "/var/lib/pgsql/data"
-          terminationMessagePath: "/dev/termination-log"
-          imagePullPolicy: IfNotPresent
-        securityContext:
-          supplementalGroups:
-          - 60028
-          - 65534
-        volumes:
-        - name: vol-${APPLICATION_NAME}-postgres
-          persistentVolumeClaim:
-            claimName: pvc-${APPLICATION_NAME}-postgres
-        restartPolicy: Always
-        dnsPolicy: ClusterFirst
-
-- kind: DeploymentConfig
-  apiVersion: v1
-  metadata:
-    name: "${APPLICATION_NAME}-redis"
-    annotations:
-      template.alpha.openshift.io/wait-for-ready: 'true'
-  spec:
-    strategy:
-      type: Recreate
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - redis
-        from:
-          kind: ImageStreamTag
-          name: "redis:${REDIS_VERSION}"
-          namespace: "openshift"
-        lastTriggeredImage:
-    - type: ConfigChange
-    replicas: 1
-    selector:
-      name: "${APPLICATION_NAME}-redis"
-    template:
-      metadata:
-        labels:
-          name: "${APPLICATION_NAME}-redis"
-      spec:
-        containers:
-        - name: redis
-          image:
-          ports:
-          - containerPort: 6379
-            protocol: TCP
-          readinessProbe:
-            timeoutSeconds: 1
-            initialDelaySeconds: 5
-            exec:
-              command: 
-              - "/bin/sh"
-              - "-i"
-              - "-c"
-              - "test \"$(redis-cli -h 127.0.0.1 -a $REDIS_PASSWORD ping)\" == \"PONG\""
-          livenessProbe:
-            timeoutSeconds: 1
-            initialDelaySeconds: 30
-            tcpSocket:
-              port: 6379
-          env:
-          - name: REDIS_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: "${APPLICATION_NAME}-redis"
-                key: database-password
-          resources:
-            limits:
-              memory: "${MEMORY_LIMIT_REDIS}"
-          volumeMounts:
-          - name: vol-${APPLICATION_NAME}-redis
-            mountPath: "/var/lib/redis/data"
-          terminationMessagePath: "/dev/termination-log"
-          imagePullPolicy: IfNotPresent
-        securityContext:
-          supplementalGroups:
-          - 60028
-          - 65534
-        volumes:
-        - name: vol-${APPLICATION_NAME}-redis
-          persistentVolumeClaim:
-            claimName: pvc-${APPLICATION_NAME}-redis
-        restartPolicy: Always
-        dnsPolicy: ClusterFirst
-
 - kind: Route
   apiVersion: v1
   metadata:
-    name: "${APPLICATION_NAME}"
+    name: "${SERVICE_NAME}"
     annotations:
-      description: Route for application's http service
+      description: The Route for the service
   spec:
     to:
       kind: Service
-      name: "${APPLICATION_NAME}"
+      name: "${SERVICE_NAME}"
 
 - kind: Service
   apiVersion: v1
   metadata:
-    name: "${APPLICATION_NAME}"
+    name: "${SERVICE_NAME}"
     annotations:
-      description: The web server's http port
+      description: The service port
   spec:
     ports:
     - protocol: TCP
       port: 5000
       targetPort: 5000
     selector:
-      name: "${APPLICATION_NAME}"
-
-- kind: Service
-  apiVersion: v1
-  metadata:
-    name: "${APPLICATION_NAME}-postgres"
-  spec:
-    ports:
-    - name: postgresql
-      protocol: TCP
-      port: 5432
-      targetPort: 5432
-    selector:
-      name: "${APPLICATION_NAME}-postgres"
-
-- kind: Service
-  apiVersion: v1
-  metadata:
-    name: "${APPLICATION_NAME}-redis"
-  spec:
-    ports:
-    - name: redis
-      protocol: TCP
-      port: 6379
-      targetPort: 6379
-    selector:
-      name: "${APPLICATION_NAME}-redis"
-
-- kind: PersistentVolumeClaim
-  apiVersion: v1
-  metadata:
-    name: pvc-${APPLICATION_NAME}-postgres
-  spec:
-    storageClassName: storage-write
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: "${VOLUME_CAPACITY_POSTGRES}"
-
-- kind: PersistentVolumeClaim
-  apiVersion: v1
-  metadata:
-    name: pvc-${APPLICATION_NAME}-redis
-  spec:
-    storageClassName: storage-write
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: "${VOLUME_CAPACITY_REDIS}"
+      name: "${SERVICE_NAME}"
