@@ -113,10 +113,12 @@ class Node:
     def deploy(self):
         data = {
             "build_id": self.process_id,
-            "deploay_id": self.process_id,
+            "deploy_id": self.process_id,
+            "namespace": "sandbox",
             "args": self.process_args
         }
 
         response = post("{0}/deploy".format(current_app.config["DEPLOY_CONTROLLER"]), json=data)
-
-        return "Not yet implemented"
+        print(response.text)
+        if response.status_code != 201:
+            raise ParsingException("Process {0} could not be deployed.".format(self.process_id))
