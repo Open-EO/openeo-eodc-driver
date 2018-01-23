@@ -24,6 +24,4 @@ uc1_graph = {
     }
 }
 
-if __name__ == "__main__":
-    end_node = parse_process_graph(uc1_graph["process_graph"])
-    stop = 1
+end_node = parse_process_graph(uc1_graph["process_graph"])

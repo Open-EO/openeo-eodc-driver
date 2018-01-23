@@ -8,8 +8,8 @@ class BaseConfig:
     TESTING = False
     PUBLIC_NAMESPACE = "sandbox"
     PROCESS_REGISTRY = "http://localhost:9001"
-    BUILD_CONTROLLER = "http://localhost:9002"
-    DEPLOY_CONTROLLER = "http://localhost:9003"
+    DATA_REGISTRY = "http://localhost:9002"
+    TEMPLATE_ENGINE = "http://localhost:9003"
 
 class DevelopmentConfig(BaseConfig):
     ''' Development Configuration '''

@@ -16,7 +16,7 @@ def perform_graph_execution():
         process_graph = validate_payload(payload)
         parsed_graph = parse_process_graph(process_graph)
 
-        # parsed_graph.build()
+        parsed_graph.build()
         parsed_graph.deploy()
 
     except ValidationException as exp:

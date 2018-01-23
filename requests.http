@@ -15,16 +15,15 @@ content-type: application/json
                     "collections": [{
                         "product_id": "Sentinel-2A"
                     }],
-                    "left" : "0 48",
-                    "right" :"12 48",
-                    "top" : "9 47",
-                    "bottom" : "14 46",
-                    "finish" : "0 48",
+                    "left" : 652000,
+                    "right" :672000,
+                    "top" : 5161000,
+                    "bottom" : 5181000,
                     "srs" : "EPSG:32632"
                 }
             }],
-            "from": "2017-01-01T00:00:00",
-            "to": "2017-01-05T23:59:59"
+            "from": "2017-01-01",
+            "to": "2017-01-31"
         }
     }
 }
