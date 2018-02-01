@@ -1,13 +1,8 @@
 ''' Filter and URL Parsing for EODC Job Service'''
 
-def parse_urls(base_url, filter_graph):
-    ''' Get the URLs from the filter graph  '''
-    url_tree = filter_graph.get_url_tree()
-
-    urls = []
-    parse_tree(base_url, url_tree, urls)
-
-    return urls
+from json import loads
+from flask import current_app
+from requests import get
 
 def parse_tree(url_pointer, filter_tree, out_array):
     ''' Parse the url structure of the filter tree recursively '''
@@ -22,17 +17,17 @@ def parse_tree(url_pointer, filter_tree, out_array):
 
 def parse_url_product(args):
     ''' Product URL structure '''
-    return "&qname={0}" \
+    return "&product_id={0}" \
             .format(args["product_id"])
 
 def parse_url_filter_bbox(args):
     ''' filter_bbox URL structure '''
-    return "&qgeom=(({0}, {1}, {2}, {3}, {4}))" \
-            .format(args["left"], args["right"], args["top"], args["bottom"], args["finish"])
+    return "&srs={0}left={1}&right={2}&top={3}&bottom={4}"\
+            .format(args["srs"], args["left"], args["right"], args["top"], args["bottom"])
 
 def parse_url_filter_daterange(args):
     ''' filter_daterange URL structure '''
-    return "&qstartdate={0}&qenddate={1}" \
+    return "&from={0}&to={1}" \
             .format(args["from"], args["to"])
 
 URL_PARSER = {
@@ -74,3 +69,16 @@ class Filter:
                 branches.append(collection.get_url_tree())
 
         return branches
+
+    def get_paths(self):
+        base_url = current_app.config["DATA_REGISTRY"] + "/data/paths?p=0"
+        url_tree = self.get_url_tree()
+
+        urls = []
+        parse_tree(base_url, url_tree, urls)
+
+        url = urls[0]
+        response = get(url)
+
+        return loads(response.text)["message"]
+

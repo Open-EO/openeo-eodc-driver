@@ -3,8 +3,7 @@
 from json import loads, dumps
 from requests import get, post
 from flask import current_app
-from service.src.tmp_processes import filterbbox, filterdaterange, ndvi, mintime, extractfromstorage
-from service.src.filter import Filter, parse_urls
+from service.src.filter import Filter
 
 class ParsingException(Exception):
     ''' Parsing Exception raises if process_graph is not processable '''
@@ -23,42 +22,27 @@ def get_process_from_registry(process_id):
     ''' Query the registry to get the process_id. '''
 
     # TODO: Send user token for namespace validation 
-    # response = get("{0}/processes/{1}".format(current_app.config["PROCESS_REGISTRY"],
-    #                                           self.process_id))
-    # if response.status_code != 200:
-    #     raise ParsingException("Process {0} could not be found in your process \
-    #                             registry namespaces.".format(self.process_id))
+    response = get("{0}/processes/{1}".format(current_app.config["PROCESS_REGISTRY"], process_id))
+    if response.status_code != 200:
+        raise ParsingException("Process {0} could not be found in your process \
+                                registry namespaces.".format(process_id))
+
     # TODO: Prozess in welchem namespace? -> 0
-    # process = loads(response.text)["data"]["process"][0]
-
-    if process_id == "filter_bbox":
-        return filterbbox
-
-    if process_id == "filter_daterange":
-        return filterdaterange
-
-    if process_id == "extract-from-storage":
-        return extractfromstorage
-
-    if process_id == "NDVI":
-        return ndvi
-
-    if process_id == "min_time":
-        return mintime
+    return loads(response.text)["data"]["process"][0]
 
 class Node:
     ''' Executable node objects of the process graph '''
 
     def __init__(self, process_id, process_args, process_template):
-        if process_template["type"] == "filter":
+        # if process_template["type"] == "filter":
+        if True:
             # TODO: Auch noch process template?
             # TODO: Add correct url from environ
             filter_graph = Filter(process_id, process_args)
-            filter_urls = parse_urls("http://127.0.0.1:9002/data?p=0", filter_graph)
 
             self.process_id = "extract-from-storage"
             self.process_template = get_process_from_registry(self.process_id)
-            self.process_args = {"urls": filter_urls}
+            self.process_args = {"file_paths": filter_graph.get_paths()}
         else:
             self.process_id = process_id
             self.process_template = process_template
@@ -97,28 +81,55 @@ class Node:
         return "Not yet implemented"
 
     def build(self):
+
         data = {
-            "build_id": self.process_id,
-            "build_namespace": "sandbox",
-            "git_uri": self.process_template["git_uri"],
-            "git_ref": self.process_template["git_ref"],
+            "image_stream": {
+                "name": self.process_id + "-image",
+                "namespace": "sandbox",
+                "tag": "latest"
+            },
+            "build_config": {
+                "name": self.process_id + "-build",
+                "namespace": "sandbox",
+                "git_uri": self.process_template["git_uri"],
+                "git_ref": self.process_template["git_ref"],
+                "image_name": self.process_id + "-image",
+                "tag": "latest"
+            }
         }
 
-        response = post("{0}/build".format(current_app.config["BUILD_CONTROLLER"]), json=data)
+        response = post("{0}/build".format(current_app.config["TEMPLATE_ENGINE"]), json=data)
 
         if response.status_code != 201:
+            print(response.text)
             raise ParsingException("Process {0} could not be build.".format(self.process_id))
 
 
     def deploy(self):
         data = {
-            "build_id": self.process_id,
-            "deploy_id": self.process_id,
-            "namespace": "sandbox",
-            "args": self.process_args
+            "pvc": {
+                "name": self.process_id + "-pvc",
+                "namespace": "sandbox",
+                "class_name": "storage-write",
+                "modes": "ReadWriteOnce",
+                "size": "5Gi"
+            },
+            "config_map": {
+                "name": self.process_id + "-configmap",
+                "namespace": "sandbox",
+                "data": { "file_paths": self.process_args["file_paths"]}
+            },
+            "job": {
+                "name": self.process_id + "-job",
+                "namespace": "sandbox",
+                "image_name": self.process_id + "-image",
+                "tag": "latest",
+                "name_pvc": self.process_id + "-pvc",
+                "name_configmap": self.process_id + "-configmap"
+            }
         }
 
-        response = post("{0}/deploy".format(current_app.config["DEPLOY_CONTROLLER"]), json=data)
-        print(response.text)
+        response = post("{0}/deploy".format(current_app.config["TEMPLATE_ENGINE"]), json=data)
+
         if response.status_code != 201:
             raise ParsingException("Process {0} could not be deployed.".format(self.process_id))

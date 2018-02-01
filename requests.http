@@ -1,7 +1,7 @@
 ### Health Check
 GET http://127.0.0.1:5000/health
 
-### Simple data bbox extraction on a date range
+### Simple data extraction on a bbox/date-range
 POST http://127.0.0.1:5000/jobs
 content-type: application/json
 
@@ -15,15 +15,15 @@ content-type: application/json
                     "collections": [{
                         "product_id": "Sentinel-2A"
                     }],
-                    "left" : 652000,
-                    "right" :672000,
-                    "top" : 5161000,
-                    "bottom" : 5181000,
-                    "srs" : "EPSG:32632"
+                    "left" : -5,
+                    "right" :5,
+                    "top" : 5,
+                    "bottom" : -5,
+                    "srs" : "EPSG:4326"
                 }
             }],
             "from": "2017-01-01",
-            "to": "2017-01-31"
+            "to": "2017-01-03"
         }
     }
 }
