@@ -1,9 +1,19 @@
 ### Health Check
 GET http://127.0.0.1:5000/health
 
-### Simple data extraction on a bbox/date-range
-POST http://127.0.0.1:5000/jobs
+### GET auth token
+POST http://openeo.eodc.eu/auth/login
 content-type: application/json
+
+{
+    "username": "user",
+    "password": "eodcUser#1"
+}
+
+### Simple data extraction on a bbox/date-range
+POST http://127.0.0.1:3000/jobs
+content-type: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1MjA2MDI0MDYsImlhdCI6MTUxODAxMDQwNiwic3ViIjoxfQ.2H-tqRbOmvRWTqGj1GOSdwRpTUqxPOw0ri6BSshrtt4
 
 {
     "process_graph": {
@@ -29,7 +39,7 @@ content-type: application/json
 }
 
 ### UC1 Process Graph
-POST http://127.0.0.1:5000/jobs
+POST http://127.0.0.1:3000/jobs
 content-type: application/json
 
 {

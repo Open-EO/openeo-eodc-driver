@@ -6,10 +6,8 @@ class BaseConfig:
     ''' Base Configuration '''
     DEBUG = False
     TESTING = False
-    PUBLIC_NAMESPACE = "sandbox"
-    PROCESS_REGISTRY = "http://localhost:9001"
-    DATA_REGISTRY = "http://localhost:9002"
-    TEMPLATE_ENGINE = "http://localhost:9003"
+    NAMESPACE = "sandbox"
+    OPENEO_API = "http://openeo.eodc.eu"
 
 class DevelopmentConfig(BaseConfig):
     ''' Development Configuration '''
