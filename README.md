@@ -15,6 +15,7 @@ For more information on OpenShift please visit:
 - (How to setup an OpenShift cluster)[https://docs.openshift.org/latest/install_config/install/planning.html]
 
 ## Environmental Variables
+- 
 
 ## Installation
 - Log into OpenShift instance usuing OpenShift Client Tools (oc): ``` oc login <openshift_url> ```

@@ -27,7 +27,22 @@ parameters:
 - name: MEMORY_LIMIT_SERVICE
   displayName: Memory Limit
   description: Maximum amount of memory the service can use.
-  value: 256Mi
+  value: 4Gi
+  required: true
+- name: SERVICEACCOUNT_TOKEN
+  displayName: Service Account Token
+  description: Token of service account
+  value: 
+  required: true
+- name: EXECUTION_NAMESPACE
+  displayName: Job Execution Namespace
+  description: Namspace for job execution
+  value: 
+  required: true
+- name: STORAGE_CLASS
+  displayName: Storage Class
+  description: Storage class that should be used
+  value: 
   required: true
 
 # GIT
