@@ -50,10 +50,10 @@ parameters:
   description: Storage class for PersitantVolumeClaims and the databases that should be used (e.g. "storage-write")
   value: storage-write
   required: true
-- name: OPENEO_API_URI
+- name: OPENEO_API_HOST
   displayName: OpenEO API URI
-  description: URI for accessing the OpenEO API (e.g. http://openeo.example.com)
-  value: http://openeo2.193.170.203.100.xip.io
+  description: URI for accessing the OpenEO API (e.g. openeo.example.com)
+  value: openeo2.193.170.203.100.xip.io
   required: true
 - name: OPENSHIFT_API_URI
   displayName: OpenShift API URI
@@ -106,12 +106,12 @@ parameters:
 - name: JOBS_DATABASE
   displayName: PostgreSQL Database Name
   description: Name of the PostgreSQL database accessed.
-  value: users
+  value: jobs
   required: true
 - name: PROCESSES_DATABASE
   displayName: PostgreSQL Database Name
   description: Name of the PostgreSQL database accessed.
-  value: users
+  value: processes
   required: true
 - name: USERS_DATABASE
   displayName: PostgreSQL Database Name
@@ -148,8 +148,9 @@ objects:
     source:
       type: Git
       git:
-        uri: "${GIT_URI}/services/job"
+        uri: "${GIT_URI}"
         ref: "${GIT_REF}"
+      contextDir: "services/job"
       sourceSecret:
         name: "${GIT_SECRET}"
     strategy:
@@ -171,8 +172,11 @@ objects:
   metadata:
     name: "${SERVICE_PREFIX}-job"
     labels:
-      name: "${SERVICE_PREFIX}-job"
+      app: "${SERVICE_PREFIX}-job"
   spec:
+    selector:
+      app: "${SERVICE_PREFIX}-job"
+      deploymentconfig: "${SERVICE_PREFIX}-job"
     strategy:
       type: Recreate
     triggers:
@@ -186,8 +190,6 @@ objects:
           name: "${SERVICE_PREFIX}-job:latest"
     - type: ConfigChange
     replicas: 1
-    selector:
-      name: "${SERVICE_PREFIX}-job"
     template:
       metadata:
         labels:
@@ -219,8 +221,8 @@ objects:
             value: "${STORAGE_CLASS_NAME}"
           - name: SERVICEACCOUNT_TOKEN
             value: "${SERVICEACCOUNT_TOKEN}"
-          - name: OPENEO_API_URI
-            value: "${OPENEO_API_URI}"
+          - name: OPENEO_API_HOST
+            value: "${OPENEO_API_HOST}"
           - name: OPENSHIFT_API_URI
             value: "${OPENSHIFT_API_URI}"
           - name: CSW_SERVER
@@ -244,7 +246,7 @@ objects:
     annotations:
       description: openEO /jobs route
   spec:
-    host: "${OPENEO_API_URI}"
+    host: "${OPENEO_API_HOST}"
     path: /jobs
     to:
       kind: Service
@@ -253,15 +255,16 @@ objects:
   apiVersion: v1
   metadata:
     name: "${SERVICE_PREFIX}-job"
-    annotations:
-      description: The service port
+    labels:
+      app: ${SERVICE_PREFIX}-job
   spec:
     ports:
     - protocol: TCP
       port: 5000
       targetPort: 5000
     selector:
-      name: "${SERVICE_PREFIX}-job"
+      app: "${SERVICE_PREFIX}-job"
+      deploymentconfig: "${SERVICE_PREFIX}-job"
 
 # OPENEO JOB DATABASE
 - kind: Secret
@@ -333,7 +336,7 @@ objects:
               secretKeyRef:
                 name: "${SERVICE_PREFIX}-job-postgres"
                 key: database-password
-          - name: POSTGRESQL_DATABASE
+          - name: JOBS_DATABASE
             valueFrom:
               secretKeyRef:
                 name: "${SERVICE_PREFIX}-job-postgres"
@@ -368,586 +371,6 @@ objects:
   apiVersion: v1
   metadata:
     name: pvc-${SERVICE_PREFIX}-job-postgres
-  spec:
-    storageClassName: "${STORAGE_CLASS_NAME}"
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: "${VOLUME_CAPACITY_POSTGRES}"
-
-# OPENEO DATA SERVICE
-- kind: ImageStream
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-data"
-  spec:
-    dockerImageRepository:
-    tags:
-    - name: latest
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-data"
-  spec:
-    source:
-      type: Git
-      git:
-        uri: "${GIT_URI}/services/data"
-        ref: "${GIT_REF}"
-      sourceSecret:
-        name: "${GIT_SECRET}"
-    strategy:
-      dockerStrategy:
-        dockerfilePath: Dockerfile
-    output:
-      to:
-        kind: ImageStreamTag
-        name: "${SERVICE_PREFIX}-data:latest"
-    triggers:
-    - type: GitLab
-      gitlab:
-        secret: "${GITLAB_SECRET}"
-    - type: ConfigChange
-    - type: ImageChange
-      imageChange:
-- kind: DeploymentConfig
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-data"
-    labels:
-      name: "${SERVICE_PREFIX}-data"
-  spec:
-    strategy:
-      type: Recreate
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - "${SERVICE_PREFIX}-data"
-        from:
-          kind: ImageStreamTag
-          name: "${SERVICE_PREFIX}-data:latest"
-    - type: ConfigChange
-    replicas: 1
-    selector:
-      name: "${SERVICE_PREFIX}-data"
-    template:
-      metadata:
-        labels:
-          name: "${SERVICE_PREFIX}-data"
-      spec:
-        containers:
-        - name: "${SERVICE_PREFIX}-data"
-          image: "${SERVICE_PREFIX}-data"
-          ports:
-          - containerPort: 5000
-            protocol: TCP
-          readinessProbe:
-            httpGet:
-              path: "/ping"
-              port: 5000
-          livenessProbe:
-            timeoutSeconds: 1
-            initialDelaySeconds: 30
-            tcpSocket:
-              port: 5000
-          env:
-          - name: SERVICE_SETTINGS
-            value: "${SERVICE_SETTINGS}"
-          resources:
-            limits:
-              memory: "${MEMORY_LIMIT_SERVICE}"
-          terminationMessagePath: "/dev/termination-log"
-          imagePullPolicy: Always
-          securityContext:
-            capabilities:
-            privileged: false
-        restartPolicy: Always
-        dnsPolicy: ClusterFirst
-- kind: Route
-  apiVersion: v1
-  metadata:
-    name: "openeo-service-data"
-    annotations:
-      description: openEO /data route
-  spec:
-    host: "${OPENEO_API_URI}"
-    path: /data
-    to:
-      kind: Service
-      name: "${SERVICE_PREFIX}-data"
-- kind: Service
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-data"
-    annotations:
-      description: The service port
-  spec:
-    ports:
-    - protocol: TCP
-      port: 5000
-      targetPort: 5000
-    selector:
-      name: "${SERVICE_PREFIX}-data"
-
-# OPENEO USER SERVICE
-- kind: ImageStream
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-user"
-  spec:
-    dockerImageRepository:
-    tags:
-    - name: latest
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-user"
-  spec:
-    source:
-      type: Git
-      git:
-        uri: "${GIT_URI}/services/user"
-        ref: "${GIT_REF}"
-      sourceSecret:
-        name: "${GIT_SECRET}"
-    strategy:
-      dockerStrategy:
-        dockerfilePath: Dockerfile
-    output:
-      to:
-        kind: ImageStreamTag
-        name: "${SERVICE_PREFIX}-user:latest"
-    triggers:
-    - type: GitLab
-      gitlab:
-        secret: "${GITLAB_SECRET}"
-    - type: ConfigChange
-    - type: ImageChange
-      imageChange:
-- kind: DeploymentConfig
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-user"
-    labels:
-      name: "${SERVICE_PREFIX}-user"
-  spec:
-    strategy:
-      type: Recreate
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - "${SERVICE_PREFIX}-user"
-        from:
-          kind: ImageStreamTag
-          name: "${SERVICE_PREFIX}-user:latest"
-    - type: ConfigChange
-    replicas: 1
-    selector:
-      name: "${SERVICE_PREFIX}-user"
-    template:
-      metadata:
-        labels:
-          name: "${SERVICE_PREFIX}-user"
-      spec:
-        containers:
-        - name: "${SERVICE_PREFIX}-user"
-          image: "${SERVICE_PREFIX}-user"
-          ports:
-          - containerPort: 5000
-            protocol: TCP
-          readinessProbe:
-            httpGet:
-              path: "/ping"
-              port: 5000
-          livenessProbe:
-            timeoutSeconds: 1
-            initialDelaySeconds: 30
-            tcpSocket:
-              port: 5000
-          env:
-          - name: SERVICE_SETTINGS
-            value: "${SERVICE_SETTINGS}"
-          - name: DATABASE_URL
-            value: "postgres://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@${SERVICE_PREFIX}-user-postgres:5432/${USERS_DATABASE}"
-          - name: SECRET_BCRYPT
-            value: "${SECRET_BCRYPT}"
-          resources:
-            limits:
-              memory: "${MEMORY_LIMIT_SERVICE}"
-          terminationMessagePath: "/dev/termination-log"
-          imagePullPolicy: Always
-          securityContext:
-            capabilities:
-            privileged: false
-        restartPolicy: Always
-        dnsPolicy: ClusterFirst
-- kind: Route
-  apiVersion: v1
-  metadata:
-    name: "openeo-service-user"
-    annotations:
-      description: openEO /users route
-  spec:
-    host: "${OPENEO_API_URI}"
-    path: /users
-    to:
-      kind: Service
-      name: "${SERVICE_PREFIX}-user"
-- kind: Service
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-user"
-    annotations:
-      description: The service port
-  spec:
-    ports:
-    - protocol: TCP
-      port: 5000
-      targetPort: 5000
-    selector:
-      name: "${SERVICE_PREFIX}-user"
-
-# OPENEO USER DATABASE
-- kind: Secret
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-user-postgres"
-  stringData:
-    database-user: "${POSTGRESQL_USER}"
-    database-password: "${POSTGRESQL_PASSWORD}"
-    database-name: "${USERS_DATABASE}"
-- kind: DeploymentConfig
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-user-postgres"
-    annotations:
-      template.alpha.openshift.io/wait-for-ready: 'true'
-  spec:
-    strategy:
-      type: Recreate
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - postgresql
-        from:
-          kind: ImageStreamTag
-          name: "postgresql:${POSTGRESQL_VERSION}"
-          namespace: openshift
-        lastTriggeredImage:
-    - type: ConfigChange
-    replicas: 1
-    selector:
-      name: "${SERVICE_PREFIX}-user-postgres"
-    template:
-      metadata:
-        labels:
-          name: "${SERVICE_PREFIX}-user-postgres"
-      spec:
-        containers:
-        - name: postgresql
-          image:
-          ports:
-          - containerPort: 5432
-            protocol: TCP
-          readinessProbe:
-            timeoutSeconds: 1
-            initialDelaySeconds: 5
-            exec:
-              command:
-              - "/bin/sh"
-              - "-i"
-              - "-c"
-              - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $USERS_DATABASE -c
-                'SELECT 1'
-          livenessProbe:
-            timeoutSeconds: 1
-            initialDelaySeconds: 30
-            tcpSocket:
-              port: 5432
-          env:
-          - name: POSTGRESQL_USER
-            valueFrom:
-              secretKeyRef:
-                name: "${SERVICE_PREFIX}-user-postgres"
-                key: database-user
-          - name: POSTGRESQL_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: "${SERVICE_PREFIX}-user-postgres"
-                key: database-password
-          - name: POSTGRESQL_DATABASE
-            valueFrom:
-              secretKeyRef:
-                name: "${SERVICE_PREFIX}-user-postgres"
-                key: database-name
-          resources:
-            limits:
-              memory: "${MEMORY_LIMIT_POSTGRES}"
-          volumeMounts:
-          - name: vol-${SERVICE_PREFIX}-user-postgres
-            mountPath: "/var/lib/pgsql/data"
-          terminationMessagePath: "/dev/termination-log"
-          imagePullPolicy: IfNotPresent
-        volumes:
-        - name: vol-${SERVICE_PREFIX}-user-postgres
-          persistentVolumeClaim:
-            claimName: pvc-${SERVICE_PREFIX}-user-postgres
-        restartPolicy: Always
-        dnsPolicy: ClusterFirst
-- kind: Service
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-user-postgres"
-  spec:
-    ports:
-    - name: postgresql
-      protocol: TCP
-      port: 5432
-      targetPort: 5432
-    selector:
-      name: "${SERVICE_PREFIX}-user-postgres"
-- kind: PersistentVolumeClaim
-  apiVersion: v1
-  metadata:
-    name: pvc-${SERVICE_PREFIX}-user-postgres
-  spec:
-    storageClassName: "${STORAGE_CLASS_NAME}"
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: "${VOLUME_CAPACITY_POSTGRES}"
-
-# OPENEO PROCESS SERVICE
-- kind: ImageStream
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-process"
-  spec:
-    dockerImageRepository:
-    tags:
-    - name: latest
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-process"
-  spec:
-    source:
-      type: Git
-      git:
-        uri: "${GIT_URI}/services/process"
-        ref: "${GIT_REF}"
-      sourceSecret:
-        name: "${GIT_SECRET}"
-    strategy:
-      dockerStrategy:
-        dockerfilePath: Dockerfile
-    output:
-      to:
-        kind: ImageStreamTag
-        name: "${SERVICE_PREFIX}-process:latest"
-    triggers:
-    - type: GitLab
-      gitlab:
-        secret: "${GITLAB_SECRET}"
-    - type: ConfigChange
-    - type: ImageChange
-      imageChange:
-- kind: DeploymentConfig
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-process"
-    labels:
-      name: "${SERVICE_PREFIX}-process"
-  spec:
-    strategy:
-      type: Recreate
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - "${SERVICE_PREFIX}-process"
-        from:
-          kind: ImageStreamTag
-          name: "${SERVICE_PREFIX}-process:latest"
-    - type: ConfigChange
-    replicas: 1
-    selector:
-      name: "${SERVICE_PREFIX}-process"
-    template:
-      metadata:
-        labels:
-          name: "${SERVICE_PREFIX}-process"
-      spec:
-        containers:
-        - name: "${SERVICE_PREFIX}-process"
-          image: "${SERVICE_PREFIX}-process"
-          ports:
-          - containerPort: 5000
-            protocol: TCP
-          readinessProbe:
-            httpGet:
-              path: "/ping"
-              port: 5000
-          livenessProbe:
-            timeoutSeconds: 1
-            initialDelaySeconds: 30
-            tcpSocket:
-              port: 5000
-          env:
-          - name: SERVICE_SETTINGS
-            value: "${SERVICE_SETTINGS}"
-          - name: DATABASE_URL
-            value: "postgres://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@${SERVICE_PREFIX}-process-postgres:5432/${JOBS_DATABASE}"
-          resources:
-            limits:
-              memory: "${MEMORY_LIMIT_SERVICE}"
-          terminationMessagePath: "/dev/termination-log"
-          imagePullPolicy: Always
-          securityContext:
-            capabilities:
-            privileged: false
-        restartPolicy: Always
-        dnsPolicy: ClusterFirst
-- kind: Route
-  apiVersion: v1
-  metadata:
-    name: "openeo-service-process"
-    annotations:
-      description: openEO /processes route
-  spec:
-    host: "${OPENEO_API_URI}"
-    path: /processes
-    to:
-      kind: Service
-      name: "${SERVICE_PREFIX}-process"
-- kind: Service
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-process"
-    annotations:
-      description: The service port
-  spec:
-    ports:
-    - protocol: TCP
-      port: 5000
-      targetPort: 5000
-    selector:
-      name: "${SERVICE_PREFIX}-process"
-
-# OPENEO PROCESS DATABASE
-- kind: Secret
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-process-postgres"
-  stringData:
-    database-user: "${POSTGRESQL_USER}"
-    database-password: "${POSTGRESQL_PASSWORD}"
-    database-name: "${JOBS_DATABASE}"
-- kind: DeploymentConfig
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-process-postgres"
-    annotations:
-      template.alpha.openshift.io/wait-for-ready: 'true'
-  spec:
-    strategy:
-      type: Recreate
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - postgresql
-        from:
-          kind: ImageStreamTag
-          name: "postgresql:${POSTGRESQL_VERSION}"
-          namespace: openshift
-        lastTriggeredImage:
-    - type: ConfigChange
-    replicas: 1
-    selector:
-      name: "${SERVICE_PREFIX}-process-postgres"
-    template:
-      metadata:
-        labels:
-          name: "${SERVICE_PREFIX}-process-postgres"
-      spec:
-        containers:
-        - name: postgresql
-          image:
-          ports:
-          - containerPort: 5432
-            protocol: TCP
-          readinessProbe:
-            timeoutSeconds: 1
-            initialDelaySeconds: 5
-            exec:
-              command:
-              - "/bin/sh"
-              - "-i"
-              - "-c"
-              - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $JOBS_DATABASE -c
-                'SELECT 1'
-          livenessProbe:
-            timeoutSeconds: 1
-            initialDelaySeconds: 30
-            tcpSocket:
-              port: 5432
-          env:
-          - name: POSTGRESQL_USER
-            valueFrom:
-              secretKeyRef:
-                name: "${SERVICE_PREFIX}-process-postgres"
-                key: database-user
-          - name: POSTGRESQL_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: "${SERVICE_PREFIX}-process-postgres"
-                key: database-password
-          - name: POSTGRESQL_DATABASE
-            valueFrom:
-              secretKeyRef:
-                name: "${SERVICE_PREFIX}-process-postgres"
-                key: database-name
-          resources:
-            limits:
-              memory: "${MEMORY_LIMIT_POSTGRES}"
-          volumeMounts:
-          - name: vol-${SERVICE_PREFIX}-process-postgres
-            mountPath: "/var/lib/pgsql/data"
-          terminationMessagePath: "/dev/termination-log"
-          imagePullPolicy: IfNotPresent
-        volumes:
-        - name: vol-${SERVICE_PREFIX}-process-postgres
-          persistentVolumeClaim:
-            claimName: pvc-${SERVICE_PREFIX}-process-postgres
-        restartPolicy: Always
-        dnsPolicy: ClusterFirst
-- kind: Service
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-process-postgres"
-  spec:
-    ports:
-    - name: postgresql
-      protocol: TCP
-      port: 5432
-      targetPort: 5432
-    selector:
-      name: "${SERVICE_PREFIX}-process-postgres"
-- kind: PersistentVolumeClaim
-  apiVersion: v1
-  metadata:
-    name: pvc-${SERVICE_PREFIX}-process-postgres
   spec:
     storageClassName: "${STORAGE_CLASS_NAME}"
     accessModes:
