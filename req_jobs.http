@@ -13,26 +13,38 @@ content-type: application/json
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1MjExOTY1ODUsImlhdCI6MTUxODYwNDU4NSwic3ViIjoxfQ.63S3qQzmhzo8xxICFRpg9EyoJGylLpVbI7PO019gUSw
 
 {
-    "process_graph": {
-        "process_id": "filter_daterange",
-        "args": {
-            "imagery": {
-                "process_id": "filter_bbox",
-                "args": {
-                    "imagery": {
-                        "product_id": "Sentinel-2A"
-                    },
-                    "bottom" : -10,
-                    "left" : 0,
-                    "top" : 5,
-                    "right" : 5,
-                    "srs" : "EPSG:4326"
+  "process_graph":{
+    "process_id":"min_time",
+    "args":{
+      "imagery":{
+        "process_id":"ndvi",
+        "args":{
+          "imagery":{
+            "process_id":"filter_daterange",
+            "args":{
+              "imagery":{
+                "process_id":"filter_bbox",
+                "args":{
+                  "imagery":{
+                    "product_id":"Sentinel-2A"
+                  },
+                  "bottom": 48.023549396,
+                  "left": 15.166625977,
+                  "top": 48.614027308,
+                  "right": 16.793975830,
+                  "srs":"EPSG:4326"
                 }
-            },
-            "from": "2018-01-01",
-            "to": "2018-01-30"
+              },
+              "from":"2018-01-01",
+              "to":"2018-01-15"
+            }
+          },
+          "red":"B04",
+          "nir":"B8A"
         }
+      }
     }
+  }
 }
 
 ### GET Job
@@ -44,62 +56,5 @@ DELETE http://127.0.0.1:3000/jobs/3
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1MjExOTY1ODUsImlhdCI6MTUxODYwNDU4NSwic3ViIjoxfQ.63S3qQzmhzo8xxICFRpg9EyoJGylLpVbI7PO019gUSw
 
 ### Execute Job
-GET http://127.0.0.1:3000/jobs/12/execute
+GET http://127.0.0.1:3000/jobs/17/execute
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1MjExOTY1ODUsImlhdCI6MTUxODYwNDU4NSwic3ViIjoxfQ.63S3qQzmhzo8xxICFRpg9EyoJGylLpVbI7PO019gUSw
-
-
-### UC1 Process Graph
-POST http://127.0.0.1:3000/jobs
-content-type: application/json
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1MjExOTY1ODUsImlhdCI6MTUxODYwNDU4NSwic3ViIjoxfQ.63S3qQzmhzo8xxICFRpg9EyoJGylLpVbI7PO019gUSw
-
-{
-    "process_graph":{
-        "process_id":"min_time",
-        "args":{
-            "collections":[{
-                "process_id":"NDVI",
-                "args":{
-                    "collections":[{
-                        "process_id":"filter_daterange",
-                        "args":{
-                            "collections":[{
-                                "process_id":"filter_bbox",
-                                "args":{
-                                    "collections":[
-                                    {
-                                        "product_id":"S2_L2A_T32TPS_20M"
-                                    }],
-                                    "left":652000,
-                                    "right":672000,
-                                    "top":5161000,
-                                    "bottom":5181000,
-                                    "srs":"EPSG:32632"
-                                }
-                            }],
-                            "from":"2017-01-01",
-                            "to":"2017-01-31"
-                        }
-                    }],
-                    "red":"B04",
-                    "nir":"B8A"
-                }
-            }]
-        }
-    }
-}
-
-###
-GET https://openshift-master.eodc.eu/oapi/v1/namespaces/execution-environment/imagestreams/job-3
-Authorization: Bearer UvABH0pSTqbUSX_ZjKeihYP3Rc70YdVBNdjbmYS_CHk
-
-
-###
-GET https://openshift-master.eodc.eu/oapi/v1/namespaces/execution-environment/buildconfigs/job-3
-Authorization: Bearer UvABH0pSTqbUSX_ZjKeihYP3Rc70YdVBNdjbmYS_CHk
-
-###
-GET https://openshift-master.eodc.eu/api/v1/namespaces/execution-environment/pods/job-3-1-build
-Authorization: Bearer UvABH0pSTqbUSX_ZjKeihYP3Rc70YdVBNdjbmYS_CHk
-
-

@@ -27,8 +27,8 @@ class Job(BaseTemplate):
             },
             {
                 "name": "out-volume",
-                "configMap": {
-                    "name": out_pvc.template_id
+                "persistentVolumeClaim": {
+                    "claimName": out_pvc.template_id
                 }
             }
         ]
@@ -51,9 +51,9 @@ class Job(BaseTemplate):
         for pvc in in_pvcs:
             volumes.append(
                 {
-                    "name": "config-volume",
-                    "configMap": {
-                        "name": pvc.template_id
+                    "name": pvc.template_id,
+                    "persistentVolumeClaim": {
+                        "claimName": pvc.template_id
                     }
                 }
             )

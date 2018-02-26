@@ -17,7 +17,7 @@ class Node(ABC):
 
     def __init__(self, graph_id):
         rnd = "".join(choice(ascii_lowercase + digits) for _ in range(3))
-        self.node_id = "{0}-n{1}-".format(graph_id, rnd)
+        self.node_id = "{0}-n{1}".format(graph_id, rnd)
 
     @abstractmethod
     def get_process_id(self):
@@ -91,22 +91,22 @@ class Node(ABC):
         # storage_size = self.calculate_storage_size()
         storage_size = "5Gi"
         out_pvc = PersistentVolumeClaim(namespace, self.node_id, storage_class, storage_size)
-        #out_pvc.create(token)
+        out_pvc.create(token)
         
         # Create Image Stream
         img_stream = ImageStream(namespace, self.node_id)
-        #img_stream.create(token)
+        img_stream.create(token)
 
         # Create Build
         build_cfg = BuildConfig(namespace, self.node_id, git_uri, git_ref, img_stream)
-        #build_cfg.create(token)
+        build_cfg.create(token)
 
         # Create Config_Data
         conf_map = ConfigMap(namespace, self.node_id, args, input_pvcs)
-        #conf_map.create(token)
+        conf_map.create(token)
 
         # Create Job
         job = Job(namespace, self.node_id, img_stream, input_pvcs, out_pvc, conf_map)
-        #job.create(token)
+        job.create(token)
 
         return out_pvc

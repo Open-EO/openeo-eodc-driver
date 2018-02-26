@@ -13,13 +13,12 @@ class Operation(Node):
 
         self.args = {}
         self.input_nodes = []
-        for key, value in operation_payload["args"].items:
+        for key, value in operation_payload["args"].items():
             if key == "imagery":
                 input_node = Node.parse_node(graph_id, value)
                 self.input_nodes.append(input_node)
-                break
-
-            self.args[key] = value
+            else:
+                self.args[key] = value
 
     def get_process_id(self):
         ''' Returns the process_id '''

@@ -63,6 +63,9 @@ class Filter(Node):
         bbox = [args["bottom"], args["left"], args["top"], args["right"]]
         start_date = datetime.strptime(args["from"], '%Y-%m-%d')
         end_date = datetime.strptime(args["to"], '%Y-%m-%d')
+        
+        # TODO: Band filtering
+        args["bands"] = ["B01"]
 
         if int ((end_date - start_date).days) == 0:
             day = start_date

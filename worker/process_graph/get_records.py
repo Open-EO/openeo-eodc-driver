@@ -56,11 +56,12 @@ def get_single_records(start_position, product, begin, end, bbox, just_filepaths
     records = search_result["csw:Record"]
 
     results = []
-    for item in records:
-        if just_filepaths: 
-            results.append(item["dct:references"]["#text"])
-        else:
-            results.append(item)
+    if isinstance(records, list):
+        for item in records:
+            results.append(item["dct:references"]["#text"] if just_filepaths else item)
+
+    if isinstance(records, dict):
+        results.append(records["dct:references"]["#text"] if just_filepaths else records)
 
     return record_next, results
 

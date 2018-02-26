@@ -73,11 +73,3 @@ def validate_type(arg_id, arg_payload, arg_type):
 
     if not isinstance(arg_payload, ARG_TYPES[arg_type]):
         raise ValidationError("Argument {0} is not of type {1}.".format(arg_payload, arg_type))
-
-def validate_status(payload):
-    ''' Ensures that the structure of the job spec is correct. '''
-
-    if "status" not in payload:
-        raise ValidationError("Payload is missing a Process Graph status update.")
-    
-    validate_node(payload["process_graph"], auth)

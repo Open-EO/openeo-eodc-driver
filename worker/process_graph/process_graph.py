@@ -22,11 +22,11 @@ class ProcessGraph:
         ''' Executes the process graph '''
         
         try:
-            result_pvc = self.start_node.run(token, namespace, storage_class)
+            return self.start_node.run(token, namespace, storage_class)
         except ProcessingError as exp:
             self.set_status("Processing Error:" + str(exp))
 
-        return result_pvc
+        
     
     def set_status(self, status):
         ''' Chnages the status of job processing '''
