@@ -21,6 +21,19 @@ For more information on OpenShift please visit:
 - The OpenShift Client Tools must be installed (See: (OpenSHift OC Download)[https://www.openshift.org/download.html])
 - 
 
+
+  ```
+  oc project <openshift_project>
+  oc process -f template.json | oc create -f -
+  ```
+
+- Delete all objects/instances 
+  (Command will delete everything in project except PersistantVolumes and Secrets)
+  ```
+  oc delete all --all
+  ```
+
+
 ### job service installation steps
 - Log into OpenShift instance usuing OpenShift Client Tools (oc): ```oc login <openshift_url>```
 - Create new project/namespace for the job service: ```oc new-project <project_name>```
@@ -66,9 +79,6 @@ For more information on OpenShift please visit:
 
 ## Commands
 - Start Tests: python manage.py test
-```
-
-```
 
 ## Run Service locally
 ```

@@ -1,0 +1,11 @@
+{
+  "file_paths": {
+    "2018-02-06":["/eodc/products/S2A_MSIL1C_20180206T000751_N0206_R130_T48CWV_20180206T011111.zip"]
+  },
+  "left": 652000,
+  "right":672000,
+  "top":5161000,
+  "bottom":5181000,
+  "srs": "EPSG:32632",
+  "bands": [8]
+}
