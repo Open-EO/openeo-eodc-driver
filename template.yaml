@@ -29,19 +29,34 @@ parameters:
   description: Maximum amount of memory the service can use.
   value: 4Gi
   required: true
-- name: SERVICEACCOUNT_TOKEN
-  displayName: Service Account Token
-  description: Token of service account
-  value: 
-  required: true
 - name: EXECUTION_NAMESPACE
   displayName: Job Execution Namespace
-  description: Namspace for job execution
+  description: Namspace of OpenSHift project for job execution (e.g. "execution-environment")
+  value: 
+  required: true
+- name: SERVICEACCOUNT_TOKEN
+  displayName: Service Account Token
+  description: Permanent token of the service account in execution namespace
   value: 
   required: true
 - name: STORAGE_CLASS
   displayName: Storage Class
-  description: Storage class that should be used
+  description: Storage class for PersitantVolumeClaims that should be used (e.g. "storage-write")
+  value: 
+  required: true
+- name: OPENEO_API
+  displayName: OpenEO API URI
+  description: URI for accessing the OpenEO API (e.g. http://openeo.example.com)
+  value: 
+  required: true
+- name: OPENSHIFT_API
+  displayName: OpenShift API URI
+  description: URI for accessing the OpenShift API (e.g. http://openshift.example.com)
+  value: 
+  required: true
+- name: CSW_SERVER
+  displayName: CSW Server URI
+  description: URI for accessing CSW server (e.g. http://csw.example.com)
   value: 
   required: true
 
