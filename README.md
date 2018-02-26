@@ -1,5 +1,25 @@
-# EODC Job Service
-Service for processing on the EODC infrastructure.
+# openEO: OpenShift Driver
+
+## Information
+- version: 0.0.1
+- Python: 3.6.2
+- Databases: Postgres ()
+- Dependencies: Flask, Celery
+
+The openEO OpenShift driver provides openEO API functionality on top of RedHat's OpenShift Origin.
+A flask REST client on route /jobs is provided. The job execution can be distributed on multiple workers using Celery
+
+For more information on OpenShift please visit:
+- (OpenShift Origin website)[https://www.openshift.org/]
+- (OpenShift Origin documentation)[https://docs.openshift.org/latest/welcome/index.html]
+- (How to setup an OpenShift cluster)[https://docs.openshift.org/latest/install_config/install/planning.html]
+
+## Environmental Variables
+
+## Installation
+- Log into OpenShift instance usuing OpenShift Client Tools (oc): ``` oc login <openshift_url> ```
+- Create new project: ``` oc new-project <project_name> --description="<description>" --display-name="<display_name>" ```
+- 
 
 ## Developing locally
 - Login into the OpenShift instance

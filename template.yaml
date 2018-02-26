@@ -53,6 +53,40 @@ parameters:
   generate: expression
   required: true
 
+# POSTGRES
+- name: POSTGRESQL_USER
+  displayName: PostgreSQL Connection Username
+  description: Username for PostgreSQL user that will be used for accessing the database.
+  generate: expression
+  from: user[A-Z0-9]{3}
+  required: true
+- name: POSTGRESQL_PASSWORD
+  displayName: PostgreSQL Connection Password
+  description: Password for the PostgreSQL connection user.
+  generate: expression
+  from: "[a-zA-Z0-9]{16}"
+  required: true
+- name: POSTGRESQL_DATABASE
+  displayName: PostgreSQL Database Name
+  description: Name of the PostgreSQL database accessed.
+  value: jobs
+required: true
+- name: POSTGRESQL_VERSION
+  displayName: Version of PostgreSQL Image
+  description: Version of PostgreSQL image to be used (9.2, 9.4, 9.5 or latest).
+  value: '9.5'
+  required: true
+- name: VOLUME_CAPACITY_POSTGRES
+  displayName: Volume Capacity
+  description: Volume space available for Postgres data, e.g. 512Mi, 2Gi.
+  value: 5Gi
+  required: true
+- name: MEMORY_LIMIT_POSTGRES
+  displayName: Memory Limit
+  description: Maximum amount of memory Postgres can use.
+  value: 256Mi
+ required: true
+
 objects:
 
 # SERVICE
@@ -137,6 +171,8 @@ objects:
           env:
           - name: SERVICE_SETTINGS
             value: "${SERVICE_SETTINGS}"
+          - name: DATABASE_URL
+            value: "postgres://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@${SERVICE_NAME}-postgres:5432/${POSTGRESQL_DATABASE}"
           resources:
             limits:
               memory: "${MEMORY_LIMIT_SERVICE}"
@@ -151,10 +187,12 @@ objects:
 - kind: Route
   apiVersion: v1
   metadata:
-    name: "${SERVICE_NAME}"
+    name: "openeo-jobs"
     annotations:
-      description: The Route for the service
+      description: openEO /jobs route
   spec:
+    host: openeo.193.170.203.100.xip.io
+    path: /jobs
     to:
       kind: Service
       name: "${SERVICE_NAME}"
@@ -172,3 +210,119 @@ objects:
       targetPort: 5000
     selector:
       name: "${SERVICE_NAME}"
+
+# POSTGRES
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_NAME}-postgres"
+  stringData:
+    database-user: "${POSTGRESQL_USER}"
+    database-password: "${POSTGRESQL_PASSWORD}"
+    database-name: "${POSTGRESQL_DATABASE}"
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_NAME}-postgres"
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    strategy:
+      type: Recreate
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - postgresql
+        from:
+          kind: ImageStreamTag
+          name: "postgresql:${POSTGRESQL_VERSION}"
+          namespace: openshift
+        lastTriggeredImage:
+    - type: ConfigChange
+    replicas: 1
+    selector:
+      name: "${SERVICE_NAME}-postgres"
+    template:
+      metadata:
+        labels:
+          name: "${SERVICE_NAME}-postgres"
+      spec:
+        containers:
+        - name: postgresql
+          image:
+          ports:
+          - containerPort: 5432
+            protocol: TCP
+          readinessProbe:
+            timeoutSeconds: 1
+            initialDelaySeconds: 5
+            exec:
+              command:
+              - "/bin/sh"
+              - "-i"
+              - "-c"
+              - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c
+                'SELECT 1'
+          livenessProbe:
+            timeoutSeconds: 1
+            initialDelaySeconds: 30
+            tcpSocket:
+              port: 5432
+          env:
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_NAME}-postgres"
+                key: database-user
+          - name: POSTGRESQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_NAME}-postgres"
+                key: database-password
+          - name: POSTGRESQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_NAME}-postgres"
+                key: database-name
+          resources:
+            limits:
+              memory: "${MEMORY_LIMIT_POSTGRES}"
+          volumeMounts:
+          - name: vol-${SERVICE_NAME}-postgres
+            mountPath: "/var/lib/pgsql/data"
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: IfNotPresent
+        volumes:
+        - name: vol-${SERVICE_NAME}-postgres
+          persistentVolumeClaim:
+            claimName: pvc-${SERVICE_NAME}-postgres
+        restartPolicy: Always
+        dnsPolicy: ClusterFirst
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_NAME}-postgres"
+  spec:
+    ports:
+    - name: postgresql
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+    selector:
+      name: "${SERVICE_NAME}-postgres"
+
+- kind: PersistentVolumeClaim
+  apiVersion: v1
+  metadata:
+    name: pvc-${SERVICE_NAME}-postgres
+  spec:
+    storageClassName: storage-write
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: "${VOLUME_CAPACITY_POSTGRES}"

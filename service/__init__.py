@@ -1,17 +1,23 @@
 ''' EODC Job Service  '''
 
-from os import getenv
+from os import environ
 from flask import Flask
-from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+
+DB = SQLAlchemy()
+MIGRATE = Migrate()
 
 def create_service():
     ''' Create EODC Job Service '''
 
     service = Flask(__name__)
-    CORS(service)
 
-    service_settings = getenv('SERVICE_SETTINGS')
+    service_settings = environ.get('SERVICE_SETTINGS')
     service.config.from_object(service_settings)
+
+    DB.init_app(service)
+    MIGRATE.init_app(service, DB)
 
     from service.api.health import HEALTH_BLUEPRINT
     from service.api.jobs import JOBS_BLUEPRINT
