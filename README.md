@@ -3,45 +3,42 @@
 ## Information
 - version: 0.0.1
 - Python: 3.6.2
-- Databases: Postgres ()
+- Databases: Postgres, Redis
 - Dependencies: Flask, Celery
 
 The openEO OpenShift driver provides openEO API functionality on top of RedHat's OpenShift Origin.
 A flask REST client on route /jobs is provided. The job execution can be distributed on multiple workers using Celery.
 
 For more information on OpenShift please visit:
-- (OpenShift Origin website)[https://www.openshift.org/]
-- (OpenShift Origin documentation)[https://docs.openshift.org/latest/welcome/index.html]
-- (How to setup an OpenShift cluster)[https://docs.openshift.org/latest/install_config/install/planning.html]
+- [OpenShift Origin website](https://www.openshift.org/)
+- [OpenShift Origin documentation](https://docs.openshift.org/latest/welcome/index.html)
+- [How to setup an OpenShift cluster](https://docs.openshift.org/latest/install_config/install/planning.html)
 
 ## Installation
+### Template file
+The template file (template.json) is an OpenShift descriptive file that is used to implement an environment and its parameterized objects.
+A template can be processed and the included objects will be created in the project namespace.
+The OpenEO Openshift template file uses references to the public git repository to build and deploy the required services (/services).
+For further information please visit: [OpenShift Templates](https://docs.openshift.org/latest/dev_guide/templates.html)
+
 ### Requirements
 - For the installation and running of the openEO instance a OpenShift cluster with accessible OpenShift APi must be setup. (See: (Installing a cluster)[https://docs.openshift.com/container-platform/3.7/install_config/install/planning.html])
 - The OpenShift cluster needs to have persitant volumes avaiable and a storage class to access the storage (See: (Configure Persistant Storage)[https://docs.openshift.com/container-platform/3.7/install_config/persistent_storage/index.html])
-- The OpenShift Client Tools must be installed (See: (OpenSHift OC Download)[https://www.openshift.org/download.html])
-- 
-
-
-  ```
-  oc project <openshift_project>
-  oc process -f template.json | oc create -f -
-  ```
-
-- Delete all objects/instances 
-  (Command will delete everything in project except PersistantVolumes and Secrets)
-  ```
-  oc delete all --all
-  ```
-
+- The OpenShift Client Tools must be installed (See: [OpenShift client tools download](https://www.openshift.org/download.html))
 
 ### job service installation steps
-- Log into OpenShift instance usuing OpenShift Client Tools (oc): ```oc login <openshift_url>```
-- Create new project/namespace for the job service: ```oc new-project <project_name>```
-- Create new project/namespace for job execution: ```oc new-project <project_name>```
+- Log into OpenShift instance usuing OpenShift Client Tools (oc): ```oc login <openshift_api_url>```
+- Create new project for OpenEO: ```oc new-project <openeo_project_name>```
+- Create new project for job execution: ```oc new-project <execution_project_name>```
 - Create a service account: ```oc create serviceaccount robot```
 - Grant admin role to service account: ```oc policy add-role-to-user admin system:serviceaccounts:test:robot```
+- Fill out parameters in OpenShift template file (template.json)
+- Change to the created OpenShift OpenEO project: ```oc project <openeo_project_name>```
+- Download the template.json from the git repository
+- Process the template and create objects: ```oc process template.json | oc create -f -```
+- The project will now be setup in the openeo namespace and can be accesses over the host name that was specified in the template file
 
-### Environmental Variables
+### Parameters
 - EXECUTION_NAMESPACE:
   Namspace of OpenSHift project for job execution (e.g. "execution-environment")
 - SERVICEACCOUNT_TOKEN:
@@ -55,45 +52,22 @@ For more information on OpenShift please visit:
 - CSW_SERVER
   URI for accessing CSW server (e.g. http://csw.example.com)
 
-
+## Contributing
 ### Developing locally
-- Login into the OpenShift instance
-  ```
-  oc login openshift-master.eodc.eu
-  ```
-- Switch to development project 
-  ```
-  oc project my-dev-proj
-  ```
-- Get names of pods
-  ```
-  oc get pods
-  ```
-- Forward ports of pods that are needed for developing (e.g. database/service)
-  ```
-  oc port-forward -p <pod> [<local_port>:]<pod_port> [[<local_port>:]<pod_port> ...]
-  
-  e.g.
-  oc port-forward -p eodc-users-db-1-kp5vp 5432:5432
-  ```
+For developing locally the port of the pods in teh project namespace can be forwarded to a local machine:
+- Login into the OpenShift instance: ```oc login <openshift_api_url>```
+- Switch to OpenEO project: ```oc project <openeo_project_name>```
+- Get names of pods in project: ```oc get pods```
+- Forward ports of pods that are needed for developing (e.g. database/service): ```oc port-forward <pod> [<local_port>:]<pod_port> [[<local_port>:]<pod_port> ...]```
+- E.g. ```oc port-forward -p openeo-user-postgres-1-s2da 5432:5432```
 
-## Commands
-- Start Tests: python manage.py test
-
-## Run Service locally
-```
-python manage.py runserver
-```
-
-## Important OpenShift Client commands
-- Process and create service from template.json in OpenShift project
-  ```
-  oc project <openshift_project>
-  oc process -f template.json | oc create -f -
-  ```
-
-- Delete all objects/instances 
-  (Command will delete everything in project except PersistantVolumes and Secrets)
-  ```
-  oc delete all --all
-  ```
+### Further commands:
+- Delete all objects in namespace (except secrets and pvcs): ```oc delete all --all```
+- Run service test: ```python manage.py test```
+- Run service locally: ```python manage.py runserver```
+- Recreate service database: ```python manage.py recreate_db```
+- Seed service database: ```python manage.py seed_db```
+- Drop service database: ```python manage.py drop_db```
+- Recreate service database: ```python manage.py recreate_db```
+- Migrate service database: ```python manage.py db migrate```
+- Upgrade service database: ```python manage.py db upgrade```
