@@ -85,7 +85,7 @@ parameters:
 - name: GIT_SECRET
   displayName: Git Secret
   description: Deployment secret for accessing GitLab
-  value: eodc-builder
+  value: 
   required: false
 - name: POSTGRESQL_USER
   displayName: PostgreSQL Connection Username
