@@ -451,6 +451,8 @@ objects:
           env:
           - name: SERVICE_SETTINGS
             value: "${SERVICE_SETTINGS}"
+          - name: CSW_SERVER
+            value: "${CSW_SERVER}"
           resources:
             limits:
               memory: "${MEMORY_LIMIT_SERVICE}"

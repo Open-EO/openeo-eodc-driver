@@ -2,7 +2,6 @@
 
 from os import getenv
 from flask import Flask
-from owslib.csw import CatalogueServiceWeb
 
 def create_service():
     ''' Create service '''
@@ -14,9 +13,7 @@ def create_service():
 
     from service.api.health import HEALTH_BLUEPRINT
     from service.api.data import DATA_BLUEPRINT
-    from service.api.products import PRODUCTS_BLUEPRINT
     service.register_blueprint(HEALTH_BLUEPRINT)
     service.register_blueprint(DATA_BLUEPRINT)
-    service.register_blueprint(PRODUCTS_BLUEPRINT)
 
     return service

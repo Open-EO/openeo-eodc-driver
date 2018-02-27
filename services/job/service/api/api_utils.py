@@ -34,6 +34,7 @@ def authenticate(f):
             if not auth_header:
                 raise AuthenticationError
             
+            # TODO: Message Broker
             headers = {"Authorization": auth_header}
             response = get("http://" + current_app.config["OPENEO_API"] + "/auth/identify", headers=headers)
 
