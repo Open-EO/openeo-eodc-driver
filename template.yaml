@@ -799,7 +799,7 @@ objects:
           - name: SERVICE_SETTINGS
             value: "${SERVICE_SETTINGS}"
           - name: DATABASE_URL
-            value: "postgres://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@${SERVICE_PREFIX}-process-postgres:5432/${JOBS_DATABASE}"
+            value: "postgres://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@${SERVICE_PREFIX}-process-postgres:5432/${PROCESSES_DATABASE}"
           - name: OPENEO_API_HOST
             value: "${OPENEO_API_HOST}"
           resources:
@@ -846,7 +846,7 @@ objects:
   stringData:
     database-user: "${POSTGRESQL_USER}"
     database-password: "${POSTGRESQL_PASSWORD}"
-    database-name: "${JOBS_DATABASE}"
+    database-name: "${PROCESSES_DATABASE}"
 - kind: DeploymentConfig
   apiVersion: v1
   metadata:
