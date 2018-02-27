@@ -19,11 +19,12 @@ class User(DB.Model):
     def __init__(self, username, email, password, created_at=datetime.datetime.utcnow(), admin=False):
         self.username = username
         self.email = email
-        self.password = BCRYPT.generate_password_hash(password, current_app.config.get('BCRYPT_LOG_ROUNDS')).decode()
+        self.password = self.generate_hash(password)
         self.admin = admin
         self.created_at = created_at
     
     def get_dict(self):
+        ''' Returns the users data '''
         return {
             "id": self.id,
             "username": self.username,
@@ -31,6 +32,11 @@ class User(DB.Model):
             "admin": self.admin,
             "created_at": self.created_at
         }
+
+    @staticmethod
+    def generate_hash(password):
+        ''' Generates the password hash '''
+        return BCRYPT.generate_password_hash(password, current_app.config.get('BCRYPT_LOG_ROUNDS')).decode()
 
     @staticmethod
     def encode_auth_token(user_id):

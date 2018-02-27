@@ -2,6 +2,8 @@
 env
 .vscode/
 template-eodc.yaml
+.dev/
+.http/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

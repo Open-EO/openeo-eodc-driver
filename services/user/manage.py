@@ -6,6 +6,8 @@ from flask_migrate import MigrateCommand
 from service import create_service, DB
 from service.model.user import User
 from flask import current_app
+from random import choice
+from string import ascii_uppercase, ascii_lowercase, digits
 
 SERVICE = create_service()
 MANAGER = Manager(SERVICE)
@@ -37,23 +39,19 @@ def recreate_db():
 def seed_db():
     ''' Seeds the database. '''
 
-    DB.session.add(User(
-        username='user',
-        email='user@eodc.eu',
-        password='eodcUser#1'
-    ))
+    pwd = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(16))
 
     DB.session.add(User(
         username='admin',
-        email='admin@eodc.eu',
-        password='eodcAdmin#1',
+        email='admin@openeo.org',
+        password=pwd,
         admin=True
     ))
 
     DB.session.commit()
 
-    print("Added users 'admin' and 'user' to database with URI: {0}"\
-          .format(current_app.config["SQLALCHEMY_DATABASE_URI"]))
+    print("Added user 'admin'  with password {0} (please change) to database with URI: {1}"\
+          .format(pwd, current_app.config["SQLALCHEMY_DATABASE_URI"]))
 
 @MANAGER.command
 def drop_db():

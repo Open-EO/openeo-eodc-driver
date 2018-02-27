@@ -68,6 +68,5 @@ For developing locally the port of the pods in teh project namespace can be forw
 - Recreate service database: ```python manage.py recreate_db```
 - Seed service database: ```python manage.py seed_db```
 - Drop service database: ```python manage.py drop_db```
-- Recreate service database: ```python manage.py recreate_db```
 - Migrate service database: ```python manage.py db migrate```
 - Upgrade service database: ```python manage.py db upgrade```

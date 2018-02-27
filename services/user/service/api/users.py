@@ -138,3 +138,43 @@ def delete_user(req_uid, user_id):
          return parse_response(404, "User does not exist.")
     except OperationalError as exp:
         return parse_response(503, "The service is currently unavailable.")
+
+@USERS_BLUEPRINT.route("/users/<user_id>", methods=["POST"])
+@cross_origin(supports_credentials=True)
+@authenticate
+def change_user(req_uid):
+    ''' Change users details '''
+
+    try:
+        if not is_admin(req_uid):
+            raise AuthorizationError
+
+        payload = request.get_json()
+
+        if not payload:
+            raise InvalidRequest("Invalid payload.")
+
+        validate_user(payload)
+
+        username = payload.get("username")
+        email = payload.get("email")
+        admin = payload.get("admin")
+        password = payload.get("password")
+
+        ex_user = User.query.filter_by(username=username).first()
+
+        ex_user.username = username
+        ex_user.email = email
+        ex_user.password = User.generate_hash(password)
+        ex_user.admin = admin
+
+        DB.session.commit()
+
+        return parse_response(201, "{0} successfully created.".format(username))
+
+    except (AuthorizationError, ValidationError, InvalidRequest) as exp:
+        return parse_response(exp.code, str(exp))
+    except (exc.IntegrityError, ValueError):
+        return parse_response(400, "Invalid payload.")
+    except OperationalError as exp:
+        return parse_response(503, "The service is currently unavailable.")
