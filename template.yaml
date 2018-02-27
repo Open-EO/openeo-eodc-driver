@@ -592,6 +592,18 @@ objects:
     to:
       kind: Service
       name: "${SERVICE_PREFIX}-user"
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: "openeo-service-auth"
+    annotations:
+      description: openEO /auth route
+  spec:
+    host: "${OPENEO_API_HOST}"
+    path: /auth
+    to:
+      kind: Service
+      name: "${SERVICE_PREFIX}-user"
 - kind: Service
   apiVersion: v1
   metadata:
