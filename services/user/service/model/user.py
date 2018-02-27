@@ -1,3 +1,5 @@
+''' Model of User '''
+
 import jwt
 import datetime
 from flask import current_app

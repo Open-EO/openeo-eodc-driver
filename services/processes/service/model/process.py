@@ -1,4 +1,4 @@
-''' Model of Process for EODC Process Registry '''
+''' Model of Process '''
 
 from datetime import datetime
 from service import DB

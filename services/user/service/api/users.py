@@ -1,3 +1,5 @@
+''' /users route of User Service '''
+
 import datetime
 from flask import Blueprint, jsonify, request, make_response
 from flask_cors import cross_origin

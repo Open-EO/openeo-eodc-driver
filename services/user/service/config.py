@@ -1,4 +1,4 @@
-''' Configurations for EODC User Service '''
+''' Configurations for User Service '''
 
 from os import environ
 

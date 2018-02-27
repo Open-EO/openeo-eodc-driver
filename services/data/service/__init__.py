@@ -1,10 +1,8 @@
-''' EODC Data Registry  '''
+''' Data Service  '''
 
 from os import getenv
 from flask import Flask
 from owslib.csw import CatalogueServiceWeb
-
-# CSW_SERVER = CatalogueServiceWeb("https://pycsw.eodc.eu")    # TODO: os.environ.get('CSW_SERVER')
 
 def create_service():
     ''' Create service '''

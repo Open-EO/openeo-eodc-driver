@@ -1,10 +1,11 @@
+''' Base Unit Tests '''
+
 import json
 from flask_testing import TestCase
 from service import create_app, db
 from service.tests.utils import add_user, id_generator, add_random_user
 
 app = create_app()
-
 
 class BaseTestCase(TestCase):
     ''' Base class for unit tests. '''

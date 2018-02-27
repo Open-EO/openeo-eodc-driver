@@ -1,4 +1,4 @@
-''' Data API of EODC Data Service '''
+''' /data route of Data Service '''
 
 from flask import Blueprint, request
 from flask_cors import cross_origin

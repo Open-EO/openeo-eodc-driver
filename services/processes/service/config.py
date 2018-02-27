@@ -1,4 +1,4 @@
-''' Configurations for EODC Process Registry '''
+''' Configurations for Process Service '''
 
 from os import environ
 
@@ -7,7 +7,7 @@ class BaseConfig:
     DEBUG = False
     TESTING = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    OPENEO_API = "http://openeo.eodc.eu"
+    OPENEO_API = environ.get("OPENEO_API_HOST")
 
 class DevelopmentConfig(BaseConfig):
     ''' Development Configuration '''

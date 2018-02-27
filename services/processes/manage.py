@@ -1,4 +1,4 @@
-''' Manager for EODC Process Registry'''
+''' Manager for Process Service '''
 
 from unittest import TestLoader, TextTestRunner
 from flask_script import Manager

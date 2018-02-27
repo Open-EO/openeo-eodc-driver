@@ -1,4 +1,4 @@
-''' Queries the openEO API '''
+''' Queries to the openEO API '''
 
 from requests import get, exceptions
 from json import loads

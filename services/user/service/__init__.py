@@ -1,4 +1,4 @@
-''' EODC User Service '''
+''' User Service '''
 
 from os import environ
 from flask import Flask, jsonify

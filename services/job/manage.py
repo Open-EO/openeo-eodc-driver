@@ -1,4 +1,4 @@
-''' Manager for EODC Job Service '''
+''' Manager for Job Service '''
 
 from unittest import TestLoader, TextTestRunner
 from flask import current_app

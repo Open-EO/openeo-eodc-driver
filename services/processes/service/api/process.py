@@ -1,4 +1,4 @@
-''' Process API of EODC Process Registry '''
+''' /processes route of Process Service '''
 
 from flask import Blueprint, request, current_app
 from flask_cors import cross_origin

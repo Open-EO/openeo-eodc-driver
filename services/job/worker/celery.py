@@ -1,8 +1,8 @@
 from celery import Celery
 
 app = Celery('worker',
-             broker='redis://:AqN6WqN3J2751xpV@localhost',
-             backend='redis://:AqN6WqN3J2751xpV@localhost',
+             broker='redis://:pwd@localhost',
+             backend='redis://:pwd@localhost',
              include=['worker.tasks'])
 
 if __name__ == '__main__':

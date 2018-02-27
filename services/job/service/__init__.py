@@ -1,4 +1,4 @@
-''' EODC Job Service  '''
+''' Job Service '''
 
 from os import environ
 from flask import Flask
@@ -9,7 +9,7 @@ DB = SQLAlchemy()
 MIGRATE = Migrate()
 
 def create_service():
-    ''' Create EODC Job Service '''
+    ''' Create Job Service '''
 
     service = Flask(__name__)
 

@@ -1,4 +1,4 @@
-''' /auth route of EODC User Service '''
+''' /auth route of User Service '''
 
 from flask import Blueprint, request, current_app
 from flask_cors import cross_origin

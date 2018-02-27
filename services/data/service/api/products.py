@@ -1,4 +1,4 @@
-''' API Interface for /products route '''
+''' /products route of Data Service '''
 
 from requests import get
 from json import loads

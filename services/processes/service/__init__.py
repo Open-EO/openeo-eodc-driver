@@ -1,4 +1,4 @@
-''' EODC Process Registry  '''
+''' Process Service  '''
 
 from os import environ
 from flask import Flask

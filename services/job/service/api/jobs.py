@@ -1,4 +1,4 @@
-''' EODC Job service '''
+''' /jobs route of Job Service '''
 
 from requests.exceptions import RequestException, HTTPError
 from sqlalchemy.exc import OperationalError

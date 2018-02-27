@@ -1,4 +1,4 @@
-''' Health Check of EODC Process Registry '''
+''' /health route of Process Service '''
 
 from flask import Blueprint
 from service.api.api_utils import parse_response

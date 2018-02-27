@@ -1,4 +1,4 @@
-''' Manager for EODC Data Registry'''
+''' Manager for Data Service '''
 
 from unittest import TestLoader, TextTestRunner
 from service import create_service

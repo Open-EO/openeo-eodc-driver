@@ -813,6 +813,8 @@ objects:
             value: "${SERVICE_SETTINGS}"
           - name: DATABASE_URL
             value: "postgres://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@${SERVICE_PREFIX}-process-postgres:5432/${JOBS_DATABASE}"
+          - name: OPENEO_API_HOST
+            value: "${OPENEO_API_HOST}"
           resources:
             limits:
               memory: "${MEMORY_LIMIT_SERVICE}"

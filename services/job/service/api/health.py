@@ -1,4 +1,4 @@
-''' Health Check of EODC Job Service '''
+''' /health route of Job Service '''
 
 from flask import Blueprint
 from service.api.api_utils import parse_response

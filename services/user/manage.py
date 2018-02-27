@@ -1,4 +1,4 @@
-''' Manager for EODC User Service '''
+''' Manager for User Service '''
 
 from unittest import TestLoader, TextTestRunner
 from flask_script import Manager

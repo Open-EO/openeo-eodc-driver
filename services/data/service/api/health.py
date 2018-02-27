@@ -1,4 +1,4 @@
-''' Health Check of EODC Data Registry '''
+''' /health route of Data Service '''
 
 from flask import Blueprint
 from service.api.api_utils import parse_response

@@ -1,4 +1,4 @@
-''' Base Unit Tests for EODC Process Registry '''
+''' Base Unit Tests '''
 
 from json import loads, dumps
 from flask_testing import TestCase

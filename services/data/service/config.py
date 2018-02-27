@@ -1,4 +1,4 @@
-''' Configurations for EODC Data Registry '''
+''' Configurations for Data Service '''
 
 class BaseConfig:
     ''' Base Configuration '''

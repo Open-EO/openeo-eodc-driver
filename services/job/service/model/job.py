@@ -1,4 +1,4 @@
-''' Model of Job for EODC Job Service '''
+''' Model of Job '''
 
 from datetime import datetime
 from service import DB
