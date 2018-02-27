@@ -32,7 +32,7 @@ def authenticate(f):
                 raise AuthenticationError
             
             headers = {"Authorization": auth_header}
-            response = get(current_app.config["OPENEO_API"] + "/auth/identify", headers=headers)
+            response = get("http://" + current_app.config["OPENEO_API"] + "/auth/identify", headers=headers)
 
             if response.status_code != 200:
                 raise AuthenticationError(response.text)
