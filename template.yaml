@@ -82,11 +82,6 @@ parameters:
   description: Git branch/tag reference
   value: master
   required: true
-- name: GIT_SECRET
-  displayName: Git Secret
-  description: Deployment secret for accessing GitLab
-  value: 
-  required: false
 - name: POSTGRESQL_USER
   displayName: PostgreSQL Connection Username
   description: Username for PostgreSQL user that will be used for accessing the databases.
@@ -152,8 +147,6 @@ objects:
         uri: "${GIT_URI}"
         ref: "${GIT_REF}"
       contextDir: "services/job"
-      sourceSecret:
-        name: "${GIT_SECRET}"
     strategy:
       dockerStrategy:
         dockerfilePath: Dockerfile
@@ -399,8 +392,6 @@ objects:
         uri: "${GIT_URI}"
         ref: "${GIT_REF}"
       contextDir: "services/data"
-      sourceSecret:
-        name: "${GIT_SECRET}"
     strategy:
       dockerStrategy:
         dockerfilePath: Dockerfile
@@ -516,8 +507,6 @@ objects:
         uri: "${GIT_URI}"
         ref: "${GIT_REF}"
       contextDir: "services/user"
-      sourceSecret:
-        name: "${GIT_SECRET}"
     strategy:
       dockerStrategy:
         dockerfilePath: Dockerfile
@@ -750,8 +739,6 @@ objects:
         uri: "${GIT_URI}"
         ref: "${GIT_REF}"
       contextDir: "services/processes"
-      sourceSecret:
-        name: "${GIT_SECRET}"
     strategy:
       dockerStrategy:
         dockerfilePath: Dockerfile
