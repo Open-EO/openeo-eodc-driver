@@ -75,7 +75,7 @@ parameters:
 - name: GIT_URI
   displayName: Git URI
   description: Git source URI for OpenEO
-  value: git@github.com:Open-EO/openeo-openshift-driver.git
+  value: https://github.com/Open-EO/openeo-openshift-driver.git
   required: true
 - name: GIT_REF
   displayName: Git Reference for OpenEO
