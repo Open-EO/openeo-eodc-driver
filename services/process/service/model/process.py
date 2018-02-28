@@ -14,16 +14,18 @@ class Process(DB.Model):
     description = DB.Column(DB.String(512), nullable=False)
     git_uri = DB.Column(DB.String(128), nullable=True)
     git_ref = DB.Column(DB.String(128), nullable=True)
+    git_dir = DB.Column(DB.String(128), nullable=True)
     process_type = DB.Column(DB.String(128), nullable=False)
     args = DB.Column(DB.JSON, nullable=True)
     created_at = DB.Column(DB.DateTime, nullable=False)
 
-    def __init__(self, user_id, process_id, description, process_type, git_uri=None, git_ref=None , args=args, created_at=datetime.utcnow()):
+    def __init__(self, user_id, process_id, description, process_type, git_uri=None, git_ref=None, git_dir=None, args=args, created_at=datetime.utcnow()):
         self.user_id = user_id
         self.process_id = process_id
         self.description = description
         self.git_uri = git_uri
         self.git_ref = git_ref
+        self.git_dir = git_dir
         self.process_type = process_type
         self.args = args
         self.created_at = created_at
@@ -42,7 +44,6 @@ class Process(DB.Model):
         return {
             "process_id": self.process_id,
             "description": self.description,
-            "process_type": self.process_type,
             "args": self.args,
             "created_at": self.created_at
         }
@@ -54,6 +55,7 @@ class Process(DB.Model):
             "description": self.description,
             "git_uri": self.git_uri,
             "git_ref": self.git_ref,
+            "git_dir": self.git_dir,
             "process_type": self.process_type,
             "args": self.args,
             "created_at": self.created_at

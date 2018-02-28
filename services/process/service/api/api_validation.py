@@ -34,6 +34,10 @@ def validate_process(payload):
         if not match(r"^(\w|\d|-|_)+$", payload["git_ref"]):
             raise ValidationError("Format of Git Reference is wrong.")
 
+        if "git_dir" in payload:
+            if not match(r"^(\w|\/|\_|\-|\.)*$", payload["git_ref"]):
+                raise ValidationError("Format of Git Dir is wrong.")
+
     if "args" not in payload:
         raise ValidationError("Process Arguments are missing.")
 

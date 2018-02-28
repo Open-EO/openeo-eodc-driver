@@ -36,9 +36,11 @@ def add_process(req_user):
         if process_type == "operation":
             git_uri = payload["git_uri"]
             git_ref = payload["git_ref"]
+            git_dir = payload["git_dir"]
         else:
             git_uri = None
             git_ref = None
+            git_dir = None
 
         does_exist = Process.query.filter_by(process_id=process_id).first()
 
@@ -51,6 +53,7 @@ def add_process(req_user):
             description=description,
             git_uri=git_uri,
             git_ref=git_ref,
+            git_dir=git_dir,
             process_type=process_type,
             args=args)
 
@@ -158,5 +161,13 @@ def alter_process(req_user, process_id):
     ''' Alter values of process in namespace'''
 
     # TODO: Implement!
+    return parse_response(501, "This API feature is not supported by the back-end.")
 
-    return parse_response(501, "Not yet implemented")
+@PROCESS_BLUEPRINT.route("/processes/opensearch", methods=["PUT"])
+@cross_origin(origins="*", supports_credentials=True)
+@authenticate
+def get_process_opensearch(req_user, process_id):
+    ''' Get process using opensearch'''
+
+    # TODO: Implement!
+    return parse_response(501, "This API feature is not supported by the back-end.")

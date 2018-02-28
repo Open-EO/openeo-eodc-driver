@@ -54,6 +54,7 @@ def get_product(product_id):
     url += "&resultType=results&constraintLanguage=CQL_TEXT"
     url += "&startposition=1&outputFormat=application/json"
     url += "&constraint=apiso:Type = 'series' and dc:identifier = '{1}'"
+    # url += "&outputSchema=http://www.isotc211.org/2005/gmd"
     url = url.format(environ.get("CSW_SERVER"), product_id)
     
     response = get(url)

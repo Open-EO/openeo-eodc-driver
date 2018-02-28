@@ -7,7 +7,7 @@ class BaseConfig:
     DEBUG = False
     TESTING = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    OPENEO_API = environ.get("OPENEO_API_HOST")
+    OPENEO_API = "http://" + environ.get("OPENEO_API_HOST")
 
 class DevelopmentConfig(BaseConfig):
     ''' Development Configuration '''
