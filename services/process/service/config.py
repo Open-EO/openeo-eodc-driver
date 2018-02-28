@@ -1,13 +1,18 @@
 ''' Configurations for Process Service '''
 
 from os import environ
+from re import match
 
 class BaseConfig:
     ''' Base Configuration '''
     DEBUG = False
     TESTING = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    OPENEO_API = "http://" + environ.get("OPENEO_API_HOST")
+
+    OPENEO_API = environ.get("OPENEO_API_HOST")
+    if not match(r"^http(s)?:\/\/", OPENEO_API):
+        OPENEO_API = "http://" + OPENEO_API
+
     SQLALCHEMY_DATABASE_URI = "postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.format(
         DB_USER=environ.get("DB_USER"),

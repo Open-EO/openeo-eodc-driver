@@ -36,7 +36,7 @@ def authenticate(f):
             
             # TODO: Message Broker
             headers = {"Authorization": auth_header}
-            response = get("http://" + current_app.config["OPENEO_API"] + "/auth/identify", headers=headers)
+            response = get(current_app.config["OPENEO_API"] + "/auth/identify", headers=headers)
 
             if response.status_code != 200:
                 raise AuthenticationError(response.text)

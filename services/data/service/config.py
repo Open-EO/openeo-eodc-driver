@@ -1,10 +1,15 @@
 ''' Configurations for Data Service '''
 
+from os import environ
+from re import match
+
 class BaseConfig:
     ''' Base Configuration '''
     DEBUG = False
     TESTING = False
-    OPENEO_API = "http://openeo.eodc.eu"
+    OPENEO_API = environ.get("OPENEO_API_HOST")
+    if not match(r"^http(s)?:\/\/", OPENEO_API):
+        OPENEO_API = "http://" + OPENEO_API
 
 class DevelopmentConfig(BaseConfig):
     ''' Development Configuration '''
