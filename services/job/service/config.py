@@ -21,7 +21,6 @@ class BaseConfig:
 class DevelopmentConfig(BaseConfig):
     ''' Development Configuration '''
     DEBUG = True
-    
 
 class TestingConfig(BaseConfig):
     ''' Testing Configuration '''
