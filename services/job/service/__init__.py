@@ -16,6 +16,8 @@ def create_service():
     service_settings = environ.get('SERVICE_SETTINGS')
     service.config.from_object(service_settings)
 
+    print(current_app.config)
+
     DB.init_app(service)
     MIGRATE.init_app(service, DB)
 
