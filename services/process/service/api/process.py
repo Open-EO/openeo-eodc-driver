@@ -171,38 +171,24 @@ def alter_process(req_user, process_id):
 
         validate_process(payload)
 
-        process_id = payload["process_id"]
-        description = payload["description"]
-        process_type = payload["type"]
-        args = payload["args"]
-
-        if process_type == "operation":
-            git_uri = payload["git_uri"]
-            git_ref = payload["git_ref"]
-            git_dir = payload["git_dir"]
-        else:
-            git_uri = None
-            git_ref = None
-            git_dir = None
-
         process = Process.query.filter_by(process_id=process_id).first()
 
         if not process:
             raise InvalidRequest("Process does not exist.")
 
-        process.process_id = process_id
-        process.description = description
-        process.process_type = process_type
-        process.args = args
+        process.process_id = payload["process_id"]
+        process.description = payload["description"]
+        process.process_type = payload["type"]
+        process.args = payload["args"]
 
-        if process_type == "operation":
-            process.git_uri = git_uri
-            process.git_ref = git_ref
-            process.git_dir = git_dir
+        if payload["type"] == "operation":
+            process.git_uri = payload["git_uri"]
+            process.git_ref = payload["git_ref"]
+            process.git_dir = payload["git_dir"]
 
         DB.session.commit()
 
-        return parse_response(200, "Process {0} sucesssfully deleted.".format(process_id))
+        return parse_response(200, "Process {0} sucesssfully altered.".format(process_id))
 
     except (InvalidRequest, AuthorizationError) as exp:
         return parse_response(exp.code, str(exp))
