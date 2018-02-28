@@ -251,7 +251,7 @@ objects:
           - name: DB_HOST
             value: "${SERVICE_PREFIX}-job-postgres"
           - name: DB_PORT
-            value: "${DB_PORT}"
+            value: "${POSTGRESQL_PORT}"
           - name: EXECUTION_NAMESPACE
             value: "${EXECUTION_NAMESPACE}"
           - name: STORAGE_CLASS_NAME
@@ -312,8 +312,8 @@ objects:
     ports:
     - name: postgresql
       protocol: TCP
-      port: ${POSTGRESQL_PORT}
-      targetPort: ${POSTGRESQL_PORT}
+      port: 5432
+      targetPort: 5432
     selector:
       name: "${SERVICE_PREFIX}-job-postgres"
 
@@ -350,7 +350,7 @@ objects:
         - name: postgresql
           image:
           ports:
-          - containerPort: ${POSTGRESQL_PORT}
+          - containerPort: 5432
             protocol: TCP
           readinessProbe:
             timeoutSeconds: 1
@@ -366,7 +366,7 @@ objects:
             timeoutSeconds: 1
             initialDelaySeconds: 30
             tcpSocket:
-              port: ${POSTGRESQL_PORT}
+              port: 5432
           env:
           - name: POSTGRESQL_USER
             valueFrom:
@@ -389,14 +389,14 @@ objects:
             limits:
               memory: "${MEMORY_LIMIT_POSTGRES}"
           volumeMounts:
-          - name: vol-${SERVICE_PREFIX}-job-postgres
+          - name: vol-${SERVICE_PREFIX}-job
             mountPath: "/var/lib/pgsql/data"
           terminationMessagePath: "/dev/termination-log"
           imagePullPolicy: IfNotPresent
         volumes:
-        - name: vol-${SERVICE_PREFIX}-job-postgres
+        - name: vol-${SERVICE_PREFIX}-job
           persistentVolumeClaim:
-            claimName: pvc-${SERVICE_PREFIX}-job-postgres
+            claimName: pvc-${SERVICE_PREFIX}-job
         restartPolicy: Always
         dnsPolicy: ClusterFirst
 
@@ -517,7 +517,29 @@ objects:
     selector:
       name: "${SERVICE_PREFIX}-data"
 
-# OPENEO USER SERVICE
+# OPENEO USER
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-user"
+  stringData:
+    database-user: "${POSTGRESQL_USER}"
+    database-password: "${POSTGRESQL_PASSWORD}"
+    database-name: "${USERS_DATABASE}"
+- kind: PersistentVolumeClaim
+  apiVersion: v1
+  metadata:
+    name: pvc-${SERVICE_PREFIX}-user
+  spec:
+    storageClassName: "${STORAGE_CLASS_NAME}"
+    accessModes:
+    - ReadWriteOnce
+    persistentVolumeReclaimPolicy: Recycle
+    resources:
+      requests:
+        storage: "${VOLUME_CAPACITY_POSTGRES}"
+
+# OPENEO USER - SERVICE
 - kind: ImageStream
   apiVersion: v1
   metadata:
@@ -599,22 +621,22 @@ objects:
           - name: DB_USER
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-job"
+                name: "${SERVICE_PREFIX}-user"
                 key: database-user
           - name: DB_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-job"
+                name: "${SERVICE_PREFIX}-user"
                 key: database-password
           - name: DB_NAME
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-job"
+                name: "${SERVICE_PREFIX}-user"
                 key: database-name
           - name: DB_HOST
-            value: "${SERVICE_PREFIX}-job-postgres"
+            value: "${SERVICE_PREFIX}-user-postgres"
           - name: DB_PORT
-            value: "${DB_PORT}"
+            value: "${POSTGRESQL_PORT}"
           - name: SECRET_BCRYPT
             value: "${SECRET_BCRYPT}"
           resources:
@@ -665,15 +687,7 @@ objects:
     selector:
       name: "${SERVICE_PREFIX}-user"
 
-# OPENEO USER DATABASE
-- kind: Secret
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-user-postgres"
-  stringData:
-    database-user: "${POSTGRESQL_USER}"
-    database-password: "${POSTGRESQL_PASSWORD}"
-    database-name: "${USERS_DATABASE}"
+# OPENEO USER - DATABASE
 - kind: DeploymentConfig
   apiVersion: v1
   metadata:
@@ -728,17 +742,17 @@ objects:
           - name: POSTGRESQL_USER
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-user-postgres"
+                name: "${SERVICE_PREFIX}-user"
                 key: database-user
           - name: POSTGRESQL_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-user-postgres"
+                name: "${SERVICE_PREFIX}-user"
                 key: database-password
           - name: POSTGRESQL_DATABASE
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-user-postgres"
+                name: "${SERVICE_PREFIX}-user"
                 key: database-name
           - name: POSTGRESQL_PORT
             value: "${POSTGRESQL_PORT}"
@@ -746,14 +760,14 @@ objects:
             limits:
               memory: "${MEMORY_LIMIT_POSTGRES}"
           volumeMounts:
-          - name: vol-${SERVICE_PREFIX}-user-postgres
+          - name: vol-${SERVICE_PREFIX}-user
             mountPath: "/var/lib/pgsql/data"
           terminationMessagePath: "/dev/termination-log"
           imagePullPolicy: IfNotPresent
         volumes:
-        - name: vol-${SERVICE_PREFIX}-user-postgres
+        - name: vol-${SERVICE_PREFIX}-user
           persistentVolumeClaim:
-            claimName: pvc-${SERVICE_PREFIX}-user-postgres
+            claimName: pvc-${SERVICE_PREFIX}-user
         restartPolicy: Always
         dnsPolicy: ClusterFirst
 - kind: Service
@@ -768,19 +782,30 @@ objects:
       targetPort: 5432
     selector:
       name: "${SERVICE_PREFIX}-user-postgres"
+
+# OPENEO PROCESS
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-process"
+  stringData:
+    database-user: "${POSTGRESQL_USER}"
+    database-password: "${POSTGRESQL_PASSWORD}"
+    database-name: "${PROCESSES_DATABASE}"
 - kind: PersistentVolumeClaim
   apiVersion: v1
   metadata:
-    name: pvc-${SERVICE_PREFIX}-user-postgres
+    name: pvc-${SERVICE_PREFIX}-process
   spec:
     storageClassName: "${STORAGE_CLASS_NAME}"
     accessModes:
     - ReadWriteOnce
+    persistentVolumeReclaimPolicy: Recycle
     resources:
       requests:
         storage: "${VOLUME_CAPACITY_POSTGRES}"
 
-# OPENEO PROCESS SERVICE
+# OPENEO PROCESS - SERVICE
 - kind: ImageStream
   apiVersion: v1
   metadata:
@@ -862,22 +887,22 @@ objects:
           - name: DB_USER
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-job"
+                name: "${SERVICE_PREFIX}-process"
                 key: database-user
           - name: DB_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-job"
+                name: "${SERVICE_PREFIX}-process"
                 key: database-password
           - name: DB_NAME
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-job"
+                name: "${SERVICE_PREFIX}-process"
                 key: database-name
           - name: DB_HOST
-            value: "${SERVICE_PREFIX}-job-postgres"
+            value: "${SERVICE_PREFIX}-process-postgres"
           - name: DB_PORT
-            value: "${DB_PORT}"
+            value: "${POSTGRESQL_PORT}"
           - name: OPENEO_API_HOST
             value: "${OPENEO_API_HOST}"
           resources:
@@ -916,15 +941,7 @@ objects:
     selector:
       name: "${SERVICE_PREFIX}-process"
 
-# OPENEO PROCESS DATABASE
-- kind: Secret
-  apiVersion: v1
-  metadata:
-    name: "${SERVICE_PREFIX}-process-postgres"
-  stringData:
-    database-user: "${POSTGRESQL_USER}"
-    database-password: "${POSTGRESQL_PASSWORD}"
-    database-name: "${PROCESSES_DATABASE}"
+# OPENEO PROCESS - DATABASE
 - kind: DeploymentConfig
   apiVersion: v1
   metadata:
@@ -979,17 +996,17 @@ objects:
           - name: POSTGRESQL_USER
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-process-postgres"
+                name: "${SERVICE_PREFIX}-process"
                 key: database-user
           - name: POSTGRESQL_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-process-postgres"
+                name: "${SERVICE_PREFIX}-process"
                 key: database-password
           - name: POSTGRESQL_DATABASE
             valueFrom:
               secretKeyRef:
-                name: "${SERVICE_PREFIX}-process-postgres"
+                name: "${SERVICE_PREFIX}-process"
                 key: database-name
           - name: POSTGRESQL_PORT
             value: "${POSTGRESQL_PORT}"
@@ -997,14 +1014,14 @@ objects:
             limits:
               memory: "${MEMORY_LIMIT_POSTGRES}"
           volumeMounts:
-          - name: vol-${SERVICE_PREFIX}-process-postgres
+          - name: vol-${SERVICE_PREFIX}-process
             mountPath: "/var/lib/pgsql/data"
           terminationMessagePath: "/dev/termination-log"
           imagePullPolicy: IfNotPresent
         volumes:
-        - name: vol-${SERVICE_PREFIX}-process-postgres
+        - name: vol-${SERVICE_PREFIX}-process
           persistentVolumeClaim:
-            claimName: pvc-${SERVICE_PREFIX}-process-postgres
+            claimName: pvc-${SERVICE_PREFIX}-process
         restartPolicy: Always
         dnsPolicy: ClusterFirst
 - kind: Service
@@ -1019,14 +1036,3 @@ objects:
       targetPort: 5432
     selector:
       name: "${SERVICE_PREFIX}-process-postgres"
-- kind: PersistentVolumeClaim
-  apiVersion: v1
-  metadata:
-    name: pvc-${SERVICE_PREFIX}-process-postgres
-  spec:
-    storageClassName: "${STORAGE_CLASS_NAME}"
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: "${VOLUME_CAPACITY_POSTGRES}"
