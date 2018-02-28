@@ -7,9 +7,9 @@ class BaseConfig:
     ''' Base Configuration '''
     DEBUG = False
     TESTING = False
-    OPENEO_API = environ.get("OPENEO_API_HOST")
-    if not match(r"^http(s)?:\/\/", OPENEO_API):
-        OPENEO_API = "http://" + OPENEO_API
+    CSW_SERVER = environ.get("CSW_SERVER")
+    if not match(r"^http(s)?:\/\/", CSW_SERVER):
+        CSW_SERVER = "http://" + CSW_SERVER
 
 class DevelopmentConfig(BaseConfig):
     ''' Development Configuration '''
