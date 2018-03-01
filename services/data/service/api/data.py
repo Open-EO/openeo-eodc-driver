@@ -66,7 +66,7 @@ def get_product(product_id):
     search_result = response_json["csw:GetRecordsResponse"]["csw:SearchResults"]
 
     if not "csw:Record" in search_result:
-        return parse_response(404)
+        return parse_response(404, msg="Dataset not available")
 
     record = search_result["csw:Record"]
     item = {

@@ -3,6 +3,7 @@
 from os import environ, path
 from requests import post
 from json import loads, dumps
+from datetime import datetime, timedelta
 from xml.dom.minidom import parseString
 
 with open("worker/templates/get_records.xml") as xml_file:
@@ -58,12 +59,48 @@ def get_single_records(start_position, product, begin, end, bbox, just_filepaths
     results = []
     if isinstance(records, list):
         for item in records:
-            results.append(item["dct:references"]["#text"] if just_filepaths else item)
+            date = datetime.strptime(item["dc:date"], '%Y-%m-%dT%H:%M:%SZ')
+            results.append([date, item["dct:references"]["#text"]] if just_filepaths else item)
 
     if isinstance(records, dict):
-        results.append(records["dct:references"]["#text"] if just_filepaths else records)
+        date = datetime.strptime(records["dc:date"], '%Y-%m-%dTH:M:SZ')
+        results.append([date, records["dct:references"]["#text"]] if just_filepaths else records)
 
     return record_next, results
+
+def get_file_paths(product, t_from, t_to, bbox):
+    ''' Get file paths from records '''
+
+    start_date = datetime.strptime(t_from, '%Y-%m-%d')
+    start_date = start_date - timedelta(days=1)
+    start_date = start_date.strftime("%Y-%m-%dT00:00:00Z")
+    
+    end_date = datetime.strptime(t_to, '%Y-%m-%d')
+    end_date = end_date + timedelta(days=1)
+    end_date = end_date.strftime("%Y-%m-%dT23:59:59Z")
+
+    records = get_all_records(product, start_date, end_date, bbox)
+
+    day_sorting = []
+    for idx, record in enumerate(records):
+        name = record[0].strftime("%Y-%m-%d")
+
+        if idx == 0:
+            day_sorting.append([name,record])
+            continue
+
+        time_diff = record[0] - records[idx-1][0]
+        day_sorting.append([name if time_diff.days > 0 else day_sorting[idx-1][0],record])
+        
+    file_paths = {}
+    for item in day_sorting:
+        if item[0] in file_paths:
+            file_paths[item[0]].append(item[1])
+            continue
+        
+        file_paths[item[0]] = [item[1]]
+
+    return file_paths
 
 # if __name__ == "__main__":
 #     product = "s2a_prd_msil1c"

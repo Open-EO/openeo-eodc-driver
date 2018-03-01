@@ -1,11 +1,10 @@
 ''' Filter Node of Process Graph '''
 
 from os import environ
-from datetime import datetime, timedelta
 from requests import get
 from json import loads
 from worker.process_graph.node import Node
-from worker.process_graph.get_records import get_all_records
+from worker.process_graph.get_records import get_file_paths
 from random import choice
 from string import ascii_lowercase, digits
 
@@ -44,10 +43,6 @@ class Filter(Node):
 
         for input_node in self.input_nodes:
             input_node.get_filter_arguments(args)
-       
-    def daterange(self, start_date, end_date):
-        for n in range(int ((end_date - start_date).days)):
-            yield start_date + timedelta(n)
 
     def get_arguments(self):
         ''' Returns the arguments of all sub nodes '''
@@ -56,32 +51,14 @@ class Filter(Node):
         args = {"file_paths": {}}
         self.get_filter_arguments(args)
 
+        # TODO: Band filtering, if empty -> All bands
+        if not "bands" in args:
+            args["bands"] = []
+
         # Get the file_paths from CSW server
-
-        # product = args["product_id"] #TODO Mapping of products
-        product = "s2a_prd_msil1c"
         bbox = [args["bottom"], args["left"], args["top"], args["right"]]
-        start_date = datetime.strptime(args["from"], '%Y-%m-%d')
-        end_date = datetime.strptime(args["to"], '%Y-%m-%d')
+        args["file_paths"] = get_file_paths(args["product_id"], args["from"], args["to"], bbox)
         
-        # TODO: Band filtering
-        args["bands"] = ["B01"]
-
-        if int ((end_date - start_date).days) == 0:
-            day = start_date
-            day_start = day.strftime("%Y-%m-%dT00:00:00Z")
-            day_end = day.strftime("%Y-%m-%dT23:59:59Z")
-            args["file_paths"][day.strftime("%Y-%m-%d")] = get_all_records(product, day_start, day_end, bbox)
-        
-        for day in self.daterange(start_date, end_date):
-            day_start = day.strftime("%Y-%m-%dT00:00:00Z")
-            day_end = day.strftime("%Y-%m-%dT23:59:59Z")
-            args["file_paths"][day.strftime("%Y-%m-%d")] = get_all_records(product, day_start, day_end, bbox)
-   
-        # TODO: Missing parameters (bbox, band, etc)
-        # TODO: Band filtering
-        # TODO: Taggrenzen / Überschneidungen
-
         return args
 
     def calculate_storage_size(self, token, namespace, storage_class):

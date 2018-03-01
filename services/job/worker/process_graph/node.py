@@ -6,6 +6,7 @@ from random import choice
 from string import ascii_lowercase, digits
 from requests import get
 from json import loads
+from re import match
 from worker.templates.persistant_volume_claim import PersistentVolumeClaim
 from worker.templates.image_stream import ImageStream
 from worker.templates.build_config import BuildConfig
@@ -43,7 +44,11 @@ class Node(ABC):
     def get_node_spec(process_id):
         ''' Returns the process description of a specific backend '''
 
-        url = "{0}/processes/{1}/details".format(environ.get("OPENEO_API"), process_id)
+        OPENEO_API = environ.get("OPENEO_API_HOST")
+        if not match(r"^http(s)?:\/\/", OPENEO_API):
+            OPENEO_API = "http://" + OPENEO_API
+
+        url = "{0}/processes/{1}/details".format(OPENEO_API, process_id)
         response = get(url)
         response.raise_for_status()
 

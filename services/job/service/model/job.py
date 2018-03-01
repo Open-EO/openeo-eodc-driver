@@ -31,7 +31,17 @@ class Job(DB.Model):
             "task": self.task,
             "status": self.status,
             "submitted": self.submitted,
-            "last_update": self.last_update,
+            "updated": self.last_update,
+            "consumed_credits": self.consumed_credits
+        }
+
+    def get_small_dict(self):
+        return {
+            "job_id": self.id,
+            "user_id": self.user_id,
+            "status": self.status,
+            "submitted": self.submitted,
+            "updated": self.last_update,
             "consumed_credits": self.consumed_credits
         }
 

@@ -25,14 +25,16 @@ def create_job(req_user, auth):
         if not payload:
             raise InvalidRequest("Invalid payload.")
 
-        validate_job(payload, auth)
+        # validate_job(payload, auth)
 
         job = Job(user_id=req_user["id"], task=payload)
 
-        DB.session.add(job)
-        DB.session.commit()
+        # DB.session.add(job)
+        # DB.session.commit()
 
-        return parse_response(200, data={"job_id": job.id})
+        start_job_processing(job.get_dict())
+
+        return parse_response(200, data={"job_id": job.get_small_dict()})
     except (ValidationError, InvalidRequest) as exp:
         return parse_response(exp.code, str(exp))
     except HTTPError as exp:
