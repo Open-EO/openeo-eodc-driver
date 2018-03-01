@@ -75,6 +75,10 @@ class Node(ABC):
     def run(self, token, namespace, storage_class):
         ''' Retrieves the file paths and executes filter process '''
 
+        # TODO Clean up Objects -> Array with last operations
+        # TODO Download Data
+        # TODO Build Management -> Was already build in namespace?
+
         # Execute sub nodes
         input_pvcs = []
         sub_nodes = self.get_sub_nodes()
@@ -87,6 +91,7 @@ class Node(ABC):
         node_spec = Node.get_node_spec(process_id)
         git_uri = node_spec["git_uri"]
         git_ref= node_spec["git_ref"]
+        git_dir = node_spec["git_dir"]
 
         # Get arguments
         args = self.get_arguments()
@@ -103,7 +108,7 @@ class Node(ABC):
         img_stream.create(token)
 
         # Create Build
-        build_cfg = BuildConfig(namespace, self.node_id, git_uri, git_ref, img_stream)
+        build_cfg = BuildConfig(namespace, self.node_id, git_uri, git_ref, git_dir, img_stream)
         build_cfg.create(token)
 
         # Create Config_Data

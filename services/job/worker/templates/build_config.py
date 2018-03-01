@@ -8,7 +8,7 @@ from json import loads
 class BuildConfig(BaseTemplate):
     ''' Class for OpenShift BuildConfig Object '''
 
-    def __init__(self, namespace, process_selector, git_uri, git_ref, img_stream):
+    def __init__(self, namespace, process_selector, git_uri, git_ref, git_dir, img_stream):
 
         template_id = process_selector + "-bcg"
         path = "/oapi/v1/namespaces/{0}/buildconfigs"
@@ -21,10 +21,11 @@ class BuildConfig(BaseTemplate):
                 "git": {
                     "uri": git_uri,
                     "ref": git_ref
-                },
-                "sourceSecret": {
-                    "name": "eodc-builder"
                 }
+                # TODO: If fetched with secret -> Must be specified
+                # "sourceSecret": {
+                #     "name": "eodc-builder"
+                # }
             },
             "strategy": {
                 "dockerStrategy": {
@@ -47,6 +48,9 @@ class BuildConfig(BaseTemplate):
                 }
             ]
         }
+
+        if git_dir:
+            self.template["spec"]["source"]["contextDir"] = git_dir
 
     def check_status(self, response, auth=None):
         version = response["status"]["lastVersion"]

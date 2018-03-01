@@ -86,11 +86,11 @@ def get_file_paths(product, t_from, t_to, bbox):
         name = record[0].strftime("%Y-%m-%d")
 
         if idx == 0:
-            day_sorting.append([name,record])
+            day_sorting.append([name, record[1]])
             continue
 
         time_diff = record[0] - records[idx-1][0]
-        day_sorting.append([name if time_diff.days > 0 else day_sorting[idx-1][0],record])
+        day_sorting.append([name if time_diff.days > 0 else day_sorting[idx-1][0], record[1]])
         
     file_paths = {}
     for item in day_sorting:

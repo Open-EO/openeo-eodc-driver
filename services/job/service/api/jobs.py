@@ -29,8 +29,8 @@ def create_job(req_user, auth):
 
         job = Job(user_id=req_user["id"], task=payload)
 
-        # DB.session.add(job)
-        # DB.session.commit()
+        DB.session.add(job)
+        DB.session.commit()
 
         start_job_processing(job.get_dict())
 

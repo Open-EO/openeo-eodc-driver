@@ -7,6 +7,7 @@ from worker.process_graph.node import Node
 from worker.process_graph.get_records import get_file_paths
 from random import choice
 from string import ascii_lowercase, digits
+from pyproj import Proj, transform
 
 class Filter(Node):
     ''' Filter node for filtering products, time ranges and bands '''
@@ -56,7 +57,14 @@ class Filter(Node):
             args["bands"] = []
 
         # Get the file_paths from CSW server
-        bbox = [args["bottom"], args["left"], args["top"], args["right"]]
+        in_proj = Proj(init=args["srs"])
+        out_proj = Proj(init='epsg:4326')
+        in_x1, in_y1 = args["bottom"], args["left"]
+        in_x2, in_y2 = args["top"], args["right"]
+        out_x1, out_y1 = transform(in_proj, out_proj, in_x1, in_y1)
+        out_x2, out_y2 = transform(in_proj, out_proj, in_x2, in_y2)
+
+        bbox = [out_x1, out_y1, out_x2, out_y2]
         args["file_paths"] = get_file_paths(args["product_id"], args["from"], args["to"], bbox)
         
         return args
