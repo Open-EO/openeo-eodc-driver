@@ -20,7 +20,7 @@ def perform_ndvi():
 
     processed = []
     for mount in INPUT_MOUNTS:
-        with open("{0}/files.json".format(mount), 'r') as json_file:
+        with open("/{0}/files.json".format(mount), 'r') as json_file:
             files = load(json_file)
 
         for file_data in files:
@@ -34,7 +34,7 @@ def perform_ndvi():
             file_data["operations"].append("min_time")
             processed.append(file_data)
 
-    with open("{0}/files.json".format(OUT_VOLUME), 'w') as outfile:
+    with open("/{0}/files.json".format(OUT_VOLUME), 'w') as outfile:
         dump(processed, outfile)
     
     print("Finished doing something.")

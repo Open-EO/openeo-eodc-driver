@@ -4,6 +4,7 @@ from flask import Blueprint, request, current_app
 from flask_cors import cross_origin
 from werkzeug.exceptions import BadRequest
 from sqlalchemy.exc import OperationalError
+from base64 import b64decode
 from service import BCRYPT
 from service.model.user import User
 from service.api.api_utils import parse_response, authenticate
@@ -12,6 +13,7 @@ from service.api.api_exceptions import InvalidRequest, AuthenticationError
 AUTH_BLUEPRINT = Blueprint("auth", __name__)
 
 @AUTH_BLUEPRINT.route("/auth/login", methods=["POST"])
+@cross_origin(origins="*")
 def login_user():
     ''' Check credentials and send auth token '''
 
@@ -19,13 +21,8 @@ def login_user():
         if not request.is_json: 
             raise InvalidRequest("Request needs to be JSON.")
 
-        payload = request.get_json()
-        
-        if not "username" in payload or not "password" in payload:
-            raise InvalidRequest("Missing username or password.")
-
-        username = payload.get("username")
-        password = payload.get("password")
+        username = request.authorization["username"]
+        password = request.authorization["password"]
 
         if not username or not password:
             raise InvalidRequest("Missing username or password.")
@@ -40,9 +37,7 @@ def login_user():
 
         auth_token = user.encode_auth_token(user.id)
 
-        return parse_response(200, "Successfully logged in.", 
-                                    data={"auth_token": auth_token.decode(), 
-                                    "admin":user.admin})
+        return parse_response(200, data={"token": auth_token.decode(), "user_id":user.id})
 
     except (InvalidRequest, AuthenticationError) as exp:
         return parse_response(exp.code, str(exp))
@@ -53,7 +48,7 @@ def login_user():
 
 
 @AUTH_BLUEPRINT.route("/auth/logout", methods=["GET"])
-@cross_origin(supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @authenticate
 def logout_user(req_uid):
     ''' Get auth token and log out '''
