@@ -14,7 +14,7 @@ def perform_ndvi():
     ''' Performs NDVI '''
 
     print("Doing something...")
-    sleep(30)
+    sleep(2)
     print("Finished doing something.")
 
 

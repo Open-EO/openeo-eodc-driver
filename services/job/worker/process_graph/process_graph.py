@@ -23,9 +23,6 @@ class ProcessGraph:
         
         try:
             result_pvc = self.start_node.run(token, namespace, storage_class)
-            self.start_node.clean_up(token)
-
-            return 
         except ProcessingError as exp:
             self.set_status("Processing Error:" + str(exp))
     
