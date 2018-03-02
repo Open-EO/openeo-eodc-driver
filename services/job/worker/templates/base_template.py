@@ -2,7 +2,7 @@
 
 from os import environ
 from json import dumps, loads
-from requests import post, get
+from requests import post, get, delete
 from re import match
 from service.api.api_exceptions import TemplateError
 from time import sleep
@@ -24,6 +24,10 @@ class BaseTemplate(ABC):
                 "name": template_id
             }
         }
+    
+    @abstractmethod
+    def check_status(self, response, auth=None):
+        return True
 
     def get_json(self):
         ''' Generates JSON from the member template '''
@@ -53,15 +57,22 @@ class BaseTemplate(ABC):
                 url = "{0}{1}/{2}".format(environ.get("OPENSHIFT_API"), self.path, self.template_id)
                 response = get(url, headers=auth, verify=verify)
 
-                if response.ok == False:
+                if not response.ok:
                     self.raise_error(response.text)
 
                 if self.check_status(loads(response.text), auth):
                     break
 
-    @abstractmethod
-    def check_status(self, response, auth=None):
-        return True
+    def delete(self, token):
+        ''' Deletes the instance '''
+
+        auth = {"Authorization": "Bearer " + token}
+        verify = True if environ.get("VERIFY") == "true" else False
+        url = "{0}{1}/{2}".format(environ.get("OPENSHIFT_API"), self.path, self.template_id)
+        response = delete(url, headers=auth, verify=verify)
+
+        if not response.ok:
+            self.raise_error(response.text)
 
     def raise_error(self, msg):
         self.status = "Error"

@@ -15,6 +15,7 @@ class PersistentVolumeClaim(BaseTemplate):
         self.template["spec"] = {
             "storageClassName": class_name,
             "accessModes": ["ReadWriteOnce"],
+            "persistentVolumeReclaimPolicy": "Recycle",
             "resources": {
                 "requests": {
                     "storage": storage

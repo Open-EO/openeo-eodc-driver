@@ -2,7 +2,7 @@
 
 from requests.exceptions import RequestException, HTTPError
 from sqlalchemy.exc import OperationalError
-from flask import Blueprint, request
+from flask import Blueprint, request, send_from_directory
 from flask_cors import cross_origin
 from service import DB
 from service.api.api_utils import parse_response, authenticate
@@ -31,6 +31,10 @@ def create_job(req_user, auth):
 
         DB.session.add(job)
         DB.session.commit()
+
+        # TODO Make it async (Worker)
+        # TODO Message Broker
+        # TODO Logging
 
         start_job_processing(job.get_dict())
 
@@ -144,6 +148,30 @@ def delete_job(req_user, auth, job_id):
         DB.session.commit()
 
         return parse_response(200, data=job.get_dict())
+
+    except (InvalidRequest, AuthorizationError) as exp:
+        return parse_response(exp.code, str(exp))
+    except OperationalError as exp:
+        return parse_response(503, "The service is currently unavailable.")
+
+@JOBS_BLUEPRINT.route("/jobs/<job_id>/download", methods=["DELETE"])
+@cross_origin(origins="*", supports_credentials=True)
+@authenticate
+def download_result(req_user, auth, job_id):
+    ''' Downloading job results '''
+
+    try:
+        job = Job.query.filter_by(id=job_id).first()
+
+        if not job:
+            raise InvalidRequest("Job with specified identifier is not available.")
+
+        if req_user["id"] != job.user_id and not req_user["admin"]:
+            raise AuthorizationError
+
+        job_directory = "/job_results/{0}".format(job_id)
+
+        return send_from_directory(directory=job_directory, filename="results.gpkg")
 
     except (InvalidRequest, AuthorizationError) as exp:
         return parse_response(exp.code, str(exp))

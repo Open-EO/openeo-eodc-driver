@@ -75,11 +75,10 @@ class Node(ABC):
     def run(self, token, namespace, storage_class):
         ''' Retrieves the file paths and executes filter process '''
 
-        # TODO Clean up Objects -> Array with last operations
-        # TODO Download Data
-        # TODO Build Management -> Was already build in namespace?
+        # TODO Make data downloadable
+        # TODO Pod Error identification and handling
 
-        # Execute sub nodes
+        # Execute sub nodes and clean up
         input_pvcs = []
         sub_nodes = self.get_sub_nodes()
         for sub_node in sub_nodes:
@@ -102,14 +101,13 @@ class Node(ABC):
         storage_size = "5Gi"
         out_pvc = PersistentVolumeClaim(namespace, self.node_id, storage_class, storage_size)
         out_pvc.create(token)
-        
-        # Create Image Stream
-        img_stream = ImageStream(namespace, self.node_id)
-        img_stream.create(token)
 
-        # Create Build
-        build_cfg = BuildConfig(namespace, self.node_id, git_uri, git_ref, git_dir, img_stream)
-        build_cfg.create(token)
+        # Check if image does exist otherwise create
+        img_stream = ImageStream(namespace, process_id)
+        if not img_stream.does_exist(token):
+            img_stream.create(token)
+            build_cfg = BuildConfig(namespace, self.node_id, git_uri, git_ref, git_dir, img_stream)
+            build_cfg.create(token)
 
         # Create Config_Data
         conf_map = ConfigMap(namespace, self.node_id, args, input_pvcs)
@@ -118,5 +116,11 @@ class Node(ABC):
         # Create Job
         job = Job(namespace, self.node_id, img_stream, input_pvcs, out_pvc, conf_map)
         job.create(token)
+
+        # Clean Up
+        conf_map.delete(token)
+        job.delete(token)
+        for input_pvc in input_pvcs:
+            input_pvc.delete(token)
 
         return out_pvc

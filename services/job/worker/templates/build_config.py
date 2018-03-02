@@ -2,7 +2,7 @@
 
 from os import environ
 from worker.templates.base_template import BaseTemplate
-from requests import get
+from requests import get, delete
 from json import loads
 
 class BuildConfig(BaseTemplate):
