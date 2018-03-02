@@ -38,9 +38,10 @@ bands: array
 '''
 
 from os import makedirs, listdir, path
-from shutil import copyfile
+from shutil import copyfile, rmtree
 from zipfile import ZipFile
 from utils import read_parameters
+from json import dump
 
 OUT_VOLUME = "/job_out"
 PARAMS = read_parameters()
@@ -74,7 +75,9 @@ def extract_sentinel_2_data():
     if not path.exists(folder_extracted):
         makedirs(folder_extracted)
 
-    for day_folder in listdir("{0}/unzipped/".format(OUT_VOLUME)):
+    folder_unzipped = "{0}/unzipped/".format(OUT_VOLUME)
+    processed = []
+    for day_folder in listdir(folder_unzipped):
         out_day = "{0}/{1}".format(folder_extracted, day_folder)
         if not path.exists(out_day):
             makedirs(out_day)
@@ -89,7 +92,33 @@ def extract_sentinel_2_data():
                         dst = "{0}/{1}".format(out_day, img_name)
                         copyfile(src, dst)
 
+                        file_path = dst.split("/", 2)[2]
+
+                        processed.append(
+                            {
+                                "file_name": img_name,
+                                "file_path": file_path,
+                                "product": "Sentinel-2",
+                                "bands": [file_band],
+                                "extend": {
+                                    "bbox": {
+                                        "top": PARAMS["top"], 
+                                        "right": PARAMS["right"], 
+                                        "bottom": PARAMS["bottom"], 
+                                        "left": PARAMS["left"]
+                                    },
+                                    "srs": PARAMS["srs"]
+                                },
+                                "operations": ["filter-s2"]
+                            }
+                        )
+
                         print(" - Extracted {0}".format(img_name))
+    
+    rmtree(folder_unzipped)
+
+    with open("{0}/files.json".format(OUT_VOLUME), 'w') as outfile:
+        dump(processed, outfile)
 
     print("-> Finished data extraction.")
 

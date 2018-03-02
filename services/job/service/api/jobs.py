@@ -10,7 +10,7 @@ from service.api.api_validation import validate_job
 from service.api.api_exceptions import ValidationError, InvalidRequest, AuthorizationError, TemplateError
 from service.model.job import Job
 from worker.tasks import start_job_processing
-import timeit
+import time
 
 JOBS_BLUEPRINT = Blueprint("jobs", __name__)
 
@@ -19,11 +19,8 @@ JOBS_BLUEPRINT = Blueprint("jobs", __name__)
 @authenticate
 def create_job(req_user, auth):
     ''' Submits a new job to the back-end '''
-
+    start_time = time.time()
     try:
-        start = timeit.timeit()
-
-
         payload = request.get_json()
 
         if not payload:
@@ -43,8 +40,7 @@ def create_job(req_user, auth):
 
         start_job_processing(job.get_dict())
 
-        end = timeit.timeit()
-        print(end - start)
+        print("--- %s seconds ---" % (time.time() - start_time))
 
         return parse_response(200, data={"job_id": job.get_small_dict()})
     except (ValidationError, InvalidRequest) as exp:
