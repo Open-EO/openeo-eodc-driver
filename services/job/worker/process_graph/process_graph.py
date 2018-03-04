@@ -6,26 +6,35 @@ from string import ascii_lowercase, digits
 from requests import post
 from worker.process_graph.node import Node
 from worker.exceptions import ProcessingError
+from worker.process_graph.utils import generate_random_id
 
 class ProcessGraph:
     ''' The process graph class contains the executable graph nodes '''
 
     def __init__(self, job_id, payload):
-        
-        self.job_id = job_id
-        rnd = "".join(choice(ascii_lowercase + digits) for _ in range(3))
-        self.graph_id = "j{0}-g{1}".format(job_id, rnd)
-        self.start_node = Node.parse_node(self.graph_id, payload["process_graph"])
+        self.graph_id = "j{0}-g{1}".format(job_id, generate_random_id())
+
+        payload["output"]["folder"] = self.graph_id
+
+        process_graph = {
+            "process_graph": {
+                "process_id":"convert",
+                "args": {
+                    "imagery": {
+                        "process_id": payload["process_graph"]
+                    },
+                    "output": payload["output"]
+                }
+            }
+        }
+
+        self.start_node = Node.parse_node(self.graph_id, process_graph)
         self.set_status("Initalized")
 
     def execute(self, token, namespace, storage_class):
         ''' Executes the process graph '''
-        
-        try:
-            result_pvc = self.start_node.run(token, namespace, storage_class)
-        except ProcessingError as exp:
-            self.set_status("Processing Error:" + str(exp))
-    
+        self.start_node.run(token, namespace, storage_class)
+
     def set_status(self, status):
         ''' Chnages the status of job processing '''
         self.status = status
