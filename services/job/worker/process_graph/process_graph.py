@@ -15,16 +15,14 @@ class ProcessGraph:
         self.graph_id = "j{0}-g{1}".format(job_id, generate_random_id())
 
         payload["output"]["folder"] = self.graph_id
-
         process_graph = {
-            "process_graph": {
-                "process_id":"convert",
-                "args": {
-                    "imagery": {
-                        "process_id": payload["process_graph"]
-                    },
-                    "output": payload["output"]
-                }
+            "process_id": "convert",
+            "args": {
+                "imagery": {
+                    "process_id": payload["process_graph"]["process_id"],
+                    "args": payload["process_graph"]["args"]
+                },
+                "output": payload["output"]
             }
         }
 

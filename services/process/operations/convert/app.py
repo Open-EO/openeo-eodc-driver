@@ -11,7 +11,7 @@ INPUT_MOUNTS = read_input_mounts()
 def copy_data():
     ''' Copies the data into the job result folder '''
 
-    out_dir = "{0}/{1}".format(OUT_VOLUME, PARAMS["job_id"])
+    out_dir = "{0}/{1}".format(OUT_VOLUME, PARAMS["output"]["folder"])
 
     for mount in INPUT_MOUNTS:
         copytree(mount, out_dir)
