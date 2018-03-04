@@ -6,7 +6,7 @@ from os import makedirs, listdir
 from zipfile import ZipFile
 from utils import read_parameters, read_input_mounts
 from time import sleep
-from shutil import copyfile, rmtree
+from shutil import copytree
 from json import load, dump
 
 OUT_VOLUME = "/job_out"
