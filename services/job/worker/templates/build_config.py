@@ -8,9 +8,9 @@ from json import loads
 class BuildConfig(BaseTemplate):
     ''' Class for OpenShift BuildConfig Object '''
 
-    def __init__(self, namespace, process_selector, git_uri, git_ref, git_dir, img_stream):
+    def __init__(self, namespace, build_name, git_uri, git_ref, git_dir, img_stream):
 
-        template_id = process_selector + "-bcg"
+        template_id = build_name
         path = "/oapi/v1/namespaces/{0}/buildconfigs"
 
         super().__init__(namespace, template_id, path, "BuildConfig", "v1")
