@@ -1,8 +1,9 @@
 ''' /jobs route of Job Service '''
 
+from os import listdir
 from requests.exceptions import RequestException, HTTPError
 from sqlalchemy.exc import OperationalError
-from flask import Blueprint, request, send_from_directory
+from flask import Blueprint, request, send_from_directory, current_app
 from flask_cors import cross_origin
 from service import DB
 from service.api.api_utils import parse_response, authenticate
@@ -171,7 +172,12 @@ def download_result(req_user, auth, job_id):
 
         job_directory = "/job_results/{0}".format(job_id)
 
-        return send_from_directory(directory=job_directory, filename="results.gpkg")
+        file_links = []
+        for file_name in listdir(job_directory):
+            file_links.append("{0}/download/{1}/{2}".format(current_app.config["OPENEO_API"], job_id, file_name))
+
+        return parse_response(200, data=file_links)
+        #send_from_directory(directory=job_directory, filename="results.gpkg")
 
     except (InvalidRequest, AuthorizationError) as exp:
         return parse_response(exp.code, str(exp))

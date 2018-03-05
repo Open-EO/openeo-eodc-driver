@@ -21,7 +21,9 @@ def create_service():
 
     from service.api.health import HEALTH_BLUEPRINT
     from service.api.jobs import JOBS_BLUEPRINT
+    from service.api.download import DOWNLOAD_BLUEPRINT
     service.register_blueprint(HEALTH_BLUEPRINT)
     service.register_blueprint(JOBS_BLUEPRINT)
+    service.register_blueprint(DOWNLOAD_BLUEPRINT)
 
     return service
