@@ -6,7 +6,7 @@ from os import makedirs, listdir
 from zipfile import ZipFile
 from utils import read_parameters, read_input_mounts
 from time import sleep
-from shutil import copytree
+from shutil import copytree, copyfile
 from json import load, dump
 
 OUT_VOLUME = "/job_out"
@@ -20,6 +20,7 @@ def perform_min_time():
 
     processed = []
     for mount in INPUT_MOUNTS:
+        print(listdir("/" + mount))
         with open("/{0}/files.json".format(mount), 'r') as json_file:
             files = load(json_file)
 
@@ -38,6 +39,7 @@ def perform_min_time():
         dump(processed, outfile)
     
     print("Finished doing something.")
+    print(listdir(OUT_VOLUME))
 
 if __name__ == "__main__":
     print("Start processing 'min_time' ...")

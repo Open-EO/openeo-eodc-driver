@@ -20,6 +20,7 @@ def perform_ndvi():
 
     processed = []
     for mount in INPUT_MOUNTS:
+        print(listdir("/" + mount))
         with open("/{0}/files.json".format(mount), 'r') as json_file:
             files = load(json_file)
 
@@ -38,6 +39,7 @@ def perform_ndvi():
         dump(processed, outfile)
     
     print("Finished doing something.")
+    print(listdir(OUT_VOLUME))
 
 
 if __name__ == "__main__":

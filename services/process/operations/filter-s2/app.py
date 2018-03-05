@@ -122,6 +122,8 @@ def extract_sentinel_2_data():
 
     print("-> Finished data extraction.")
 
+    print(listdir(OUT_VOLUME))
+
 if __name__ == "__main__":
     print("Start Sentinel 2 data extraction process...")
 
@@ -130,6 +132,8 @@ if __name__ == "__main__":
     # TODO: filter_bands()
     # TODO: stitch_data()
     # TODO: clean_up()
+
+
 
     print("Finished Sentinel 2 data extraction process.")
 
