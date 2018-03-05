@@ -4,7 +4,7 @@ from zipfile import ZipFile
 from utils import read_parameters, read_input_mounts
 from json import dump
 
-OUT_VOLUME = "/results"
+OUT_VOLUME = "/job_results"
 PARAMS = read_parameters()
 INPUT_MOUNTS = read_input_mounts()
 

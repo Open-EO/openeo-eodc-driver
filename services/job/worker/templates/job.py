@@ -1,5 +1,6 @@
 ''' Template for OpenShift Job '''
 
+from os import environ
 from worker.templates.base_template import BaseTemplate
 
 class Job(BaseTemplate):
@@ -30,6 +31,12 @@ class Job(BaseTemplate):
                 "persistentVolumeClaim": {
                     "claimName": out_pvc.template_id
                 }
+            },
+            {
+                "name": "results-volume",
+                "persistentVolumeClaim": {
+                    "claimName": "pvc_results"
+                }
             }
         ]
 
@@ -45,6 +52,10 @@ class Job(BaseTemplate):
             {
                 "name": "out-volume",
                 "mountPath": "/job_out"
+            },
+            {
+                "name": "results-volume",
+                "mountPath": "/job_results"
             }
         ]
 
