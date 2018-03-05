@@ -14,7 +14,7 @@ def copy_data():
     out_dir = "{0}/{1}".format(OUT_VOLUME, PARAMS["output"]["folder"])
 
     for mount in INPUT_MOUNTS:
-        copytree(mount, out_dir)
+        copytree("/" + mount, out_dir)
 
 if __name__ == "__main__":
     print("Start result data copy process...")
