@@ -87,7 +87,7 @@ def extract_sentinel_2_data():
                 for img_name in listdir(img_path):
                     file_band = img_name.split("_")[-1].split(".")[0]
 
-                    if file_band in PARAMS["bands"]:
+                    if file_band in PARAMS["bands"] or not PARAMS["bands"]:
                         src = "{0}/{1}".format(img_path, img_name)
                         dst = "{0}/{1}".format(out_day, img_name)
                         copyfile(src, dst)
