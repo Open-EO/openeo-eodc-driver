@@ -26,7 +26,7 @@ def perform_ndvi():
 
         for file_data in files:
             copyfile(
-                "{0}/{1}".format(mount, file_data["file_path"]), 
+                "/{0}/{1}".format(mount, file_data["file_path"]), 
                 "{0}/{1}".format(OUT_VOLUME, file_data["file_name"]))
 
             print("Copyed file: " + file_data["file_name"])

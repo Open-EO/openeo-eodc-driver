@@ -106,6 +106,7 @@ class Node(ABC):
         img_stream = ImageStream(namespace, process_id)
         if not img_stream.does_exist(token):
             img_stream.create(token)
+            # TODO Different Build_ID -> LIke Image ID and not job id 
             build_cfg = BuildConfig(namespace, self.node_id, git_uri, git_ref, git_dir, img_stream)
             build_cfg.create(token)
 
