@@ -27,7 +27,7 @@ def create_job(req_user, auth):
             raise InvalidRequest("Invalid payload.")
 
 
-        validate_job(payload, auth)
+        # validate_job(payload, auth)
 
         job = Job(user_id=req_user["id"], task=payload)
 

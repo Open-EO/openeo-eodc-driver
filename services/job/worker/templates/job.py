@@ -35,7 +35,7 @@ class Job(BaseTemplate):
             {
                 "name": "results-volume",
                 "persistentVolumeClaim": {
-                    "claimName": "pvc_results"
+                    "claimName": "pvc-results"
                 }
             }
         ]
