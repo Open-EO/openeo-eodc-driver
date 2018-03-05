@@ -10,7 +10,6 @@ from service.api.api_validation import validate_job
 from service.api.api_exceptions import ValidationError, InvalidRequest, AuthorizationError, TemplateError
 from service.model.job import Job
 from worker.tasks import start_job_processing
-import time
 
 JOBS_BLUEPRINT = Blueprint("jobs", __name__)
 
@@ -19,7 +18,6 @@ JOBS_BLUEPRINT = Blueprint("jobs", __name__)
 @authenticate
 def create_job(req_user, auth):
     ''' Submits a new job to the back-end '''
-    start_time = time.time()
     try:
         payload = request.get_json()
 
@@ -39,8 +37,6 @@ def create_job(req_user, auth):
         # TODO Logging
 
         start_job_processing(job.get_dict())
-
-        print("--- %s seconds ---" % (time.time() - start_time))
 
         return parse_response(200, data={"job_id": job.get_small_dict()})
     except (ValidationError, InvalidRequest) as exp:
@@ -158,7 +154,7 @@ def delete_job(req_user, auth, job_id):
     except OperationalError as exp:
         return parse_response(503, "The service is currently unavailable.")
 
-@JOBS_BLUEPRINT.route("/jobs/<job_id>/download", methods=["DELETE"])
+@JOBS_BLUEPRINT.route("/jobs/<job_id>/download", methods=["GET"])
 @cross_origin(origins="*", supports_credentials=True)
 @authenticate
 def download_result(req_user, auth, job_id):

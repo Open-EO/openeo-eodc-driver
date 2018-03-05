@@ -14,7 +14,7 @@ class ProcessGraph:
     def __init__(self, job_id, payload):
         self.graph_id = "j{0}-g{1}".format(job_id, generate_random_id())
 
-        payload["output"]["folder"] = self.graph_id
+        payload["output"]["folder"] = job_id
         process_graph = {
             "process_id": "convert",
             "args": {
