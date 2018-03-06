@@ -18,9 +18,6 @@ def login_user():
     ''' Check credentials and send auth token '''
 
     try:
-        if not request.is_json: 
-            raise InvalidRequest("Request needs to be JSON.")
-
         username = request.authorization["username"]
         password = request.authorization["password"]
 
