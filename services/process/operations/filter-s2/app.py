@@ -81,7 +81,6 @@ def extract_sentinel_2_data():
     print("-> Start data extraction...")
 
     # Create Out folder
-    TEMP_FOLDERS["unzipped"] = "{0}/01_unzipped/".format(OUT_VOLUME)
     TEMP_FOLDERS["extracted"] = create_folder(OUT_VOLUME, "02_extracted")
 
     for day in PARAMS["file_paths"].keys():
@@ -259,10 +258,9 @@ def transform_to_geotiff():
         out_path = "{0}/{1}".format(OUT_FINAL, out_filename)
 
         # Translate vrt-file to GeoTiff
-        gdal.Translate(out_path, in_path)
+        gdal.Translate(out_path, in_path)  # TODO show progress somehow (slow!)
         print(" - Translated {0}".format(out_filename))
 
-    write_output(OUT_FINAL)
     print("-> Finished translation to GeoTiff.")
 
 
@@ -302,7 +300,7 @@ def get_bbox():
         return [PARAMS["left"], PARAMS["bottom"], PARAMS["right"], PARAMS["top"]]
 
 
-def write_output(output_folder):
+def write_output():
     '''Writes output's metadata to file'''
 
     # save band_order
@@ -315,7 +313,7 @@ def write_output(output_folder):
             "operations": ["filter-s2"],
             "band_order": band_order,
             "data_srs": "EPSG:{0}".format(OUT_EPSG),
-            "file_paths": get_paths_for_files_in_folder(output_folder),
+            "file_paths": get_paths_for_files_in_folder(OUT_FINAL),
             "extent": {
                 "bbox": {
                     "top": PARAMS["top"],
@@ -349,6 +347,7 @@ if __name__ == "__main__":
     reproject()
     merge_reprojected()
     transform_to_geotiff()
+    write_output()
     clean_up()
 
     print("Finished Sentinel 2 data extraction process.")

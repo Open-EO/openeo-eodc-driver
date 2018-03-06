@@ -72,7 +72,8 @@ def perform_ndvi():
 
     # Iterate over each file
     for file_path in PARAMS["file_paths"]:
-        file_date = file_path.split("/")[-1].split("_")[1]
+        filename = file_path.split("/")[-1]
+        file_date = filename.split("_")[1]
 
         # Open input dataset
         in_dataset = gdal.Open(file_path)
@@ -83,6 +84,8 @@ def perform_ndvi():
         # Save output dataset
         out_file_path = "{0}/ndvi_{1}_epsg-{2}.tif".format(OUT_FINAL, file_date, PARAMS["data_srs"].split(":")[-1])
         create_output_image(in_dataset, out_file_path, ndvi_data)
+
+        print(" - NDVI calculated for {0}".format(filename))
 
     print("-> Finished calculating NDVI.")
 
