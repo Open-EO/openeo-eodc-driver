@@ -87,7 +87,7 @@ def execute_job(req_user, auth, job_id):
 
         return parse_response(200, data={"job_id": job.id})
 
-    except InvalidRequest, AuthorizationError as exp:
+    except (InvalidRequest, AuthorizationError) as exp:
         return parse_response(exp.code, str(exp))
     except RequestException as exp:
         return parse_response(503, "Could not connect to API backend. Please contact support.")
