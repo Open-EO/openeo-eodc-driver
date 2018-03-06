@@ -1,10 +1,10 @@
 from __future__ import absolute_import, unicode_literals
 from os import environ
-from celery.task import task 
-from .process_graph import ProcessGraph
-from .validation import validate_job
+from .celery import app
+from .src.process_graph import ProcessGraph
+from .src.validation import validate_job
 
-@task
+@app.task
 def start_job_processing(job):
     ''' Executes the processes of a job '''
     # TODO: Own db table for process_graph  job -> Foreign Key

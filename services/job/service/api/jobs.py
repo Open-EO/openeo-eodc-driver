@@ -9,7 +9,7 @@ from service import DB
 from service.api.api_utils import parse_response, authenticate
 from service.api.api_exceptions import InvalidRequest, AuthorizationError
 from service.model.job import Job
-from worker.tasks import start_job_processing
+from worker.src.tasks import start_job_processing
 
 JOBS_BLUEPRINT = Blueprint("jobs", __name__)
 
