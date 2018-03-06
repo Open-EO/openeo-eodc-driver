@@ -6,7 +6,7 @@ broker = "amqp://{user}:{password}@{host}:5672//"
 broker = broker.format(user=environ.get("RABBIT_MQ_USER"), 
                         password=environ.get("RABBIT_MQ_PASSWORD"), 
                         host=environ.get("RABBIT_MQ_HOST"))
-print(broker)
+
 app = Celery("openeo_tasks", 
              broker=broker, 
              include=['worker.tasks'])

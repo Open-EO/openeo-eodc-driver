@@ -1,7 +1,7 @@
 ''' Process Graph '''
 
 from os import environ
-from request import post
+from requests import post
 from random import choice
 from string import ascii_lowercase, digits
 from .nodes.node import Node
