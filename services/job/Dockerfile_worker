@@ -5,6 +5,6 @@ WORKDIR /usr/src/app
 
 ADD ./requirements_worker.txt /usr/src/app/requirements.txt
 RUN pip install -r requirements.txt
-ADD ./worker /usr/src/app
+ADD ./worker /usr/src/app/worker
 
 ENTRYPOINT celery -A worker worker --concurrency=5 --loglevel=info
