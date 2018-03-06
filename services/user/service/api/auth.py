@@ -12,8 +12,8 @@ from service.api.api_exceptions import InvalidRequest, AuthenticationError
 
 AUTH_BLUEPRINT = Blueprint("auth", __name__)
 
-@AUTH_BLUEPRINT.route("/auth/login", methods=["POST"])
-@cross_origin(origins="*")
+@AUTH_BLUEPRINT.route("/auth/login", methods=["GET"])
+@cross_origin(origins="*", supports_credentials=True)
 def login_user():
     ''' Check credentials and send auth token '''
 
