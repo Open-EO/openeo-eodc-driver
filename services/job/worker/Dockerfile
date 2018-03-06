@@ -7,4 +7,4 @@ ADD ./requirements.txt /usr/src/app/requirements.txt
 RUN pip install -r requirements.txt
 ADD . /usr/src/app
 
-ENTRYPOINT celery -A celery tasks --concurrency=5 --loglevel=info
+ENTRYPOINT celery -A src worker --concurrency=5 --loglevel=info

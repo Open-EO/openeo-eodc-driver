@@ -9,7 +9,7 @@ broker = broker.format(user=environ.get("RABBIT_MQ_USER"),
 
 app = Celery("openeo_tasks", 
              broker=broker, 
-             include=['worker.tasks'])
+             include=['src.tasks'])
 
 if __name__ == '__main__':
     app.start()

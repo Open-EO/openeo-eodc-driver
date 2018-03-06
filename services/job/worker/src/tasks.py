@@ -1,17 +1,17 @@
 from __future__ import absolute_import, unicode_literals
 from os import environ
-from .celery import app 
-from .src.process_graph import ProcessGraph
-from .src.validation import validate_job
+from celery.task import task 
+from .process_graph import ProcessGraph
+from .validation import validate_job
 
-@app.task
+@task
 def start_job_processing(job):
     ''' Executes the processes of a job '''
-
     # TODO: Own db table for process_graph  job -> Foreign Key
     # TODO: Get namespace and storage class of user
     # TODO: Get token of users service account
     # TODO: Get storage_class of user
+
     token = environ.get("SERVICEACCOUNT_TOKEN")
     namespace = environ.get("EXECUTION_NAMESPACE")
     storage_class = environ.get("STORAGE_CLASS")
