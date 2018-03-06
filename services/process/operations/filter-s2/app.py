@@ -40,17 +40,17 @@ bands: array
 from os import listdir
 from shutil import copyfile, rmtree
 from zipfile import ZipFile
-import json
 
 from osgeo import gdal, osr
 
 OUT_VOLUME = "/job_out"
-from utils import read_parameters, create_folder, get_paths_for_files_in_folder, build_new_img_name_from_old, \
-    build_new_granule_name_from_old
+from utils import read_parameters, build_new_img_name_from_old, build_new_granule_name_from_old, create_folder, \
+    write_output_to_json, get_paths_for_files_in_folder
 
+OUT_FINAL = create_folder(OUT_VOLUME, "out_filter-s2")
 PARAMS = read_parameters()
-TEMP_FOLDERS = {}  # tmp folder: tmp folder path -> deleted in the end
 OUT_EPSG = "4326"
+TEMP_FOLDERS = {}  # tmp folder: tmp folder path -> deleted in the end
 
 
 def unzip_data():
@@ -234,7 +234,7 @@ def merge_reprojected():
         file_path_list = get_paths_for_files_in_folder("{0}/{1}/".format(TEMP_FOLDERS["reproject"], day))
 
         # Build output path
-        out_filename = "filter-s2_{0}_EPSG:{1}.vrt".format(day, OUT_EPSG)
+        out_filename = "filter-s2_{0}_epsg-{1}.vrt".format(day, OUT_EPSG)
         out_path = "{0}/{1}".format(TEMP_FOLDERS["merged"], out_filename)
 
         # Merge all files into one vrt-file
@@ -249,9 +249,6 @@ def transform_to_geotiff():
 
     print("-> Start translation to GeoTiff...")
 
-    # Create Out folder
-    folder_gtif = create_folder(OUT_VOLUME, "07_geotiff")
-
     for file in listdir(TEMP_FOLDERS["merged"]):
 
         # Get input path
@@ -259,13 +256,13 @@ def transform_to_geotiff():
 
         # Build output path
         out_filename = "{0}.tif".format(file.split(".")[0])
-        out_path = "{0}/{1}".format(folder_gtif, out_filename)
+        out_path = "{0}/{1}".format(OUT_FINAL, out_filename)
 
         # Translate vrt-file to GeoTiff
         gdal.Translate(out_path, in_path)
         print(" - Translated {0}".format(out_filename))
 
-    write_output(folder_gtif)
+    write_output(OUT_FINAL)
     print("-> Finished translation to GeoTiff.")
 
 
@@ -306,24 +303,19 @@ def get_bbox():
 
 
 def write_output(output_folder):
-    '''Writes final output_paths to file'''
+    '''Writes output's metadata to file'''
 
-    # list of file_paths
-    file_paths_list = get_paths_for_files_in_folder(output_folder)
+    # save band_order
+    bands = PARAMS["bands"]
+    bands.sort()
+    order = range(1, len(bands)+1)
+    band_order = dict(zip(bands, order))
 
-    # Put file characteristics together
-    files = {}
-    for file_path in file_paths_list:
-        file_name = file_path.split("/")[-1].split(".")[0]
-        files.update({
-            file_name: {
-                "file_paths": file_path,
-                "date": file_name.split("_")[1]}
-        })
-
-    data = {"output_folder": output_folder,
-            "product": "Sentinel-2",
-            "bands": PARAMS["bands"],
+    data = {"product": "Sentinel-2",
+            "operations": ["filter-s2"],
+            "band_order": band_order,
+            "data_srs": "EPSG:{0}".format(OUT_EPSG),
+            "file_paths": get_paths_for_files_in_folder(output_folder),
             "extent": {
                 "bbox": {
                     "top": PARAMS["top"],
@@ -331,12 +323,9 @@ def write_output(output_folder):
                     "left": PARAMS["left"],
                     "right": PARAMS["right"]},
                 "srs": PARAMS["srs"]},
-            "data_srs": "EPSG:{0}".format(OUT_EPSG),
-            "operations": ["filter-s2"],
-            "files": files}
+            }
 
-    with open("{0}/output.json".format(OUT_VOLUME), "w") as outfile:
-        json.dump(data, outfile)
+    write_output_to_json(data, "filter-s2", OUT_VOLUME)
 
 
 def clean_up():
