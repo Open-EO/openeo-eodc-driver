@@ -7,8 +7,7 @@ from flask import Blueprint, request, send_from_directory, current_app
 from flask_cors import cross_origin
 from service import DB
 from service.api.api_utils import parse_response, authenticate
-from service.api.api_validation import validate_job
-from service.api.api_exceptions import ValidationError, InvalidRequest, AuthorizationError, TemplateError
+from service.api.api_exceptions import InvalidRequest, AuthorizationError
 from service.model.job import Job
 from worker.tasks import start_job_processing
 
@@ -34,10 +33,10 @@ def create_job(req_user, auth):
         # TODO Message Broker
         # TODO Logging
 
-        start_job_processing(job.get_dict())
+        start_job_processing.delay(job.get_dict())
 
         return parse_response(200, data={"job_id": job.get_small_dict()})
-    except (ValidationError, InvalidRequest) as exp:
+    except InvalidRequest as exp:
         return parse_response(exp.code, str(exp))
     except HTTPError as exp:
         return parse_response(exp.response.status_code, exp.args[0])

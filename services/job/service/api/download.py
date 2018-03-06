@@ -7,7 +7,7 @@ from flask import Blueprint, request, send_from_directory, current_app
 from flask_cors import cross_origin
 from service import DB
 from service.api.api_utils import parse_response, authenticate
-from service.api.api_exceptions import ValidationError, InvalidRequest, AuthorizationError, TemplateError
+from service.api.api_exceptions import InvalidRequest, AuthorizationError
 from service.model.job import Job
 
 DOWNLOAD_BLUEPRINT = Blueprint("downloads", __name__)

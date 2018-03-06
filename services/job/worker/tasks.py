@@ -1,8 +1,8 @@
 from os import environ
 from celery import Celery
 import datetime
-from src.process_graph import ProcessGraph
-from src.validation import validate_job
+from .src.process_graph import ProcessGraph
+from .src.validation import validate_job
 
 broker = "amqp://{user}:{password}@{host}:5672//"
 broker = broker.format(user=environ.get("RABBIT_MQ_USER"), 
