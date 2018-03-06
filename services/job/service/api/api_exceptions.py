@@ -1,20 +1,5 @@
 ''' API Exceptions '''
 
-class TemplateError(Exception):
-    ''' Template Exception raises if the template could not be parsed or excecuted. '''
-    def __init__(self, code, msg):
-        super(TemplateError, self).__init__(msg)
-        self.code = code
-
-class ValidationError(Exception):
-    ''' Validation Exception raises if payload is not valid. '''
-    
-    def __init__(self, msg=None):
-        if not msg:
-            msg = "The request payload is malformed or invalid."
-        super(ValidationError, self).__init__(msg)
-        self.code = 400
-
 class InvalidRequest(Exception):
     ''' InvalidRequest raises if the request is invalid. '''
 

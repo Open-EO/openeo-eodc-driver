@@ -25,9 +25,6 @@ def create_job(req_user, auth):
         if not payload:
             raise InvalidRequest("Invalid payload.")
 
-
-        # validate_job(payload, auth)
-
         job = Job(user_id=req_user["id"], task=payload)
 
         DB.session.add(job)

@@ -4,9 +4,15 @@ from os import environ
 from json import dumps, loads
 from requests import post, get, delete
 from re import match
-from service.api.api_exceptions import TemplateError
 from time import sleep
 from abc import ABC, abstractmethod
+
+class TemplateError(Exception):
+    ''' Template Exception raises if the template could not be parsed or excecuted. '''
+    def __init__(self, msg=None):
+        if not msg:
+            msg = "Error while parsing templates."
+        super(TemplateError, self).__init__(msg)
 
 class BaseTemplate(ABC):
     ''' Base Class for OpenShift Templates '''

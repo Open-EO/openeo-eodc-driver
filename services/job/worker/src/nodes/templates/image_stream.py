@@ -2,7 +2,7 @@
 
 from os import environ
 from requests import get
-from worker.templates.base_template import BaseTemplate
+from .base_template import BaseTemplate
 
 class ImageStream(BaseTemplate):
     ''' Class for OpenShift ImageStream Object '''

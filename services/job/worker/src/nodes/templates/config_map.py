@@ -1,7 +1,7 @@
 ''' Template for OpenShift ConfigMap '''
 
 from json import dumps
-from worker.templates.base_template import BaseTemplate
+from .base_template import BaseTemplate
 
 class ConfigMap(BaseTemplate):
     ''' Class for OpenShift ConfigMap Object '''

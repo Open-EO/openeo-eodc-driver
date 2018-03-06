@@ -1,6 +1,6 @@
 ''' Operation Node of Process Graph '''
 
-from worker.process_graph.node import Node
+from .node import Node
 
 class Operation(Node):
     ''' Operation node for perform operations on filtered data '''

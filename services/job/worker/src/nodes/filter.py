@@ -1,13 +1,8 @@
 ''' Filter Node of Process Graph '''
 
-from os import environ
-from requests import get
-from json import loads
-from worker.process_graph.node import Node
-from worker.process_graph.get_records import get_file_paths
-from random import choice
-from string import ascii_lowercase, digits
 from pyproj import Proj, transform
+from .requests.csw import get_file_paths
+from .node import Node
 
 class Filter(Node):
     ''' Filter node for filtering products, time ranges and bands '''

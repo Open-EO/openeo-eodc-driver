@@ -1,20 +1,32 @@
 from os import environ
-from worker.celery import app
-from worker.process_graph.process_graph import ProcessGraph
+from celery import Celery
+import datetime
+from src.process_graph import ProcessGraph
+from src.validation import validate_job
 
+broker = "pyamqp://{user}:{password}@{host}//"
+broker.format(user=environ.get("RABBIT_MQ_USER"), 
+              password=environ.get("RABBIT_MQ_PASSWORD"), 
+              host=environ.get("RABBIT_MQ_HOST"))
+
+celery = Celery("openeo_tasks", broker=broker)
+
+@celery.task
 def start_job_processing(job):
     ''' Executes the processes of a job '''
 
     # TODO: Own db table for process_graph  job -> Foreign Key
     # TODO: Get namespace and storage class of user
     # TODO: Get token of users service account
-    # TODO: Get storage_class of user 
+    # TODO: Get storage_class of user
     token = environ.get("SERVICEACCOUNT_TOKEN")
     namespace = environ.get("EXECUTION_NAMESPACE")
     storage_class = environ.get("STORAGE_CLASS")
-    
-    # Create and parse process graph
-    process_graph = ProcessGraph(job["job_id"], job["task"])
 
-    # Execute the process Graph
-    result_pvc = process_graph.execute(token, namespace, storage_class)
+    try:
+        validate_job(job["task"])
+        process_graph = ProcessGraph(job["job_id"], job["task"])
+        process_graph.execute(token, namespace, storage_class)
+    except Exception as exp:
+        # TODO Exception Handling 
+        print(exp)

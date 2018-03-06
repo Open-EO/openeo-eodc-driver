@@ -6,13 +6,13 @@ from json import loads, dumps
 from datetime import datetime, timedelta
 from xml.dom.minidom import parseString
 
-with open("worker/templates/get_records.xml") as xml_file:
-        xml_file = xml_file.read()
-
 class CWSError(Exception):
     ''' CWSError raises if a error occures while querying the CSW server. '''
     def __init__(self, msg):
         super(CWSError, self).__init__(msg)
+
+with open("src/nodes/requests/get_records.xml") as xml_file:
+        xml_file = xml_file.read()
 
 def get_all_records(product, begin, end, bbox, just_filepaths=True):
     ''' Return the collected csw records of the query '''
@@ -101,11 +101,3 @@ def get_file_paths(product, t_from, t_to, bbox):
         file_paths[item[0]] = [item[1]]
 
     return file_paths
-
-# if __name__ == "__main__":
-#     product = "s2a_prd_msil1c"
-#     begin = "2018-01-01T12:00:00Z"
-#     end = "2018-01-15T12:00:00Z"
-#     bbox = [47, -5, 55, 20]
-
-#     records = get_all_records(product, begin, end, bbox)

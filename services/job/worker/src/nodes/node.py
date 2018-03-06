@@ -1,24 +1,19 @@
 ''' Process Node of the Process Graph'''
 
-from os import environ
 from abc import ABC, abstractmethod
-from random import choice
-from string import ascii_lowercase, digits
-from requests import get
-from json import loads
-from re import match
-from worker.templates.persistant_volume_claim import PersistentVolumeClaim
-from worker.templates.image_stream import ImageStream
-from worker.templates.build_config import BuildConfig
-from worker.templates.config_map import ConfigMap
-from worker.templates.job import Job
+from .templates.persistant_volume_claim import PersistentVolumeClaim
+from .templates.image_stream import ImageStream
+from .templates.build_config import BuildConfig
+from .templates.config_map import ConfigMap
+from .templates.job import Job
+from .requests.openeo import get_single
+from .utils import generate_random_id
 
 class Node(ABC):
     ''' Base class for process nodes. '''
 
     def __init__(self, graph_id):
-        rnd = "".join(choice(ascii_lowercase + digits) for _ in range(3))
-        self.node_id = "{0}-n{1}".format(graph_id, rnd)
+        self.node_id = "{0}-n{1}".format(graph_id, generate_random_id(3))
 
     @abstractmethod
     def get_process_id(self):
@@ -41,31 +36,16 @@ class Node(ABC):
         raise Exception("Not yet implemented!")
 
     @staticmethod
-    def get_node_spec(process_id):
-        ''' Returns the process description of a specific backend '''
-
-        OPENEO_API = environ.get("OPENEO_API_HOST")
-        if not match(r"^http(s)?:\/\/", OPENEO_API):
-            OPENEO_API = "http://" + OPENEO_API
-
-        url = "{0}/processes/{1}/details".format(OPENEO_API, process_id)
-        response = get(url)
-        response.raise_for_status()
-
-        return loads(response.text)
-
-    @staticmethod
     def parse_node(graph_id, p_payload):
         ''' Parses the process graph nodes '''
 
-        from worker.process_graph.filter import Filter
-        from worker.process_graph.operation import Operation
+        from .filter import Filter
+        from .operation import Operation
 
         if "product_id" in p_payload:
             return Filter(graph_id, p_payload)
 
-        p_id = p_payload["process_id"]
-        p_spec = Node.get_node_spec(p_id)
+        p_spec = get_single("openeo", "processes", p_payload["process_id"], "details")
 
         if p_spec["process_type"] == "filter":
             return Filter(graph_id, p_payload)
@@ -87,7 +67,8 @@ class Node(ABC):
 
         # Get process specification
         process_id = self.get_process_id()
-        node_spec = Node.get_node_spec(process_id)
+        node_spec = get_single("openeo", "processes", process_id, "details")
+
         git_uri = node_spec["git_uri"]
         git_ref= node_spec["git_ref"]
         git_dir = node_spec["git_dir"]

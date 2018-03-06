@@ -1,6 +1,6 @@
 ''' Template for OpenShift PersistentVolumeClaim '''
 
-from worker.templates.base_template import BaseTemplate
+from .base_template import BaseTemplate
 
 class PersistentVolumeClaim(BaseTemplate):
     ''' Class for OpenShift PersistentVolumeClaim Object '''

@@ -1,7 +1,7 @@
 ''' Template for OpenShift Job '''
 
 from os import environ
-from worker.templates.base_template import BaseTemplate
+from .base_template import BaseTemplate
 
 class Job(BaseTemplate):
     ''' Class for OpenShift Job Object '''

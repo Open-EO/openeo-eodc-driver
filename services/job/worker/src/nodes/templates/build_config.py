@@ -1,9 +1,9 @@
 ''' Template for OpenShift BuildConfig '''
 
 from os import environ
-from worker.templates.base_template import BaseTemplate
-from requests import get, delete
 from json import loads
+from requests import get, delete
+from .base_template import BaseTemplate
 
 class BuildConfig(BaseTemplate):
     ''' Class for OpenShift BuildConfig Object '''
