@@ -4,10 +4,12 @@ import datetime
 from src.process_graph import ProcessGraph
 from src.validation import validate_job
 
-broker = "pyamqp://{user}:{password}@{host}//"
+broker = "amqp://{user}:{password}@{host}:5672//"
 broker.format(user=environ.get("RABBIT_MQ_USER"), 
               password=environ.get("RABBIT_MQ_PASSWORD"), 
               host=environ.get("RABBIT_MQ_HOST"))
+
+print(broker)
 
 celery = Celery("openeo_tasks", broker=broker)
 
