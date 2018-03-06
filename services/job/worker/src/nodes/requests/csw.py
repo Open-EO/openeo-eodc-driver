@@ -11,7 +11,7 @@ class CWSError(Exception):
     def __init__(self, msg):
         super(CWSError, self).__init__(msg)
 
-with open("src/nodes/requests/get_records.xml") as xml_file:
+with open("worker/src/nodes/requests/get_records.xml") as xml_file:
         xml_file = xml_file.read()
 
 def get_all_records(product, begin, end, bbox, just_filepaths=True):
