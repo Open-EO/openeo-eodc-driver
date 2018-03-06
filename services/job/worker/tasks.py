@@ -1,19 +1,10 @@
+from __future__ import absolute_import, unicode_literals
 from os import environ
-from celery import Celery
-import datetime
+from .celery import app 
 from .src.process_graph import ProcessGraph
 from .src.validation import validate_job
 
-broker = "amqp://{user}:{password}@{host}:5672//"
-broker = broker.format(user=environ.get("RABBIT_MQ_USER"), 
-                        password=environ.get("RABBIT_MQ_PASSWORD"), 
-                        host=environ.get("RABBIT_MQ_HOST"))
-
-print(broker)
-
-celery = Celery("openeo_tasks", broker=broker)
-
-@celery.task
+@app.task
 def start_job_processing(job):
     ''' Executes the processes of a job '''
 
