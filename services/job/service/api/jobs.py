@@ -29,7 +29,6 @@ def create_job(req_user, auth):
         DB.session.add(job)
         DB.session.commit()
 
-        # TODO Make it async (Worker)
         # TODO Message Broker
         # TODO Logging
 
@@ -88,7 +87,7 @@ def execute_job(req_user, auth, job_id):
 
         return parse_response(200, data={"job_id": job.id})
 
-    except (InvalidRequest, AuthorizationError, TemplateError) as exp:
+    except InvalidRequest, AuthorizationError as exp:
         return parse_response(exp.code, str(exp))
     except RequestException as exp:
         return parse_response(503, "Could not connect to API backend. Please contact support.")
@@ -117,7 +116,7 @@ def update_status(job_id):
         DB.session.commit()
 
         return parse_response(200, data={"job_id": job.id})
-    except (ValidationError, InvalidRequest) as exp:
+    except InvalidRequest as exp:
         return parse_response(exp.code, str(exp))
     except HTTPError as exp:
         return parse_response(exp.response.status_code, exp.args[0])
@@ -173,7 +172,6 @@ def download_result(req_user, auth, job_id):
             file_links.append("{0}/download/{1}/{2}".format(current_app.config["OPENEO_API"], job_id, file_name))
 
         return parse_response(200, data=file_links)
-        #send_from_directory(directory=job_directory, filename="results.gpkg")
 
     except (InvalidRequest, AuthorizationError) as exp:
         return parse_response(exp.code, str(exp))
