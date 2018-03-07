@@ -1,13 +1,12 @@
 ''' /data route of Data Service '''
 
 from flask import Blueprint
-from flask_cors import cross_origin
-from service.api.api_utils import parse_response
+from .api_utils import parse_response, cors
 
 CAPABILITIES_BLUEPRINT = Blueprint("capabilities", __name__)
 
 @CAPABILITIES_BLUEPRINT.route("/capabilities", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=False, methods="GET")
+@cors()
 def get_capabilities():
     ''' Get data records from PyCSW server '''
 
@@ -28,7 +27,7 @@ def get_capabilities():
     return parse_response(200, data=capabilities)
 
 @CAPABILITIES_BLUEPRINT.route("/capabilities/output_formats", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=False, methods="GET")
+@cors()
 def get_output_formats():
     ''' Get data records from PyCSW server '''
     
@@ -50,7 +49,7 @@ def get_output_formats():
     return parse_response(200, data=output_formats)
 
 @CAPABILITIES_BLUEPRINT.route("/capabilities/services", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=False, methods="GET")
+@cors()
 def get_services():
     ''' Get data records from PyCSW server '''
     

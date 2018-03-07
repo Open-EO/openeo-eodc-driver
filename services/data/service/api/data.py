@@ -2,18 +2,13 @@
 
 from os import environ
 from flask import Blueprint, request
-from flask_cors import cross_origin
-from service.api.api_utils import parse_response, authenticate
-from requests import get
-from json import loads
-from re import match
-from datetime import datetime
+from .api_utils import parse_response, cors
 from service.src.csw import get_records, CWSError
 
 DATA_BLUEPRINT = Blueprint("data", __name__)
 
 @DATA_BLUEPRINT.route("/data", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=False, methods="GET")
+@cors()
 def get_all_products():
     ''' Get data records from PyCSW server '''
 
@@ -40,7 +35,7 @@ def get_all_products():
         return parse_response(400, str(exp))
 
 @DATA_BLUEPRINT.route("/data/<product_id>", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=False, methods="GET")
+@cors()
 def get_product(product_id):
     ''' Get data records from PyCSW server '''
 
@@ -50,13 +45,13 @@ def get_product(product_id):
         if not record:
             return parse_response(200, data={})
 
-        return parse_response(200, data=record) 
+        return parse_response(200, data=record[0]) 
     except CWSError as exp:
         print(str(exp))
         return parse_response(400, str(exp))
 
 @DATA_BLUEPRINT.route("/data/opensearch", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=False, methods="GET")
+@cors()
 def get_product_opensearch():
     ''' Get data records from PyCSW server '''
     return parse_response(501, "This API feature is not supported by the back-end.")

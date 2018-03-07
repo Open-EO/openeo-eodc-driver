@@ -3,8 +3,8 @@
 from functools import wraps
 from json import loads
 from requests import get
-from flask import request, jsonify, current_app
-from service.api.api_exceptions import AuthenticationError
+from flask import request, jsonify, current_app, make_response
+from .api_exceptions import AuthenticationError
 
 def parse_response(code, msg=None, data=None):
     ''' Helper for Parsing JSON Response '''
@@ -46,3 +46,31 @@ def authenticate(f):
             return parse_response(exp.code, str(exp))
 
     return decorated_function
+
+def cors(origins=["*"], auth=False, methods=["GET"]):
+    """This decorator adds the headers passed in to the response"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+
+            allow_origins = ""
+            for origin in origins: 
+                allow_origins += origin + ","
+            allow_origins = allow_origins[:-1]
+
+            allow_methods = ""
+            for method in methods: 
+                allow_methods += method + ","
+            allow_methods = allow_methods[:-1]
+
+            response = make_response(f(*args, **kwargs))
+
+            response.headers.add('Access-Control-Allow-Origin', allow_origins)
+            response.headers.add('Access-Control-Allow-Methods', allow_methods)
+
+            if auth:
+                response.headers.add('Access-Control-Allow-Headers', "Authorization")
+
+            return response
+        return decorated_function
+    return decorator
