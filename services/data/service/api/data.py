@@ -6,81 +6,57 @@ from flask_cors import cross_origin
 from service.api.api_utils import parse_response, authenticate
 from requests import get
 from json import loads
+from re import match
+from datetime import datetime
+from service.src.csw import get_records, CWSError
 
 DATA_BLUEPRINT = Blueprint("data", __name__)
 
 @DATA_BLUEPRINT.route("/data", methods=["GET"])
-@cross_origin(origins="*")
+@cross_origin(origins="*", supports_credentials=False, methods="GET")
 def get_all_products():
     ''' Get data records from PyCSW server '''
-    
-    url = "{0}?service=CSW&version=2.0.2&request=GetRecords"
-    url += "&typenames=csw:Record&elementSetName=full"
-    url += "&resultType=results&constraintLanguage=CQL_TEXT"
-    url += "&startposition=1&outputFormat=application/json"
-    url += "&constraint=apiso:Type = 'series'"
-    url = url.format(environ.get("CSW_SERVER"))
-    
-    response = get(url)
 
-    if response.ok == False:
-        parse_response(503, "The service is currently unavailable.")
-    
-    response_json = loads(response.text)
-    search_result = response_json["csw:GetRecordsResponse"]["csw:SearchResults"]
-    records = search_result["csw:Record"]
+    params = request.args
+    product = params["qname"] if "qname" in params else None
+    bbox = params["qgeom"] if "qgeom" in params else None
+    begin = params["qstartdate"] if "qstartdate" in params else None
+    end = params["qqenddatename"] if "qenddate" in params else None
 
-    all_records = []
-    for item in records:
-        all_records.append(
-            {
-                "product_id": item["dc:identifier"],
-                "description": item["dct:abstract"],
-                "source": item["dc:creator"],
-                "subjects": item["dc:subject"],
-                "extent": item["ows:BoundingBox"],
-            }
-        )
+    try:
+        records = get_records(series=True, product=product, begin=begin, end=end, bbox=bbox)
 
-    return parse_response(200, data=all_records)
+        all_records = []
+        for record in records:
+            all_records.append({
+                "product_id": record["dc:identifier"],
+                "description": record["dct:abstract"],
+                "source": record["dc:creator"],
+            })
+        
+        return parse_response(200, data=all_records)
+    except CWSError as exp:
+        print(str(exp))
+        return parse_response(400, str(exp))
 
 @DATA_BLUEPRINT.route("/data/<product_id>", methods=["GET"])
-@cross_origin(origins="*")
+@cross_origin(origins="*", supports_credentials=False, methods="GET")
 def get_product(product_id):
     ''' Get data records from PyCSW server '''
-    
-    url = "{0}?service=CSW&version=2.0.2&request=GetRecords"
-    url += "&typenames=csw:Record&elementSetName=full"
-    url += "&resultType=results&constraintLanguage=CQL_TEXT"
-    url += "&startposition=1&outputFormat=application/json"
-    url += "&constraint=apiso:Type = 'series' and dc:identifier = '{1}'"
-    # url += "&outputSchema=http://www.isotc211.org/2005/gmd"
-    url = url.format(environ.get("CSW_SERVER"), product_id)
-    
-    response = get(url)
 
-    if response.ok == False:    
-        parse_response(503, "The service is currently unavailable.")
-    
-    response_json = loads(response.text)
-    search_result = response_json["csw:GetRecordsResponse"]["csw:SearchResults"]
+    try:
+        record = get_records(series=True, product=product_id)
 
-    if not "csw:Record" in search_result:
-        return parse_response(404, msg="Dataset not available")
+        if not record:
+            return parse_response(200, data={})
 
-    record = search_result["csw:Record"]
-    item = {
-        "product_id": record["dc:identifier"],
-        "description": record["dct:abstract"],
-        "source": record["dc:creator"],
-        "subjects": record["dc:subject"],
-        "extent": record["ows:BoundingBox"],
-    }
-
-    return parse_response(200, data=item)
+        return parse_response(200, data=record) 
+    except CWSError as exp:
+        print(str(exp))
+        return parse_response(400, str(exp))
 
 @DATA_BLUEPRINT.route("/data/opensearch", methods=["GET"])
-@cross_origin(origins="*")
+@cross_origin(origins="*", supports_credentials=False, methods="GET")
 def get_product_opensearch():
     ''' Get data records from PyCSW server '''
     return parse_response(501, "This API feature is not supported by the back-end.")
