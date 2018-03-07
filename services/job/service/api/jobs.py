@@ -4,17 +4,16 @@ from os import listdir
 from requests.exceptions import RequestException, HTTPError
 from sqlalchemy.exc import OperationalError
 from flask import Blueprint, request, send_from_directory, current_app
-from flask_cors import cross_origin
 from service import DB
-from service.api.api_utils import parse_response, authenticate
-from service.api.api_exceptions import InvalidRequest, AuthorizationError
+from .api_utils import parse_response, authenticate, cors
+from .api_exceptions import InvalidRequest, AuthorizationError
 from service.model.job import Job
 from worker.tasks import start_job_processing
 
 JOBS_BLUEPRINT = Blueprint("jobs", __name__)
 
 @JOBS_BLUEPRINT.route("/jobs", methods=["POST"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(auth=True, methods=["POST"])
 @authenticate
 def create_job(req_user, auth):
     ''' Submits a new job to the back-end '''
@@ -44,8 +43,8 @@ def create_job(req_user, auth):
     except OperationalError as exp:
         return parse_response(503, "The service is currently unavailable.")
 
-@JOBS_BLUEPRINT.route("/jobs/<job_id>", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=True)
+@JOBS_BLUEPRINT.route("/jobs/<job_id>", methods=["GET", "DELETE"])
+@cors(auth=True)
 @authenticate
 def get_job(req_user, auth, job_id):
     ''' Returns detailed information about a submitted job including its current status and the underlying task '''
@@ -67,7 +66,7 @@ def get_job(req_user, auth, job_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @JOBS_BLUEPRINT.route("/jobs/<job_id>/execute", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(auth=True)
 @authenticate
 def execute_job(req_user, auth, job_id):
     ''' Executes a job '''
@@ -95,7 +94,7 @@ def execute_job(req_user, auth, job_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @JOBS_BLUEPRINT.route("/jobs/<job_id>/status", methods=["POST"])
-@cross_origin(origins="*")
+@cors(auth=True, methods=["POST"])
 # @authenticate
 # TODO: Message Broker
 def update_status(job_id):
@@ -126,7 +125,7 @@ def update_status(job_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @JOBS_BLUEPRINT.route("/jobs/<job_id>", methods=["DELETE"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(auth=True, methods=["GET", "DELETE"])
 @authenticate
 def delete_job(req_user, auth, job_id):
     ''' Deleting a job will cancel execution at the back-end regardless of its status. For finished jobs, this will also delete resulting data. '''
@@ -151,7 +150,7 @@ def delete_job(req_user, auth, job_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @JOBS_BLUEPRINT.route("/jobs/<job_id>/download", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(auth=True)
 @authenticate
 def download_result(req_user, auth, job_id):
     ''' Downloading job results '''

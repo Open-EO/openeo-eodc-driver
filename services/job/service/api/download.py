@@ -1,19 +1,16 @@
 ''' /jobs route of Job Service '''
 
 from os import listdir
-from requests.exceptions import RequestException, HTTPError
 from sqlalchemy.exc import OperationalError
-from flask import Blueprint, request, send_from_directory, current_app
-from flask_cors import cross_origin
-from service import DB
-from service.api.api_utils import parse_response, authenticate
-from service.api.api_exceptions import InvalidRequest, AuthorizationError
+from flask import Blueprint, send_from_directory, current_app
 from service.model.job import Job
+from .api_utils import parse_response, authenticate, cors
+from .api_exceptions import InvalidRequest, AuthorizationError
 
 DOWNLOAD_BLUEPRINT = Blueprint("downloads", __name__)
 
 @DOWNLOAD_BLUEPRINT.route("/download/<job_id>/<file_name>", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(auth=True)
 @authenticate
 def get_results(req_user, auth, job_id, file_name):
     ''' Returns the processed files '''
