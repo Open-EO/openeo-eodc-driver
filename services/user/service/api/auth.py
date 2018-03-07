@@ -1,19 +1,18 @@
 ''' /auth route of User Service '''
 
 from flask import Blueprint, request, current_app
-from flask_cors import cross_origin
 from werkzeug.exceptions import BadRequest
 from sqlalchemy.exc import OperationalError
 from base64 import b64decode
 from service import BCRYPT
 from service.model.user import User
-from service.api.api_utils import parse_response, authenticate
+from service.api.api_utils import parse_response, authenticate, cors
 from service.api.api_exceptions import InvalidRequest, AuthenticationError
 
 AUTH_BLUEPRINT = Blueprint("auth", __name__)
 
 @AUTH_BLUEPRINT.route("/auth/login", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(auth=True, methods=["GET"])
 def login_user():
     ''' Check credentials and send auth token '''
 
@@ -45,21 +44,21 @@ def login_user():
 
 
 @AUTH_BLUEPRINT.route("/auth/logout", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(auth=True, methods=["GET"])
 @authenticate
 def logout_user(req_uid):
     ''' Get auth token and log out '''
     return parse_response(200, "Successfully logged out.")
 
 @AUTH_BLUEPRINT.route("/auth/verify", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(auth=True, methods=["GET"])
 @authenticate
 def verify_user(req_uid):
     ''' Verify auth token and return users id '''
     return parse_response(200, req_uid)
 
 @AUTH_BLUEPRINT.route("/auth/identify", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(auth=True, methods=["GET"])
 @authenticate
 def identify_user(req_uid):
     '''Return users identity '''

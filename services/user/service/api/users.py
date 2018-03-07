@@ -2,19 +2,18 @@
 
 import datetime
 from flask import Blueprint, jsonify, request, make_response
-from flask_cors import cross_origin
 from sqlalchemy import exc, or_
 from sqlalchemy.exc import OperationalError
 from service import DB
 from service.model.user import User
-from service.api.api_utils import parse_response, authenticate, is_admin
+from service.api.api_utils import parse_response, authenticate, is_admin, cors
 from service.api.api_exceptions import InvalidRequest, AuthorizationError, ValidationError
 from service.api.api_validation import validate_user
 
 USERS_BLUEPRINT = Blueprint("users", __name__)
 
 @USERS_BLUEPRINT.route("/users", methods=["POST"])
-@cross_origin(supports_credentials=True)
+@cors(auth=True, methods=["GET", "POST"])
 @authenticate
 def add_user(req_uid):
     ''' Add a user to the database. '''
@@ -60,7 +59,7 @@ def add_user(req_uid):
         return parse_response(503, "The service is currently unavailable.")
 
 @USERS_BLUEPRINT.route("/users/<user_id>", methods=["GET"])
-@cross_origin(supports_credentials=True)
+@cors(auth=True, methods=["GET", "POST", "DELETE"])
 @authenticate
 def get_user(req_uid, user_id):
     ''' Get detail of user '''
@@ -87,7 +86,7 @@ def get_user(req_uid, user_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @USERS_BLUEPRINT.route("/users", methods=["GET"])
-@cross_origin(supports_credentials=True)
+@cors(auth=True, methods=["GET", "POST"])
 @authenticate
 def get_all_users(req_uid):
     ''' Get all users '''
@@ -110,7 +109,7 @@ def get_all_users(req_uid):
         return parse_response(503, "The service is currently unavailable.")
 
 @USERS_BLUEPRINT.route("/users/<user_id>", methods=["DELETE"])
-@cross_origin(supports_credentials=True)
+@cors(auth=True, methods=["GET", "POST", "DELETE"])
 @authenticate
 def delete_user(req_uid, user_id):
     ''' Delete an user '''
@@ -140,7 +139,7 @@ def delete_user(req_uid, user_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @USERS_BLUEPRINT.route("/users/<user_id>", methods=["POST"])
-@cross_origin(supports_credentials=True)
+@cors(auth=True, methods=["GET", "POST", "DELETE"])
 @authenticate
 def change_user(req_uid):
     ''' Change users details '''
