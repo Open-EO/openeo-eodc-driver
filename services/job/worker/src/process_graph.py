@@ -6,6 +6,7 @@ from random import choice
 from string import ascii_lowercase, digits
 from .nodes.node import Node
 from .nodes.utils import generate_random_id
+from .nodes.requests.openeo import OPENEO_API_HOST
 
 class ProcessGraph:
     ''' The process graph class contains the executable graph nodes '''
@@ -41,5 +42,5 @@ class ProcessGraph:
         ''' Changes the status of job processing '''
         self.status = status
         
-        response = post("{0}/jobs/{1}/status".format(environ.get("OPENEO_API"), self.job_id), data={"status":status})
-        response.raise_for_status()
+        # response = post("{0}/jobs/{1}/status".format(OPENEO_API_HOST, self.job_id), data={"status":status})
+        # response.raise_for_status()
