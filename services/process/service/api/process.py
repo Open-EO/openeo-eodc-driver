@@ -1,18 +1,17 @@
 ''' /processes route of Process Service '''
 
 from flask import Blueprint, request, current_app
-from flask_cors import cross_origin
 from sqlalchemy.exc import OperationalError
 from service import DB
 from service.model.process import Process
-from service.api.api_utils import parse_response, authenticate
+from service.api.api_utils import parse_response, authenticate, cors
 from service.api.api_exceptions import ValidationError, InvalidRequest, AuthorizationError
 from service.api.api_validation import validate_process
 
 PROCESS_BLUEPRINT = Blueprint("process", __name__)
 
 @PROCESS_BLUEPRINT.route("/processes", methods=["POST"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(methods=["GET", "POST"])
 @authenticate
 def add_process(req_user):
     ''' Add a process to the registry'''
@@ -70,7 +69,7 @@ def add_process(req_user):
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(methods=["GET", "POST"])
 # @authenticate
 def get_all_processes():
     ''' Information about all processes that are available '''
@@ -89,7 +88,7 @@ def get_all_processes():
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(methods=["GET", "DELETE", "PUT"])
 # @authenticate
 def get_process(process_id):
     ''' Information about specific process '''
@@ -109,7 +108,7 @@ def get_process(process_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>/details", methods=["GET"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors()
 # @authenticate
 def get_process_details(process_id):
     ''' Detailed information about specific process that includes sensitive information '''
@@ -129,7 +128,7 @@ def get_process_details(process_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>", methods=["DELETE"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(methods=["GET", "DELETE", "PUT"], auth=True)
 @authenticate
 def delete_process(req_user, process_id):
     ''' Delete process '''
@@ -155,7 +154,7 @@ def delete_process(req_user, process_id):
 
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>", methods=["PUT"])
-@cross_origin(origins="*", supports_credentials=True)
+@cors(methods=["GET", "DELETE", "PUT"], auth=True)
 @authenticate
 def alter_process(req_user, process_id):
     ''' Alter values of process in namespace'''
@@ -196,8 +195,8 @@ def alter_process(req_user, process_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes/opensearch", methods=["PUT"])
-@cross_origin(origins="*", supports_credentials=True)
-@authenticate
+@cors()
+# @authenticate
 def get_process_opensearch(req_user, process_id):
     ''' Get process using opensearch'''
 

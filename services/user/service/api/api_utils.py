@@ -4,7 +4,7 @@ from jwt import ExpiredSignatureError, InvalidTokenError
 from sqlalchemy.exc import OperationalError
 from flask import jsonify
 from functools import wraps
-from flask import request, jsonify
+from flask import request, jsonify, make_response
 from service.model.user import User
 from service.api.api_exceptions import AuthenticationError
 
@@ -67,3 +67,31 @@ def is_admin(user_id):
 
     user = User.query.filter_by(id=user_id).first()
     return user.admin
+
+def cors(origins=["*"], auth=False, methods=["GET"]):
+    """This decorator adds the headers passed in to the response"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+
+            allow_origins = ""
+            for origin in origins: 
+                allow_origins += origin + ","
+            allow_origins = allow_origins[:-1]
+
+            allow_methods = ""
+            for method in methods: 
+                allow_methods += method + ","
+            allow_methods = allow_methods[:-1]
+
+            response = make_response(f(*args, **kwargs))
+
+            response.headers.add('Access-Control-Allow-Origin', allow_origins)
+            response.headers.add('Access-Control-Allow-Methods', allow_methods)
+
+            if auth:
+                response.headers.add('Access-Control-Allow-Headers', "Authorization")
+
+            return response
+        return decorated_function
+    return decorator
