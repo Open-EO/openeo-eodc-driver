@@ -34,7 +34,7 @@ def perform_min_time():
         with open("{0}/files.json".format(mount), 'r') as json_file:
             file_paths = load(json_file)["file_paths"]
 
-            abs_file_paths = [mount + file_path for file_path in file_paths]
+            abs_file_paths = [mount + "/" + file_path for file_path in file_paths]
 
             # Combine all files into one (as different bands -> make sure they can be put on top of each other)
             gdal.BuildVRT(path_time_stack_vrt, abs_file_paths, separate=True)

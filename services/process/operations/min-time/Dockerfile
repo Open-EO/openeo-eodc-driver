@@ -12,13 +12,10 @@ RUN apt-get -qq update && apt-get -qq -y install curl bzip2 \
     && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log \
     && conda clean --all --yes
 ENV PATH /opt/conda/bin:$PATH
+RUN conda install -c conda-forge gdal=2.2.3
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
-
 ADD . /usr/src/app
-
-# Install gdal
-RUN conda install -c conda-forge gdal=2.2.3
 
 CMD python app.py
