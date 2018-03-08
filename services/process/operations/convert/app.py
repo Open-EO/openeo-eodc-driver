@@ -1,5 +1,5 @@
 from os import makedirs, listdir, path, walk
-from shutil import copytree
+from shutil import copyfile
 from zipfile import ZipFile
 from utils import read_parameters, read_input_mounts
 from json import dump, load
@@ -18,7 +18,8 @@ def copy_data():
 
         for file_path in file_paths:
             file_path = "{0}/{1}".format(mount, file_path)
-            copytree("/" + mount, out_dir)
+            file_name = file_path.split("/")[1]
+            copyfile(file_path, "{0}/{1}".format(out_dir, file_name))
             print(" -> Copied file: " + file_path)
 
 if __name__ == "__main__":
