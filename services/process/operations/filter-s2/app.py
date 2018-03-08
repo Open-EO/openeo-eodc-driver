@@ -299,7 +299,16 @@ def get_bbox():
         bottom = min(left_bottom[1], right_bottom[1])
         top = max(left_top[1], right_top[1])
 
-        #TODO Check?!
+        if bottom > top:
+            tmp = bottom
+            bottom = top
+            top = tmp
+
+        if left > right:
+            tmp = right
+            right = left
+            left = tmp
+        
         return [left, bottom, right, top]
 
         # return [left, top, right, bottom]
