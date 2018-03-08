@@ -17,7 +17,7 @@ def options_jobs_download(job_id, file_name):
 @DOWNLOAD_BLUEPRINT.route("/download/<job_id>/<file_name>", methods=["GET"])
 @cors(auth=True, methods=["OPTIONS", "GET"])
 # @authenticate
-def get_results(req_user, auth, job_id, file_name):
+def get_results(job_id, file_name):
     ''' Returns the processed files '''
 
     try:
