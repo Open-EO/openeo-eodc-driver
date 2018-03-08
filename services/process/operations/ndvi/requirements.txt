@@ -1,0 +1,4 @@
+certifi==2018.1.18
+GDAL==2.2.2
+numpy==1.14.1
+wincertstore==0.2

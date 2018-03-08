@@ -13,7 +13,7 @@ class ConfigMap(BaseTemplate):
 
         input_mounts = []
         for input_pvc in input_pvcs:
-            input_mounts.append(input_pvc.template_id)
+            input_mounts.append("/" + input_pvc.template_id)
 
         super().__init__(namespace, template_id, path, "ConfigMap", "v1")
 
