@@ -26,7 +26,7 @@ def perform_min_time():
         folder_stack_time_tif = create_folder(OUT_VOLUME, "stack_time_tif")
 
         # Define output paths
-        filename_part = "-time_epsg-{0}_mount-{1}".format(PARAMS["data_srs"], idx)
+        filename_part = "-time_epsg-{0}_mount-{1}".format(PARAMS["data_srs"].split(":")[-1], idx)
         path_time_stack_vrt = "{0}/stack{1}.vrt".format(folder_stack_time_vrt, filename_part)
         path_time_stack_tif = "{0}/stack{1}.tif".format(folder_stack_time_tif, filename_part)
         path_min_time = "{0}/min{1}.tif".format(OUT_FINAL, filename_part)
