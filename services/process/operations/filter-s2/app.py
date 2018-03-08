@@ -227,6 +227,8 @@ def merge_reprojected():
     # Create Out folder
     TEMP_FOLDERS["merged"] = create_folder(OUT_VOLUME, "06_merged")
 
+    PARAMS["bbox_out_epsg"] = None
+
     for day in PARAMS["file_paths"].keys():
 
         # Get input path
@@ -236,8 +238,11 @@ def merge_reprojected():
         out_filename = "filter-s2_{0}_epsg-{1}.vrt".format(day, OUT_EPSG)
         out_path = "{0}/{1}".format(TEMP_FOLDERS["merged"], out_filename)
 
+        if PARAMS["bbox_out_epsg"] is None:
+            PARAMS["bbox_out_epsg"] = get_bbox()
+
         # Merge all files into one vrt-file
-        gdal.BuildVRT(out_path, file_path_list, outputBounds=get_bbox())
+        gdal.BuildVRT(out_path, file_path_list, outputBounds=PARAMS["bbox_out_epsg"])
         print(" - Merged {0}".format(out_filename))
 
     print("-> Finished merging.")
@@ -258,7 +263,7 @@ def transform_to_geotiff():
         out_path = "{0}/{1}".format(OUT_FINAL, out_filename)
 
         # Translate vrt-file to GeoTiff
-        gdal.Translate(out_path, in_path)  # TODO show progress somehow (slow!)
+        gdal.Translate(out_path, in_path, outputBounds=PARAMS["bbox_out_epsg"])  # TODO show progress somehow (slow!)
         print(" - Translated {0}".format(out_filename))
 
     print("-> Finished translation to GeoTiff.")
@@ -295,9 +300,9 @@ def get_bbox():
         top = max(left_top[1], right_top[1])
 
         #TODO Check?!
-        # return [left, bottom, right, top]
+        return [left, bottom, right, top]
 
-        return [left, top, right, bottom]
+        # return [left, top, right, bottom]
 
     else:
         return [PARAMS["left"], PARAMS["bottom"], PARAMS["right"], PARAMS["top"]]
@@ -364,7 +369,5 @@ if __name__ == "__main__":
     transform_to_geotiff()
     write_output()
     clean_up()
-
-
 
     print("Finished Sentinel 2 data extraction process.")

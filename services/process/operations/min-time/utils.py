@@ -39,15 +39,13 @@ def create_folder(base_folder, new_folder):
         makedirs(folder_path)
     return folder_path
 
-def write_output_to_json(data, operation_name, folder):
-    '''Creates folder out_config in folder and writes data to json inside this new folder'''
-    # folder_out_config = create_folder(folder, "out_config")
 
-    # with open("{0}/out_{1}_config.json".format(folder_out_config, operation_name), "w") as outfile:
-    #     json.dump(data, outfile)
-    
+def write_output_to_json(data, folder):
+    '''Creates folder out_config in folder and writes data to json inside this new folder'''
+
     with open("{0}/files.json".format(folder), "w") as outfile:
         json.dump(data, outfile)
+
 
 def get_paths_for_files_in_folder(folder_path):
     '''Returns a list of all file paths inside the given folder'''
