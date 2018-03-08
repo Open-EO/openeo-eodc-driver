@@ -43,6 +43,8 @@ class ProcessGraph:
     def set_status(self, status):
         ''' Changes the status of job processing '''
         self.status = status
+
+        url = "{0}/jobs/{1}/status".format(OPENEO_API_HOST, self.job_id)
         
-        response = post("{0}/jobs/{1}/status".format(OPENEO_API_HOST, self.job_id), data={"status":status})
+        response = post("{0}/jobs/{1}/status".format(OPENEO_API_HOST, self.job_id), json={"status":status})
         response.raise_for_status()
