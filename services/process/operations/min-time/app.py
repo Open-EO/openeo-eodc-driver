@@ -12,46 +12,47 @@ OUT_FINAL = create_folder(OUT_VOLUME, "out_min-time")
 PARAMS = read_parameters()
 INPUT_MOUNTS = read_input_mounts()
 
+
 def perform_min_time():
     ''' Performs min time '''
 
     print("-> Start calculating minimal NDVI...")
 
-   
     # Iterate over each file and save the data
-
     for idx, mount in enumerate(INPUT_MOUNTS):
-         # Create dict to store data with date in
-        data = None
-        count = 0
 
-        # Define output
-        out_dataset = None
-        out_path = "{0}/min-time_epsg-{1}-{2}.tif".format(OUT_FINAL, idx, PARAMS["data_srs"].split(":")[-1])  # TODO Add time range?
+        # Create Out folders
+        folder_stack_time_vrt = create_folder(OUT_VOLUME, "stack_time_vrt")
+        folder_stack_time_tif = create_folder(OUT_VOLUME, "stack_time_tif")
+
+        # Define output paths
+        filename_part = "-time_epsg-{0}_mount-{1}".format(PARAMS["data_srs"], idx)
+        path_time_stack_vrt = "{0}/stack{1}.vrt".format(folder_stack_time_vrt, filename_part)
+        path_time_stack_tif = "{0}/stack{1}.tif".format(folder_stack_time_tif, filename_part)
+        path_min_time = "{0}/min{1}.tif".format(OUT_FINAL, filename_part)
 
         with open("{0}/files.json".format(mount), 'r') as json_file:
             file_paths = load(json_file)["file_paths"]
-            
-            for file_path in file_paths:
-                file_path = "{0}/{1}".format(mount, file_path)
 
-                # Get data
-                dataset = gdal.Open(file_path)
-                band = dataset.GetRasterBand(1)
+            abs_file_paths = ["/home/" + file_path for file_path in file_paths]
+
+            # Combine all files into one (as different bands -> make sure they can be put on top of each other)
+            gdal.BuildVRT(path_time_stack_vrt, abs_file_paths, separate=True)
+            gdal.Translate(path_time_stack_tif, path_time_stack_vrt)
+
+            dataset = gdal.Open(path_time_stack_tif)
+            data = numpy.zeros((len(file_paths), dataset.RasterYSize, dataset.RasterXSize))
+            out_dataset = create_out_dataset(dataset, path_min_time)  # Save dummy out dataset to be filled with data
+
+            for band_num in range(0, len(file_paths)):
+
+                band = dataset.GetRasterBand(band_num + 1)
                 file_data = band.ReadAsArray()
 
-                if data is None:
-                    data = numpy.zeros((len(file_paths), dataset.RasterYSize, dataset.RasterXSize))
-
-                    # Save dummy out dataset to be filled with data
-                    out_dataset = create_out_dataset(dataset, out_path)
-
                 # Save data to dict
-                data[count] = file_data
+                data[band_num] = file_data
 
-                count += 1
-
-            min_time_data = numpy.minimum.reduce(data)
+            min_time_data = numpy.fmin.reduce(data)
 
         # Write data to dataset
         fill_dataset(out_dataset, min_time_data)
@@ -88,6 +89,7 @@ def fill_dataset(dataset, data):
     # Write to disk
     dataset.FlushCache()
 
+
 def write_output():
     '''Writes output's metadata to file'''
 
@@ -104,7 +106,7 @@ def write_output():
         cropped_paths.append(path.split("/", 2)[2])
     data["file_paths"] = cropped_paths
 
-    write_output_to_json(data, "ndvi", OUT_VOLUME)
+    write_output_to_json(data, OUT_VOLUME)
 
 
 if __name__ == "__main__":

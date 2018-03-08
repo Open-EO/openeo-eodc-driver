@@ -73,22 +73,28 @@ def perform_ndvi():
     # Iterate over each file
     for mount in INPUT_MOUNTS:
         with open("{0}/files.json".format(mount), 'r') as json_file:
-            file_paths = load(json_file)["file_paths"]
-            
+            file_param = load(json_file)
+            file_paths = file_param["file_paths"]
+
             for file_path in file_paths:
                 filename = file_path.split("/")[-1]
                 file_date = filename.split("_")[1]
 
                 # Open input dataset
-                file_path = "{0}/{1}".format(mount, file_path)
+                file_path = "{0}/{1}".format("/home/", file_path)
                 in_dataset = gdal.Open(file_path)
 
                 # Calculate ndvi
-                ndvi_data = calc_ndvi(in_dataset)
+                ndvi_data = calc_ndvi(in_dataset, file_param)
 
                 # Save output dataset
-                out_file_path = "{0}/ndvi_{1}_epsg-{2}.tif".format(OUT_FINAL, file_date, PARAMS["data_srs"].split(":")[-1])
+                folder_ndvi = create_folder(OUT_VOLUME, "ndvi_first")
+                out_file_path = "{0}/ndvi_{1}_epsg-{2}_first.tif".format(folder_ndvi, file_date, PARAMS["data_srs"].split(":")[-1])
                 create_output_image(in_dataset, out_file_path, ndvi_data)
+
+                # Warp out_files to create correct georeference
+                out_file_path_warp = "{0}/ndvi_{1}_epsg-{2}.tif".format(OUT_FINAL, file_date, PARAMS["data_srs"].split(":")[-1])
+                gdal.Warp(out_file_path_warp, out_file_path)
 
                 print(" - NDVI calculated for {0}".format(filename))
 
@@ -116,13 +122,12 @@ def create_output_image(in_dataset, out_file_path, out_data):
     out_dataset.FlushCache()
 
 
-def get_band_data(dataset, band_name):
+def get_band_data(dataset, band_number):
     '''Returns band data for given dataset and band_name, the noDataValue is set to NaN'''
 
     # TODO check if band is in dataset
 
-    band_num = PARAMS["band_order"]
-    band = dataset.GetRasterBand(band_num[band_name])
+    band = dataset.GetRasterBand(band_number)
     data = band.ReadAsArray()
 
     # Set noDataValue to NaN
@@ -139,12 +144,12 @@ def set_no_data(data, cur, should):
     return data
 
 
-def calc_ndvi(dataset):
+def calc_ndvi(dataset, file_param):
     '''Returns ndvi for given red and nir band (no data is set to 2, ndvi in range [-1, 1])'''
 
     # Get band data
-    red = get_band_data(dataset, PARAMS["red"])
-    nir = get_band_data(dataset, PARAMS["nir"])
+    red = get_band_data(dataset, file_param["band_order"]["B04"])
+    nir = get_band_data(dataset, file_param["band_order"]["B08"])
 
     # Calculate NDVI
     ndvi = (nir - red) / (nir + red)
