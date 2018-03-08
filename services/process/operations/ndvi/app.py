@@ -81,7 +81,7 @@ def perform_ndvi():
                 file_date = filename.split("_")[1]
 
                 # Open input dataset
-                file_path = "{0}/{1}".format("/home/", file_path)
+                file_path = "{0}/{1}".format(mount, file_path)
                 in_dataset = gdal.Open(file_path)
 
                 # Calculate ndvi
