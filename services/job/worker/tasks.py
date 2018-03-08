@@ -2,7 +2,6 @@ from __future__ import absolute_import, unicode_literals
 from os import environ
 from .celery import app
 from .src.process_graph import ProcessGraph
-from .src.validation import validate_job
 
 @app.task
 def start_job_processing(job):
@@ -17,7 +16,6 @@ def start_job_processing(job):
     storage_class = environ.get("STORAGE_CLASS")
 
     try:
-        validate_job(job["task"])
         process_graph = ProcessGraph(job["job_id"], job["task"])
         process_graph.execute(token, namespace, storage_class)
     except Exception as exp:
