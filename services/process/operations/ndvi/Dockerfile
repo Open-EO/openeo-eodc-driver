@@ -1,10 +1,5 @@
 FROM python:3.6.4
 
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
-
-ADD . /usr/src/app
-
 # Install conda
 RUN apt-get -qq update && apt-get -qq -y install curl bzip2 \
     && curl -sSL https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh \
@@ -18,7 +13,10 @@ RUN apt-get -qq update && apt-get -qq -y install curl bzip2 \
     && conda clean --all --yes
 ENV PATH /opt/conda/bin:$PATH
 
-# ENV GDAL_DATA /usr/share/gdal
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+
+ADD . /usr/src/app
 
 # Install gdal
 RUN conda install -c conda-forge gdal=2.2.3
