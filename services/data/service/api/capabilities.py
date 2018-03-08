@@ -45,13 +45,6 @@ def get_output_formats():
         "default": "GTiff",
         "formats": {
             "GTiff": {
-                "tiled": "By default [false] stripped TIFF files are created. This option can be used to force creation of tiled TIFF files [true].",
-                "compress": "Set the compression [JPEG/LZW/DEFLATE/NONE] to use.",
-                "photometric": "Set the photometric interpretation tag [MINISBLACK/MINISWHITE/RGB/CMYK/YCBCR/CIELAB/ICCLAB/ITULAB].",
-                "jpeg_quality": "Set the JPEG quality [1-100] when using JPEG compression. Default: 75"
-            },
-            "PNG": {
-                "worldfile": "Force the generation of an associated ESRI world file."
             }
         }
     }

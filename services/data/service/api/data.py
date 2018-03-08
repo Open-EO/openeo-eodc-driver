@@ -24,17 +24,19 @@ def get_all_products():
     end = params["qqenddatename"] if "qenddate" in params else None
 
     try:
-        records = get_records(series=True, product=product, begin=begin, end=end, bbox=bbox)
-
-        all_records = []
-        for record in records:
-            all_records.append({
-                "product_id": record["dc:identifier"],
-                "description": record["dct:abstract"],
-                "source": record["dc:creator"],
-            })
+        record = get_records(series=True, product="s2a_prd_msil1c")
+        # records = get_records(series=True, product=product, begin=begin, end=end, bbox=bbox)
+    
+        #TODO: Support all formats!
+        # all_records = []
+        # for record in records:
+        #     all_records.append({
+        #         "product_id": record["dc:identifier"],
+        #         "description": record["dct:abstract"],
+        #         "source": record["dc:creator"],
+        #     })
         
-        return parse_response(200, data=all_records)
+        return parse_response(200, data=record)
     except CWSError as exp:
         print(str(exp))
         return parse_response(400, str(exp))
