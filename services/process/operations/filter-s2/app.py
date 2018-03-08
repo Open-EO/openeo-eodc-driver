@@ -104,7 +104,7 @@ def extract_sentinel_2_data():
                 for img_name in listdir(img_path):
                     file_band = img_name.split("_")[-1].split(".")[0]
 
-                    if file_band in PARAMS["bands"]:
+                    if file_band in PARAMS["bands"] or not PARAMS["bands"]:
 
                         dst_img_name = img_name
                         # Check for old S2 naming convention
@@ -294,7 +294,10 @@ def get_bbox():
         bottom = min(left_bottom[1], right_bottom[1])
         top = max(left_top[1], right_top[1])
 
-        return [left, bottom, right, top]
+        #TODO Check?!
+        # return [left, bottom, right, top]
+
+        return [left, top, right, bottom]
 
     else:
         return [PARAMS["left"], PARAMS["bottom"], PARAMS["right"], PARAMS["top"]]
@@ -303,8 +306,12 @@ def get_bbox():
 def write_output():
     '''Writes output's metadata to file'''
 
-    # save band_order
+    # TODO Bands in Metadaten -> Übergeben als Parameter / Kein empty array
     bands = PARAMS["bands"]
+    if not bands:
+        bands = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09", "B10", "B11", "B12", "TCI"]
+
+    # save band_order
     bands.sort()
     order = range(1, len(bands)+1)
     band_order = dict(zip(bands, order))
@@ -323,6 +330,12 @@ def write_output():
                 "srs": PARAMS["srs"]},
             }
 
+    #TODO Anders
+    cropped_paths = []
+    for path in data["file_paths"]:
+        cropped_paths.append(path.split("/", 2)[2])
+    data["file_paths"] = cropped_paths
+    
     write_output_to_json(data, "filter-s2", OUT_VOLUME)
 
 

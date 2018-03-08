@@ -1,4 +1,4 @@
-FROM python:3.6.2
+FROM python:3.6.4
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
@@ -17,6 +17,8 @@ RUN apt-get -qq update && apt-get -qq -y install curl bzip2 \
     && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log \
     && conda clean --all --yes
 ENV PATH /opt/conda/bin:$PATH
+
+# ENV GDAL_DATA /usr/share/gdal
 
 # Install gdal
 RUN conda install -c conda-forge gdal=2.2.3

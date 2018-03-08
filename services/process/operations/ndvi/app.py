@@ -53,16 +53,16 @@ extent: dict
 
 '''
 
+from json import load
 from osgeo import gdal
 import numpy
 
-from services.process.operations.ndvi.utils import read_parameters, read_input_mounts, create_folder, \
+from utils import read_parameters, read_input_mounts, create_folder, \
     write_output_to_json, get_paths_for_files_in_folder
 OUT_VOLUME = "/job_out"
 OUT_FINAL = create_folder(OUT_VOLUME, "out_ndvi")
 PARAMS = read_parameters()
 INPUT_MOUNTS = read_input_mounts()
-NDVI_BANDS = {"red": "B04", "nir": "B08"}  # B8A narrow near infrared
 
 
 def perform_ndvi():
@@ -71,21 +71,26 @@ def perform_ndvi():
     print("-> Start calculating NDVI...")
 
     # Iterate over each file
-    for file_path in PARAMS["file_paths"]:
-        filename = file_path.split("/")[-1]
-        file_date = filename.split("_")[1]
+    for mount in INPUT_MOUNTS:
+        with open("{0}/files.json".format(mount), 'r') as json_file:
+            file_paths = load(json_file)["file_paths"]
+            
+            for file_path in file_paths:
+                filename = file_path.split("/")[-1]
+                file_date = filename.split("_")[1]
 
-        # Open input dataset
-        in_dataset = gdal.Open(file_path)
+                # Open input dataset
+                file_path = "{0}/{1}".format(mount, file_path)
+                in_dataset = gdal.Open(file_path)
 
-        # Calculate ndvi
-        ndvi_data = calc_ndvi(in_dataset)
+                # Calculate ndvi
+                ndvi_data = calc_ndvi(in_dataset)
 
-        # Save output dataset
-        out_file_path = "{0}/ndvi_{1}_epsg-{2}.tif".format(OUT_FINAL, file_date, PARAMS["data_srs"].split(":")[-1])
-        create_output_image(in_dataset, out_file_path, ndvi_data)
+                # Save output dataset
+                out_file_path = "{0}/ndvi_{1}_epsg-{2}.tif".format(OUT_FINAL, file_date, PARAMS["data_srs"].split(":")[-1])
+                create_output_image(in_dataset, out_file_path, ndvi_data)
 
-        print(" - NDVI calculated for {0}".format(filename))
+                print(" - NDVI calculated for {0}".format(filename))
 
     print("-> Finished calculating NDVI.")
 
@@ -138,8 +143,8 @@ def calc_ndvi(dataset):
     '''Returns ndvi for given red and nir band (no data is set to 2, ndvi in range [-1, 1])'''
 
     # Get band data
-    red = get_band_data(dataset, NDVI_BANDS["red"])
-    nir = get_band_data(dataset, NDVI_BANDS["nir"])
+    red = get_band_data(dataset, PARAMS["red"])
+    nir = get_band_data(dataset, PARAMS["nir"])
 
     # Calculate NDVI
     ndvi = (nir - red) / (nir + red)
@@ -152,11 +157,16 @@ def write_output():
 
     data = {"product": PARAMS["product"],
             "operations": PARAMS["operations"] + ["ndvi"],
-            "used_bands": list(NDVI_BANDS.values()),
             "data_srs": PARAMS["data_srs"],
             "file_paths": get_paths_for_files_in_folder(OUT_FINAL),
             "extent": PARAMS["extent"]
             }
+    
+    #TODO Anders
+    cropped_paths = []
+    for path in data["file_paths"]:
+        cropped_paths.append(path.split("/", 2)[2])
+    data["file_paths"] = cropped_paths
 
     write_output_to_json(data, "ndvi", OUT_VOLUME)
 

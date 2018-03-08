@@ -13,6 +13,12 @@ def read_parameters():
     with open(CONFIG_FILE) as json_file:
         parameters = json.load(json_file)
 
+    input_mounts = read_input_mounts()
+    for mount in input_mounts:
+        with open(mount + "/files.json") as json_file:
+            for key, value in json.load(json_file).items():
+                parameters[key] = value
+
     return parameters
 
 
@@ -36,9 +42,12 @@ def create_folder(base_folder, new_folder):
 
 def write_output_to_json(data, operation_name, folder):
     '''Creates folder out_config in folder and writes data to json inside this new folder'''
-    folder_out_config = create_folder(folder, "out_config")
+    # folder_out_config = create_folder(folder, "out_config")
 
-    with open("{0}/out_{1}_config.json".format(folder_out_config, operation_name), "w") as outfile:
+    # with open("{0}/out_{1}_config.json".format(folder_out_config, operation_name), "w") as outfile:
+    #     json.dump(data, outfile)
+    
+    with open("{0}/files.json".format(folder), "w") as outfile:
         json.dump(data, outfile)
 
 
