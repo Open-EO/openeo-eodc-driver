@@ -12,8 +12,13 @@ from worker.tasks import start_job_processing
 
 JOBS_BLUEPRINT = Blueprint("jobs", __name__)
 
+@JOBS_BLUEPRINT.route("/jobs", methods=["OPTIONS"])
+@cors(auth=True, methods=["OPTIONS", "POST"])
+def options_jobs():
+    return parse_response(200)
+
 @JOBS_BLUEPRINT.route("/jobs", methods=["POST"])
-@cors(auth=True, methods=["POST"])
+@cors(auth=True, methods=["OPTIONS", "POST"])
 @authenticate
 def create_job(req_user, auth):
     ''' Submits a new job to the back-end '''
@@ -44,8 +49,13 @@ def create_job(req_user, auth):
     except OperationalError as exp:
         return parse_response(503, "The service is currently unavailable.")
 
+@JOBS_BLUEPRINT.route("/jobs/<job_id>", methods=["OPTIONS"])
+@cors(auth=True, methods=["OPTIONS", "GET", "DELETE"])
+def options_jobs_id(job_id):
+    return parse_response(200)
+
 @JOBS_BLUEPRINT.route("/jobs/<job_id>", methods=["GET", "DELETE"])
-@cors(auth=True)
+@cors(auth=True, methods=["GET", "DELETE"])
 @authenticate
 def get_job(req_user, auth, job_id):
     ''' Returns detailed information about a submitted job including its current status and the underlying task '''
@@ -66,8 +76,13 @@ def get_job(req_user, auth, job_id):
     except OperationalError as exp:
         return parse_response(503, "The service is currently unavailable.")
 
+@JOBS_BLUEPRINT.route("/jobs/<job_id>/execute", methods=["OPTIONS"])
+@cors(auth=True, methods=["OPTIONS", "GET"])
+def options_jobs_execute(job_id):
+    return parse_response(200)
+
 @JOBS_BLUEPRINT.route("/jobs/<job_id>/execute", methods=["GET"])
-@cors(auth=True)
+@cors(auth=True, methods=["OPTIONS", "GET"])
 @authenticate
 def execute_job(req_user, auth, job_id):
     ''' Executes a job '''
@@ -94,8 +109,13 @@ def execute_job(req_user, auth, job_id):
     except OperationalError as exp:
         return parse_response(503, "The service is currently unavailable.")
 
+@JOBS_BLUEPRINT.route("/jobs/<job_id>/status", methods=["OPTIONS"])
+@cors(auth=True, methods=["OPTIONS", "POST"])
+def options_jobs_status(job_id):
+    return parse_response(200)
+
 @JOBS_BLUEPRINT.route("/jobs/<job_id>/status", methods=["POST"])
-@cors(auth=True, methods=["POST"])
+@cors(auth=True, methods=["OPTIONS", "POST"])
 # @authenticate
 # TODO: Message Broker
 def update_status(job_id):
@@ -126,7 +146,7 @@ def update_status(job_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @JOBS_BLUEPRINT.route("/jobs/<job_id>", methods=["DELETE"])
-@cors(auth=True, methods=["GET", "DELETE"])
+@cors(auth=True, methods=["OPTIONS", "GET", "DELETE"])
 @authenticate
 def delete_job(req_user, auth, job_id):
     ''' Deleting a job will cancel execution at the back-end regardless of its status. For finished jobs, this will also delete resulting data. '''
@@ -150,8 +170,13 @@ def delete_job(req_user, auth, job_id):
     except OperationalError as exp:
         return parse_response(503, "The service is currently unavailable.")
 
+@JOBS_BLUEPRINT.route("/jobs/<job_id>/download", methods=["OPTIONS"])
+@cors(auth=True, methods=["OPTIONS", "GET"])
+def options_jobs_download(job_id):
+    return parse_response(200)
+
 @JOBS_BLUEPRINT.route("/jobs/<job_id>/download", methods=["GET"])
-@cors(auth=True)
+@cors(auth=True, methods=["OPTIONS", "GET"])
 @authenticate
 def download_result(req_user, auth, job_id):
     ''' Downloading job results '''

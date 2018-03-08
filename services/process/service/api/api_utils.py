@@ -9,6 +9,9 @@ from service.api.api_exceptions import AuthenticationError
 def parse_response(code, msg=None, data=None):
     ''' Helper for Parsing JSON Response '''
 
+    if not msg and not data:
+        return "", code
+
     if msg and data:
         return jsonify({"message": str(msg), "data": data}), code
 
@@ -53,10 +56,7 @@ def cors(origins=["*"], auth=False, methods=["GET"]):
         @wraps(f)
         def decorated_function(*args, **kwargs):
 
-            allow_origins = ""
-            for origin in origins: 
-                allow_origins += origin + ","
-            allow_origins = allow_origins[:-1]
+            allow_origins = request.headers.get('Host')
 
             allow_methods = ""
             for method in methods: 
@@ -68,8 +68,13 @@ def cors(origins=["*"], auth=False, methods=["GET"]):
             response.headers.add('Access-Control-Allow-Origin', allow_origins)
             response.headers.add('Access-Control-Allow-Methods', allow_methods)
 
+            allow_headers = "Content-Type"
+
             if auth:
-                response.headers.add('Access-Control-Allow-Headers', "Authorization")
+                allow_headers += ", Authorization"
+                response.headers.add('Access-Control-Allow-Credentials', "true")
+            
+            response.headers.add('Access-Control-Allow-Headers', allow_headers)
 
             return response
         return decorated_function

@@ -9,8 +9,13 @@ from .api_exceptions import InvalidRequest, AuthorizationError
 
 DOWNLOAD_BLUEPRINT = Blueprint("downloads", __name__)
 
+@DOWNLOAD_BLUEPRINT.route("/download/<job_id>/<file_name>", methods=["OPTIONS"])
+@cors(auth=True, methods=["OPTIONS", "GET"])
+def options_jobs_download(job_id, file_name):
+    return parse_response(200)
+
 @DOWNLOAD_BLUEPRINT.route("/download/<job_id>/<file_name>", methods=["GET"])
-@cors(auth=True)
+@cors(auth=True, methods=["OPTIONS", "GET"])
 @authenticate
 def get_results(req_user, auth, job_id, file_name):
     ''' Returns the processed files '''

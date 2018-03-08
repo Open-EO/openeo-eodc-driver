@@ -11,8 +11,13 @@ from service.api.api_exceptions import InvalidRequest, AuthenticationError
 
 AUTH_BLUEPRINT = Blueprint("auth", __name__)
 
+@AUTH_BLUEPRINT.route("/auth/login", methods=["OPTIONS"])
+@cors(auth=True, methods=["OPTIONS", "GET"])
+def options_auth_login():
+    return parse_response(200)
+
 @AUTH_BLUEPRINT.route("/auth/login", methods=["GET"])
-@cors(auth=True, methods=["GET"])
+@cors(auth=True, methods=["OPTIONS", "GET"])
 def login_user():
     ''' Check credentials and send auth token '''
 

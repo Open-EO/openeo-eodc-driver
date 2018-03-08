@@ -5,6 +5,11 @@ from .api_utils import parse_response, cors
 
 CAPABILITIES_BLUEPRINT = Blueprint("capabilities", __name__)
 
+@CAPABILITIES_BLUEPRINT.route("/capabilities", methods=["OPTIONS"])
+@cors()
+def options_get_capabilities():
+    return parse_response(200)
+
 @CAPABILITIES_BLUEPRINT.route("/capabilities", methods=["GET"])
 @cors()
 def get_capabilities():
@@ -25,6 +30,11 @@ def get_capabilities():
     ]
 
     return parse_response(200, data=capabilities)
+
+@CAPABILITIES_BLUEPRINT.route("/capabilities/output_formats", methods=["OPTIONS"])
+@cors()
+def options_output_formats():
+    return parse_response(200)
 
 @CAPABILITIES_BLUEPRINT.route("/capabilities/output_formats", methods=["GET"])
 @cors()
@@ -47,6 +57,11 @@ def get_output_formats():
     }
 
     return parse_response(200, data=output_formats)
+
+@CAPABILITIES_BLUEPRINT.route("/capabilities/services", methods=["OPTIONS"])
+@cors()
+def options_services():
+    return parse_response(200)
 
 @CAPABILITIES_BLUEPRINT.route("/capabilities/services", methods=["GET"])
 @cors()

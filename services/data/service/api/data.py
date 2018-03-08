@@ -7,6 +7,11 @@ from service.src.csw import get_records, CWSError
 
 DATA_BLUEPRINT = Blueprint("data", __name__)
 
+@DATA_BLUEPRINT.route("/data", methods=["OPTIONS"])
+@cors()
+def options_data():
+    return parse_response(200)
+
 @DATA_BLUEPRINT.route("/data", methods=["GET"])
 @cors()
 def get_all_products():
@@ -34,6 +39,11 @@ def get_all_products():
         print(str(exp))
         return parse_response(400, str(exp))
 
+@DATA_BLUEPRINT.route("/data/<product_id>", methods=["OPTIONS"])
+@cors()
+def options_data_item(product_id):
+    return parse_response(200)
+
 @DATA_BLUEPRINT.route("/data/<product_id>", methods=["GET"])
 @cors()
 def get_product(product_id):
@@ -49,6 +59,11 @@ def get_product(product_id):
     except CWSError as exp:
         print(str(exp))
         return parse_response(400, str(exp))
+
+@DATA_BLUEPRINT.route("/data/opensearch", methods=["OPTIONS"])
+@cors()
+def options_data_opensearch():
+    return parse_response(200)
 
 @DATA_BLUEPRINT.route("/data/opensearch", methods=["GET"])
 @cors()
