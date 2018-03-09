@@ -42,7 +42,7 @@ def create_job(req_user, auth):
         start_job_processing.delay(job.get_dict())
         # start_job_processing(job.get_dict())
 
-        return parse_response(200, data={"job_id": job.get_small_dict()})
+        return parse_response(200, data=job.get_small_dict())
 
     except ValidationError as exp:
         return parse_response(exp.code, str(exp))

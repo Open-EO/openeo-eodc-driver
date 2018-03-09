@@ -8,7 +8,7 @@ class Operation(Node):
     def __init__(self, graph_id, operation_payload, operation_spec):
         super().__init__(graph_id)
 
-        self.operation_id = operation_payload["process_id"]
+        self.operation_id = operation_payload["process_id"].lower().replace("_", "-")
         self.spec = operation_spec
 
         self.args = {}
