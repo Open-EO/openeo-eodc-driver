@@ -57,7 +57,7 @@ def cors(origins=["*"], auth=False, methods=["GET"]):
         def decorated_function(*args, **kwargs):
 
             if "Origin" in request.headers:
-                allow_origins = request.headers.get('Access-Control-Allow-Origin')
+                allow_origins = request.headers.get('Origin')
             else:
                  allow_origins = "*"
 
