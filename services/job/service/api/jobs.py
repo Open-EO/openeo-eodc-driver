@@ -1,6 +1,6 @@
 ''' /jobs route of Job Service '''
 
-from os import listdir
+from os import listdir, path
 from requests.exceptions import RequestException, HTTPError
 from sqlalchemy.exc import OperationalError
 from flask import Blueprint, request, send_from_directory, current_app
@@ -40,7 +40,7 @@ def create_job(req_user, auth):
         # TODO Logging
 
         start_job_processing.delay(job.get_dict())
-        # start_job_processing(job.get_dict())
+        #start_job_processing(job.get_dict())
 
         return parse_response(200, data=job.get_small_dict())
 
@@ -197,6 +197,9 @@ def download_result(req_user, auth, job_id):
             raise AuthorizationError
 
         job_directory = "/job_results/{0}".format(job_id)
+
+        if not path.isdir(job_directory):
+            raise InvalidRequest("Files are not (yet) available for job with id {0}.".format(job_id)) 
 
         file_links = []
         for file_name in listdir(job_directory):

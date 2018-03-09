@@ -1,6 +1,6 @@
 ''' /jobs route of Job Service '''
 
-from os import listdir
+from os import listdir, path
 from sqlalchemy.exc import OperationalError
 from flask import Blueprint, send_from_directory, current_app
 from service.model.job import Job
@@ -30,6 +30,9 @@ def get_results(req_user, auth, job_id, file_name):
             raise AuthorizationError
 
         job_directory = "/job_results/{0}".format(job_id)
+
+        if not path.isdir(job_directory):
+            raise InvalidRequest("Files are not (yet) available for job with id {0}.".format(job_id)) 
 
         files_in_dir = listdir(job_directory)
 

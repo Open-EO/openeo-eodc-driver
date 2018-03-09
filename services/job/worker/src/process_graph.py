@@ -13,6 +13,9 @@ class ProcessGraph:
 
     def __init__(self, job_id, payload):
         self.job_id = job_id
+
+        if not "output" in payload:
+            payload["output"] = {}
         
         payload["output"]["folder"] = job_id
         process_graph = {
