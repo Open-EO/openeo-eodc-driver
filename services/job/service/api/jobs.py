@@ -39,9 +39,6 @@ def create_job(req_user, auth):
         # TODO Message Broker
         # TODO Logging
 
-        start_job_processing.delay(job.get_dict())
-        #start_job_processing(job.get_dict())
-
         return parse_response(200, data=job.get_small_dict())
 
     except ValidationError as exp:
@@ -60,7 +57,7 @@ def create_job(req_user, auth):
 def options_jobs_id(job_id):
     return parse_response(200)
 
-@JOBS_BLUEPRINT.route("/jobs/<job_id>", methods=["GET", "DELETE"])
+@JOBS_BLUEPRINT.route("/jobs/<job_id>", methods=["GET"])
 @cors(auth=True, methods=["GET", "DELETE"])
 @authenticate
 def get_job(req_user, auth, job_id):
@@ -81,6 +78,33 @@ def get_job(req_user, auth, job_id):
         return parse_response(exp.code, str(exp))
     except OperationalError as exp:
         return parse_response(503, "The service is currently unavailable.")
+
+
+@JOBS_BLUEPRINT.route("/jobs/<job_id>/queue", methods=["PATCH"])
+@cors(auth=True, methods=["PATCH"])
+@authenticate
+def queue_job(req_user, auth, job_id):
+    ''' Returns detailed information about a submitted job including its current status and the underlying task '''
+
+    try:
+        job = Job.query.filter_by(id=job_id).first()
+
+        if not job:
+            raise InvalidRequest("Job with specified identifier is not available.")
+
+        if req_user["id"] != job.user_id and not req_user["admin"]:
+            raise AuthorizationError
+        
+        start_job_processing.delay(job.get_dict())
+        # start_job_processing(job.get_dict())
+
+        return parse_response(200, msg="The job has been successfully queued.")
+
+    except (InvalidRequest, AuthorizationError) as exp:
+        return parse_response(exp.code, str(exp))
+    except OperationalError as exp:
+        return parse_response(503, "The service is currently unavailable.")
+
 
 @JOBS_BLUEPRINT.route("/jobs/<job_id>/execute", methods=["OPTIONS"])
 @cors(auth=True, methods=["OPTIONS", "GET"])

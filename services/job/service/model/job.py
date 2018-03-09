@@ -16,7 +16,7 @@ class Job(DB.Model):
     last_update = DB.Column(DB.DateTime, nullable=False)
     consumed_credits = DB.Column(DB.Float, nullable=False)
 
-    def __init__(self, user_id, task, status="Waiting", submitted=datetime.utcnow(), last_update=datetime.utcnow(), consumed_credits=0):
+    def __init__(self, user_id, task, status="submitted", submitted=datetime.utcnow(), last_update=datetime.utcnow(), consumed_credits=0):
         self.user_id = user_id
         self.task = task
         self.status = status
