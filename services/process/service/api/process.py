@@ -144,6 +144,11 @@ def get_process_details(process_id):
     # TODO: Authentification / service message broker
     
     try:
+        process_id = process_id.lower()
+
+        if process_id == "min_time":
+            process_id = "min-time"
+            
         process = Process.query.filter_by(process_id=process_id).first()
 
         if not process:
