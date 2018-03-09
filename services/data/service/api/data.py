@@ -28,9 +28,9 @@ def get_all_products():
 
         all_records = []
         all_records.append({
-            "product_id": record["dc:identifier"],
-            "description": record["dct:abstract"],
-            "source": record["dc:creator"],
+            "product_id": record[0]["dc:identifier"],
+            "description": record[0]["dct:abstract"],
+            "source": record[0]["dc:creator"],
         })
 
         # records = get_records(series=True, product=product, begin=begin, end=end, bbox=bbox)
