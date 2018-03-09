@@ -85,7 +85,16 @@ def get_all_processes():
 
         all_processes = []
         for process in processes:
-            all_processes.append(process.get_description())
+            desc = process.get_description()
+            desc["process_id"] = desc["process_id"].lower()
+
+            if desc["process_id"] == "min-time":
+                desc["process_id"] = "min_time"
+            
+            if desc["process_id"] == "ndvi":
+                desc["process_id"] = "NDVI"
+
+            all_processes.append(desc)
 
         return parse_response(200, data=all_processes)
 
@@ -105,6 +114,11 @@ def get_process(process_id):
     # TODO: Authentification / service message broker
     
     try:
+        process_id = process_id.lower()
+
+        if process_id == "min_time":
+            process_id = "min-time"
+        
         process = Process.query.filter_by(process_id=process_id).first()
 
         if not process:
