@@ -11,12 +11,12 @@ from service.api.api_validation import validate_process
 PROCESS_BLUEPRINT = Blueprint("process", __name__)
 
 @PROCESS_BLUEPRINT.route("/processes", methods=["OPTIONS"])
-@cors(methods=["OPTIONS", "GET", "POST"])
+@cors(auth=True, methods=["OPTIONS", "GET", "POST"])
 def options_process():
     return parse_response(200)
 
 @PROCESS_BLUEPRINT.route("/processes", methods=["POST"])
-@cors(methods=["OPTIONS", "GET", "POST"])
+@cors(auth=True, methods=["OPTIONS", "GET", "POST"])
 @authenticate
 def add_process(req_user):
     ''' Add a process to the registry'''
@@ -74,7 +74,7 @@ def add_process(req_user):
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes", methods=["GET"])
-@cors(methods=["GET", "POST"])
+@cors(auth=True, methods=["GET", "POST"])
 # @authenticate
 def get_all_processes():
     ''' Information about all processes that are available '''
@@ -102,12 +102,12 @@ def get_all_processes():
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>", methods=["OPTIONS"])
-@cors(methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
+@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
 def options_process_id(process_id):
     return parse_response(200)
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>", methods=["GET"])
-@cors(methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
+@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
 # @authenticate
 def get_process(process_id):
     ''' Information about specific process '''
@@ -132,12 +132,12 @@ def get_process(process_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>/details", methods=["OPTIONS"])
-@cors(methods=["OPTIONS", "GET"])
+@cors(auth=True, methods=["OPTIONS", "GET"])
 def options_process_id_details(process_id):
     return parse_response(200)
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>/details", methods=["GET"])
-@cors(methods=["OPTIONS", "GET"])
+@cors(auth=True, methods=["OPTIONS", "GET"])
 # @authenticate
 def get_process_details(process_id):
     ''' Detailed information about specific process that includes sensitive information '''
@@ -162,7 +162,7 @@ def get_process_details(process_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>", methods=["DELETE"])
-@cors(methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
+@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
 @authenticate
 def delete_process(req_user, process_id):
     ''' Delete process '''
@@ -188,7 +188,7 @@ def delete_process(req_user, process_id):
 
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>", methods=["PUT"])
-@cors(methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
+@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
 @authenticate
 def alter_process(req_user, process_id):
     ''' Alter values of process in namespace'''
@@ -229,12 +229,12 @@ def alter_process(req_user, process_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes/opensearch", methods=["OPTIONS"])
-@cors(methods=["OPTIONS, GET"])
+@cors(auth=True, methods=["OPTIONS, GET"])
 def options_process_id_opensearch():
     return parse_response(200)
 
 @PROCESS_BLUEPRINT.route("/processes/opensearch", methods=["GET"])
-@cors()
+@cors(auth=True, methods=["OPTIONS, GET"])
 # @authenticate
 def get_process_opensearch(req_user, process_id):
     ''' Get process using opensearch'''

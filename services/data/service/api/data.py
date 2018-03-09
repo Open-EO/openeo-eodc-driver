@@ -8,12 +8,12 @@ from service.src.csw import get_records, CWSError
 DATA_BLUEPRINT = Blueprint("data", __name__)
 
 @DATA_BLUEPRINT.route("/data", methods=["OPTIONS"])
-@cors()
+@cors(auth=True, methods=["OPTIONS", "GET"])
 def options_data():
     return parse_response(200)
 
 @DATA_BLUEPRINT.route("/data", methods=["GET"])
-@cors()
+@cors(auth=True, methods=["OPTIONS", "GET"])
 def get_all_products():
     ''' Get data records from PyCSW server '''
 
@@ -50,12 +50,12 @@ def get_all_products():
         return parse_response(400, str(exp))
 
 @DATA_BLUEPRINT.route("/data/<product_id>", methods=["OPTIONS"])
-@cors()
+@cors(auth=True, methods=["OPTIONS", "GET"])
 def options_data_item(product_id):
     return parse_response(200)
 
 @DATA_BLUEPRINT.route("/data/<product_id>", methods=["GET"])
-@cors()
+@cors(auth=True, methods=["OPTIONS", "GET"])
 def get_product(product_id):
     ''' Get data records from PyCSW server '''
 
@@ -71,12 +71,12 @@ def get_product(product_id):
         return parse_response(400, str(exp))
 
 @DATA_BLUEPRINT.route("/data/opensearch", methods=["OPTIONS"])
-@cors()
+@cors(auth=True, methods=["OPTIONS", "GET"])
 def options_data_opensearch():
     return parse_response(200)
 
 @DATA_BLUEPRINT.route("/data/opensearch", methods=["GET"])
-@cors()
+@cors(auth=True, methods=["OPTIONS", "GET"])
 def get_product_opensearch():
     ''' Get data records from PyCSW server '''
     return parse_response(501, "This API feature is not supported by the back-end.")
