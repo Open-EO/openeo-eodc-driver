@@ -32,7 +32,7 @@ def validate_node(node_payload):
     ''' Validates a single node '''
 
     if "process_id" in node_payload:
-        process_id = node_payload["process_id"].lower()
+        process_id = node_payload["process_id"]
         if process_id not in get_all("openeo", "processes", "process_id"):
             raise ValidationError("Process {0} is not available."\
                                       .format(node_payload["process_id"]))
