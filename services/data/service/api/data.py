@@ -25,8 +25,16 @@ def get_all_products():
 
     try:
         record = get_records(series=True, product="s2a_prd_msil1c")
+
+        all_records = []
+        all_records.append({
+            "product_id": record["dc:identifier"],
+            "description": record["dct:abstract"],
+            "source": record["dc:creator"],
+        })
+
         # records = get_records(series=True, product=product, begin=begin, end=end, bbox=bbox)
-    
+
         #TODO: Support all formats!
         # all_records = []
         # for record in records:
@@ -36,7 +44,7 @@ def get_all_products():
         #         "source": record["dc:creator"],
         #     })
         
-        return parse_response(200, data=record)
+        return parse_response(200, data=all_records)
     except CWSError as exp:
         print(str(exp))
         return parse_response(400, str(exp))
