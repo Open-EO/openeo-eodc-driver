@@ -102,12 +102,12 @@ def get_all_processes():
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>", methods=["OPTIONS"])
-@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
+@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"])
 def options_process_id(process_id):
     return parse_response(200)
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>", methods=["GET"])
-@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
+@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"])
 # @authenticate
 def get_process(process_id):
     ''' Information about specific process '''
@@ -162,7 +162,7 @@ def get_process_details(process_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>", methods=["DELETE"])
-@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
+@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"])
 @authenticate
 def delete_process(req_user, process_id):
     ''' Delete process '''
@@ -188,7 +188,7 @@ def delete_process(req_user, process_id):
 
 
 @PROCESS_BLUEPRINT.route("/processes/<process_id>", methods=["PUT"])
-@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"], auth=True)
+@cors(auth=True, methods=["OPTIONS", "GET", "DELETE", "PUT"])
 @authenticate
 def alter_process(req_user, process_id):
     ''' Alter values of process in namespace'''
