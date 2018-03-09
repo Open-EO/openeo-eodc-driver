@@ -9,6 +9,7 @@ from .api_utils import parse_response, authenticate, cors
 from .api_exceptions import InvalidRequest, AuthorizationError
 from service.model.job import Job
 from worker.tasks import start_job_processing
+from worker.src.validation import validate_job, ValidationError
 
 JOBS_BLUEPRINT = Blueprint("jobs", __name__)
 
@@ -28,6 +29,8 @@ def create_job(req_user, auth):
         if not payload:
             raise InvalidRequest("Invalid payload.")
 
+        validate_job(payload)
+
         job = Job(user_id=req_user["id"], task=payload)
 
         DB.session.add(job)
@@ -40,6 +43,9 @@ def create_job(req_user, auth):
         # start_job_processing(job.get_dict())
 
         return parse_response(200, data={"job_id": job.get_small_dict()})
+
+    except ValidationError as exp:
+        return parse_response(exp.code, str(exp))
     except InvalidRequest as exp:
         return parse_response(exp.code, str(exp))
     except HTTPError as exp:

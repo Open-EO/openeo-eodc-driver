@@ -7,15 +7,13 @@ from string import ascii_lowercase, digits
 from .nodes.node import Node
 from .nodes.utils import generate_random_id
 from .nodes.requests.openeo import OPENEO_API_HOST
-from .validation import validate_job
 
 class ProcessGraph:
     ''' The process graph class contains the executable graph nodes '''
 
     def __init__(self, job_id, payload):
         self.job_id = job_id
-        validate_job(payload)
-
+        
         payload["output"]["folder"] = job_id
         process_graph = {
             "process_id": "convert",
