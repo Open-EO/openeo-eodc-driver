@@ -58,7 +58,7 @@ def options_jobs_id(job_id):
     return parse_response(200)
 
 @JOBS_BLUEPRINT.route("/jobs/<job_id>", methods=["GET"])
-@cors(auth=True, methods=["GET", "DELETE"])
+@cors(auth=True, methods=["OPTIONS", "GET", "DELETE"])
 @authenticate
 def get_job(req_user, auth, job_id):
     ''' Returns detailed information about a submitted job including its current status and the underlying task '''
@@ -80,12 +80,12 @@ def get_job(req_user, auth, job_id):
         return parse_response(503, "The service is currently unavailable.")
 
 @JOBS_BLUEPRINT.route("/jobs/<job_id>/queue", methods=["OPTIONS"])
-@cors(auth=True, methods=["PATCH"])
+@cors(auth=True, methods=["OPTIONS", "PATCH"])
 def options_jobs_queue(job_id):
     return parse_response(200)
 
 @JOBS_BLUEPRINT.route("/jobs/<job_id>/queue", methods=["PATCH"])
-@cors(auth=True, methods=["PATCH"])
+@cors(auth=True, methods=["OPTIONS", "PATCH"])
 @authenticate
 def queue_job(req_user, auth, job_id):
     ''' Returns detailed information about a submitted job including its current status and the underlying task '''
