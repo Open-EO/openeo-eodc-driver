@@ -79,6 +79,10 @@ def get_job(req_user, auth, job_id):
     except OperationalError as exp:
         return parse_response(503, "The service is currently unavailable.")
 
+@JOBS_BLUEPRINT.route("/jobs/<job_id>/queue", methods=["OPTIONS"])
+@cors(auth=True, methods=["PATCH"])
+def options_jobs_queue(job_id):
+    return parse_response(200)
 
 @JOBS_BLUEPRINT.route("/jobs/<job_id>/queue", methods=["PATCH"])
 @cors(auth=True, methods=["PATCH"])
