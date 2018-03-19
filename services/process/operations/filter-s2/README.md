@@ -1,7 +1,7 @@
 # EODC Process: Extract-S2
 Extracts, filters and stitches Sentinel-2 data from EODC storage.
 
-Further description at: [openEO Process Documentation](https://open-eo.github.io/openeo-api-poc/v0.0.2/processgraphs/index.html#core-processes)
+Further description at: [openEO Process Documentation](https://open-eo.github.io/openeo-api/v0.0.2/processgraphs/index.html#core-processes)
 
 - Description:
   ```json
