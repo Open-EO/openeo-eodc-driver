@@ -21,31 +21,6 @@ labels:
 message: "The openEO template will be instantiated soon." 
 
 parameters:
-- name: OPENEO_API_HOST
-  displayName: OpenEO API URI
-  description: URI for accessing the OpenEO API (e.g. openeo.example.com)
-  value:
-  required: true
-- name: OPENSHIFT_API_URI
-  displayName: OpenShift API URI
-  description: Routing URI for accessing the OpenShift API (e.g. http://openshift.example.com)
-  value:
-  required: true
-- name: EXECUTION_NAMESPACE
-  displayName: Job Execution Namespace
-  description: Namspace of OpenSHift project for job execution (e.g. "execution-environment")
-  value:
-  required: true
-- name: SERVICEACCOUNT_TOKEN
-  displayName: Service Account Token
-  description: Permanent token of the service account in execution namespace
-  value:
-  required: true
-- name: STORAGE_CLASS_NAME
-  displayName: Storage Class Name
-  description: Storage class for PersitantVolumeClaims and the databases that should be used (e.g. "storage-write")
-  value:
-  required: true
 - name: SERVICE_PREFIX
   displayName: Service Prefix
   description: The prefix for service instantiation
@@ -56,6 +31,16 @@ parameters:
   description: Settings for the OpenEO Services (Production, Development, Testing)
   value: service.config.ProductionConfig
   required: true
+- name: OPENEO_API_HOST
+  displayName: OpenEO API URI
+  description: URI for accessing the OpenEO API (e.g. openeo.example.com)
+  value:
+  required: true
+- name: OPENSHIFT_API
+  displayName: OpenShift API URI
+  description: Routing URI for accessing the OpenShift API (e.g. http://openshift.example.com)
+  value:
+  required: true
 - name: CSW_SERVER
   displayName: CSW Server URI
   description: URI for accessing CSW server (e.g. http://csw.example.com)
@@ -65,6 +50,21 @@ parameters:
   displayName: Memory Limit
   description: Maximum amount of memory the services can use.
   value: 256Mi
+  required: true
+- name: EXECUTION_NAMESPACE
+  displayName: Job Execution Namespace
+  description: Namspace of OpenSHift project for job execution (e.g. "execution-environment")
+  value: 
+  required: true
+- name: SERVICEACCOUNT_TOKEN
+  displayName: Service Account Token
+  description: Permanent token of the service account in execution namespace
+  value: 
+  required: true
+- name: STORAGE_CLASS
+  displayName: Storage Class Name
+  description: Storage class for PersitantVolumeClaims and the databases that should be used (e.g. "storage-write")
+  value: 
   required: true
 - name: SECRET_BCRYPT
   displayName: BCrypt Secret
@@ -97,7 +97,7 @@ parameters:
 - name: POSTGRESQL_PORT
   displayName: Postgres Port
   description: Port of PostgreSQL databse
-  value: 5432
+  value: "5432"
   required: true
 - name: POSTGRESQL_VERSION
   displayName: Version of PostgreSQL Image
@@ -129,8 +129,215 @@ parameters:
   description: Maximum amount of memory Postgres can use.
   value: 256Mi
   required: true
+- name: RABBITMQ_DEFAULT_USER
+  displayName: RabbitMQ default user
+  description: Username of RabbitMQ default user
+  generate: expression
+  from: user[A-Z0-9]{3}
+  required: true
+- name: RABBITMQ_DEFAULT_PASS
+  displayName: RabbitMQ default password
+  description: Password of RabbitMQ default user
+  generate: expression
+  from: "[a-zA-Z0-9]{16}"
+  required: true
 
 objects:
+
+# Worker
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-worker"
+  spec:
+    dockerImageRepository:
+    tags:
+    - name: latest
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-worker"
+  spec:
+    source:
+      type: Git
+      git:
+        uri: "${GIT_URI}"
+        ref: "${GIT_REF}"
+      contextDir: "services/job"
+    strategy:
+      dockerStrategy:
+        dockerfilePath: Dockerfile_worker
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "${SERVICE_PREFIX}-worker:latest"
+    triggers:
+    - type: GitLab
+      gitlab:
+        secret: "${GITLAB_SECRET}"
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange:
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-worker"
+    labels:
+      name: "${SERVICE_PREFIX}-worker"
+  spec:
+    selector:
+      name: "${SERVICE_PREFIX}-worker"
+    strategy:
+      type: Recreate
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - "${SERVICE_PREFIX}-worker"
+        from:
+          kind: ImageStreamTag
+          name: "${SERVICE_PREFIX}-worker:latest"
+    - type: ConfigChange
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          name: "${SERVICE_PREFIX}-worker"
+      spec:
+        containers:
+        - name: "${SERVICE_PREFIX}-worker"
+          image: "${SERVICE_PREFIX}-worker"
+          env:
+          - name: EXECUTION_NAMESPACE
+            value: "${EXECUTION_NAMESPACE}"
+          - name: STORAGE_CLASS
+            value: "${STORAGE_CLASS}"
+          - name: SERVICEACCOUNT_TOKEN
+            value: "${SERVICEACCOUNT_TOKEN}"
+          - name: OPENEO_API_HOST
+            value: "${OPENEO_API_HOST}"
+          - name: OPENSHIFT_API
+            value: "${OPENSHIFT_API}"
+          - name: CSW_SERVER
+            value: "${CSW_SERVER}"
+          - name: VERIFY
+            value: "false"
+          - name: RABBIT_MQ_USER
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-user
+          - name: RABBIT_MQ_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-password
+          - name: RABBIT_MQ_HOST
+            value: "${SERVICE_PREFIX}-rabbitmq"
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: IfNotPresent
+        restartPolicy: Always
+        dnsPolicy: ClusterFirst
+
+
+# Rabbit-MQ
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-rabbitmq"
+  stringData:
+    rabbitmq-user: "${RABBITMQ_DEFAULT_USER}"
+    rabbitmq-password: "${RABBITMQ_DEFAULT_PASS}"
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-rabbitmq"
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    strategy:
+      type: Recreate
+    triggers:
+    - type: ConfigChange
+    replicas: 1
+    selector:
+      name: "${SERVICE_PREFIX}-rabbitmq"
+    template:
+      metadata:
+        labels:
+          name: "${SERVICE_PREFIX}-rabbitmq"
+      spec:
+        containers:
+        - name: rabbitmq
+          image: rabbitmq:3-management
+          ports:
+          - name: rabbitmq
+            containerPort: 5672
+            protocol: TCP
+          - name: rabbitmq-http
+            containerPort: 15672
+            protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 5672
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 5672
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          env:
+          - name: RABBITMQ_DEFAULT_USER
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-user
+          - name: RABBITMQ_DEFAULT_PASS
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-password
+        restartPolicy: Always
+        dnsPolicy: ClusterFirst
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-rabbitmq"
+    annotations:
+      description: The service port
+  spec:
+    ports:
+    - name: rabbitmq
+      port: 5672
+      targetPort: rabbitmq
+    - name: rabbitmq-http
+      port: 15672
+      targetPort: rabbitmq-http
+    selector:
+      name: "${SERVICE_PREFIX}-rabbitmq"
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: "${SERVICE_PREFIX}-rabbitmq"
+  spec:
+    to:
+      kind: Service
+      name: "${SERVICE_PREFIX}-rabbitmq"
+    port:
+      targetPort: rabbitmq
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: "${SERVICE_PREFIX}-rabbitmq-http"
+  spec:
+    to:
+      kind: Service
+      name: "${SERVICE_PREFIX}-rabbitmq"
+    port:
+      targetPort: rabbitmq-http
 
 # OPENEO JOB
 - kind: Secret
@@ -146,7 +353,7 @@ objects:
   metadata:
     name: pvc-${SERVICE_PREFIX}-job
   spec:
-    storageClassName: "${STORAGE_CLASS_NAME}"
+    storageClassName: "${STORAGE_CLASS}"
     accessModes:
     - ReadWriteOnce
     persistentVolumeReclaimPolicy: Recycle
@@ -254,21 +461,44 @@ objects:
             value: "${POSTGRESQL_PORT}"
           - name: EXECUTION_NAMESPACE
             value: "${EXECUTION_NAMESPACE}"
-          - name: STORAGE_CLASS_NAME
-            value: "${STORAGE_CLASS_NAME}"
+          - name: STORAGE_CLASS
+            value: "${STORAGE_CLASS}"
           - name: SERVICEACCOUNT_TOKEN
             value: "${SERVICEACCOUNT_TOKEN}"
           - name: OPENEO_API_HOST
             value: "${OPENEO_API_HOST}"
-          - name: OPENSHIFT_API_URI
-            value: "${OPENSHIFT_API_URI}"
+          - name: OPENSHIFT_API
+            value: "${OPENSHIFT_API}"
           - name: CSW_SERVER
             value: "${CSW_SERVER}"
           - name: VERIFY
             value: "false"
+          - name: RABBIT_MQ_USER
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-user
+          - name: RABBIT_MQ_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-password
+          - name: RABBIT_MQ_HOST
+            value: "${SERVICE_PREFIX}-rabbitmq"
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: IfNotPresent
           resources:
             limits:
               memory: "${MEMORY_LIMIT_SERVICE}"
+          volumeMounts:
+          - name: vol-${SERVICE_PREFIX}-results
+            mountPath: "/job_results"
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: IfNotPresent
+        volumes:
+        - name: vol-${SERVICE_PREFIX}-results
+          persistentVolumeClaim:
+            claimName: pvc-results-mount
           terminationMessagePath: "/dev/termination-log"
           imagePullPolicy: Always
           securityContext:
@@ -292,16 +522,15 @@ objects:
   apiVersion: v1
   metadata:
     name: "${SERVICE_PREFIX}-job"
-    labels:
-      app: ${SERVICE_PREFIX}-job
+    annotations:
+      description: The service port
   spec:
     ports:
     - protocol: TCP
       port: 5000
       targetPort: 5000
     selector:
-      app: "${SERVICE_PREFIX}-job"
-      deploymentconfig: "${SERVICE_PREFIX}-job"
+      name: "${SERVICE_PREFIX}-job"
 
 # OPENEO JOB - DATABASE
 - kind: Service
@@ -494,12 +723,36 @@ objects:
 - kind: Route
   apiVersion: v1
   metadata:
+    name: "openeo-service-main"
+    annotations:
+      description: openEO / route
+  spec:
+    host: "${OPENEO_API_HOST}"
+    path: /
+    to:
+      kind: Service
+      name: "${SERVICE_PREFIX}-data"
+- kind: Route
+  apiVersion: v1
+  metadata:
     name: "openeo-service-data"
     annotations:
       description: openEO /data route
   spec:
     host: "${OPENEO_API_HOST}"
     path: /data
+    to:
+      kind: Service
+      name: "${SERVICE_PREFIX}-data"
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: "openeo-service-capabilities"
+    annotations:
+      description: openEO /capabilities route
+  spec:
+    host: "${OPENEO_API_HOST}"
+    path: /capabilities
     to:
       kind: Service
       name: "${SERVICE_PREFIX}-data"
@@ -531,7 +784,7 @@ objects:
   metadata:
     name: pvc-${SERVICE_PREFIX}-user
   spec:
-    storageClassName: "${STORAGE_CLASS_NAME}"
+    storageClassName: "${STORAGE_CLASS}"
     accessModes:
     - ReadWriteOnce
     persistentVolumeReclaimPolicy: Recycle
@@ -797,7 +1050,7 @@ objects:
   metadata:
     name: pvc-${SERVICE_PREFIX}-process
   spec:
-    storageClassName: "${STORAGE_CLASS_NAME}"
+    storageClassName: "${STORAGE_CLASS}"
     accessModes:
     - ReadWriteOnce
     persistentVolumeReclaimPolicy: Recycle
