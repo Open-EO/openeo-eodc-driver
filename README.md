@@ -54,7 +54,8 @@ For further information please visit: [OpenShift Templates](https://docs.openshi
 
 ## Contributing
 ### Developing Locally
-For developing locally the port of the pods in teh project namespace can be forwarded to a local machine:
+MiniShift is a tool for local development by launching a single node OpenShift cluster. It can be downloaded at [MiniShift](https://www.openshift.org/minishift/)
+Furthermore, for developing locally on an external cluster the port of the pods in the project namespace can be forwarded to a local machine:
 - Login into the OpenShift instance: ```oc login <openshift_api_url>```
 - Switch to openEO project: ```oc project <openeo_project_name>```
 - Get names of pods in project: ```oc get pods```
