@@ -1,10 +1,11 @@
 # openEO: OpenShift Driver
 
 ## Information
-- version: 0.0.1
+- version: 0.0.2
 - Python: 3.6.2
 - Databases: Postgres, Redis
-- Dependencies: Flask, Celery
+- Message Broker: RabbitMQ
+- Dependencies: Flask, Nameko
 
 The openEO OpenShift driver provides openEO API functionality on top of RedHat's OpenShift Origin.
 A flask REST client on route /jobs is provided. The job execution can be distributed on multiple workers using Celery.
