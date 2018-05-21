@@ -121,8 +121,11 @@ class ResponseParser:
     def data(self, code, data):
         return make_response(jsonify(data), code)
 
-    def error(self, exc, msg=""):
-        exc = self.EXC_MAPPING.get(type(exc()).__name__, InternalServerError)
+    def error(self, exc_str, msg=""):
+        if isinstance(exc_str, object):
+            exc_str = type(exc_str).__name__
+
+        exc = self.EXC_MAPPING.get(exc_str, InternalServerError)
         if msg:
             exc = exc(msg)
         return make_response(exc.msg, exc.code)

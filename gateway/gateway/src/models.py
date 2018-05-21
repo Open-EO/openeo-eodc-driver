@@ -82,7 +82,7 @@ class process_graph(Schema):
         "args": arg_set
     }
     example = {
-        "process_id": "median_time",
+        "process_id": "min_time",
         "args": {
             "imagery": {
                 "process_id": "NDVI",
@@ -91,14 +91,24 @@ class process_graph(Schema):
                         "process_id": "filter_daterange",
                         "args": {
                             "imagery": {
-                                "product_id": "Sentinel2A-L1C"
-                            }
-                        },
-                        "from": '2017-01-01',
-                        "to": '2017-01-31'
+                                "process_id": "filter_bbox",
+                                "args": {
+                                    "imagery": {
+                                        "product_id": "s2a_prd_msil1c"
+                                    },
+                                    "left": 652000,
+                                    "right": 672000,
+                                    "top": 5161000,
+                                    "bottom": 5181000,
+                                    "srs": "EPSG:32632"
+                                }
+                            },
+                            "from": "2017-01-01",
+                            "to": "2017-01-08"
+                        }
                     },
-                    "red": '4',
-                    "nir": '8'
+                    "red": "B04",
+                    "nir": "B8A"
                 }
             }
         }
@@ -127,11 +137,13 @@ class output(Schema):
     }
 
 # TODO: Improve
+
+
 class job_val(Schema):
     type = "object"
     description = (
         "Specifies the job details, e.g. the process graph and optionally the output format. The output format might be also specified later during download and is not necessary for web services at all."
-        )
+    )
     required = ["format"]
     properties = {
         "process_graph": {
