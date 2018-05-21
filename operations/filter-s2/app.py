@@ -44,15 +44,15 @@ from osgeo import gdal, osr
 from utils import read_parameters, build_new_img_name_from_old, build_new_granule_name_from_old, create_folder, \
     write_output_to_json, get_paths_for_files_in_folder
 
-
-OUT_VOLUME = "/job_data"
-OUT_FOLDER = "/extract"
-
-OUT_FINAL = create_folder(OUT_VOLUME, "extract")
 PARAMS = read_parameters()
-OUT_EPSG = "4326"
+OUT_VOLUME = "/job_data"
+
+IN_FOLDER = PARAMS["last"]
+OUT_FOLDER = create_folder(OUT_VOLUME, PARAMS["template_id"]) 
 TEMP_FOLDERS = {}  # tmp folder: tmp folder path -> deleted in the end
 
+ARGS = PARAMS["args"]
+OUT_EPSG = "4326"
 
 def unzip_data():
     ''' Unzips the files from EODC storage to out volume '''

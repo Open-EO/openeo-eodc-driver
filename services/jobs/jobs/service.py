@@ -78,12 +78,15 @@ class JobService:
 
             pvc = self.api_connector.create_pvc(self.api_connector, job.id, "5Gi", "storage_write")     # TODO: Calculate storage size and get storage class
             previous_folder = None
-            for task in tasks:
+            for idx, task in enumerate(tasks):
+                # if idx == 0:
+
+
                 try:
                     template_id = "{0}-{1}".format(job.id, task.id)
                     process = self.process_service.get_process(task.process_id)["data"]
                     
-                    conf_map = self.api_connector.create_config(
+                    config_map = self.api_connector.create_config(
                         self.api_connector, 
                         template_id, 
                         {
@@ -105,8 +108,8 @@ class JobService:
                         self.api_connector, 
                         template_id,
                         obj_image_stream, 
+                        config_map,
                         pvc,
-                        conf_map,
                         "500m",     # TODO: Implement Ressource Management
                         "1", 
                         "256Mi", 
