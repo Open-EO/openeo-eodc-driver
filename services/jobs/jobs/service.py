@@ -77,11 +77,20 @@ class JobService:
             tasks = self.db.query(Task).filter_by(job_id=job_id).all()
 
             pvc = self.api_connector.create_pvc(self.api_connector, job.id, "5Gi", "storage_write")     # TODO: Calculate storage size and get storage class
+            previous_folder = None
             for task in tasks:
                 try:
                     template_id = "{0}-{1}".format(job.id, task.id)
                     process = self.process_service.get_process(task.process_id)["data"]
-                    conf_map = self.api_connector.create_config(self.api_connector, template_id, task.args)
+                    
+                    conf_map = self.api_connector.create_config(
+                        self.api_connector, 
+                        template_id, 
+                        {
+                            "template_id": template_id,
+                            "last": previous_folder,
+                            "args": task.args
+                        })
 
                     status, log, obj_image_stream = self.template_controller.build(
                         self.api_connector, 
@@ -102,6 +111,8 @@ class JobService:
                         "1", 
                         "256Mi", 
                         "1Gi")
+                    
+                    previous_folder = template_id
                 except APIConnectionError as exp:
                     task.status = exp.__str__()
                     self.db.commit()

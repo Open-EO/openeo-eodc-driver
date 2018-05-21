@@ -40,14 +40,15 @@ bands: array
 from os import listdir
 from shutil import copyfile, rmtree
 from zipfile import ZipFile
-
 from osgeo import gdal, osr
-
-OUT_VOLUME = "/job_out"
 from utils import read_parameters, build_new_img_name_from_old, build_new_granule_name_from_old, create_folder, \
     write_output_to_json, get_paths_for_files_in_folder
 
-OUT_FINAL = create_folder(OUT_VOLUME, "out_filter-s2")
+
+OUT_VOLUME = "/job_data"
+OUT_FOLDER = "/extract"
+
+OUT_FINAL = create_folder(OUT_VOLUME, "extract")
 PARAMS = read_parameters()
 OUT_EPSG = "4326"
 TEMP_FOLDERS = {}  # tmp folder: tmp folder path -> deleted in the end
