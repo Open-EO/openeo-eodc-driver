@@ -3,6 +3,7 @@
 from flask_restful_swagger_2 import Resource, swagger, Schema #TODO: Delete?
 from flask_restful.reqparse import RequestParser
 from flask_restful.utils import cors
+from os import path, listdir
 
 from . import rpc
 from .src.auth import auth
@@ -143,6 +144,61 @@ class BatchJobApi(Resource):
     def patch(self, user_id, job_id):
         try:
             rpc.jobs.process_job.call_async(job_id)
+            return self.__res_parser.string(200, "The job has been successfully queued.")
+        except Exception as exc:
+            return self.__res_parser.error(exc)
+
+class DownloadApi(Resource):
+    __res_parser = ResponseParser()
+
+    @cors.crossdomain(
+        origin=["*"],
+        methods=["GET"],
+        headers=["Authorization", "Content-Type"],
+        credentials=True)
+    @swagger.doc(CORS().__parse__([job_id]))
+    def options(self):
+        return self.__res_parser.code(200)
+
+    @cors.crossdomain(
+        origin=["*"],
+        methods=["GET"],
+        headers=["Authorization", "Content-Type"],
+        credentials=True)
+    @auth()
+    @swagger.doc({
+        "tags": ["Result Access"],
+        "description": "This request will provide links to download results of batch jobs. Depending on the Content-Type header, the response is either a simple JSON array with URLs as strings or a metalink XML document.",
+        "parameters": [job_id],
+        "security": [{"Bearer": []}],
+        "responses": {
+            "200": OK("Valid download links have been returned. The download links doesn’t necessarily need to be located under the API base url.").__parse__(),
+            "401": Unauthorized().__parse__(),
+            "403": Forbidden().__parse__(),
+            "404": NotFound().__parse__(),
+            "500": InternalServerError().__parse__(),
+            "501": NotImplemented().__parse__(),
+            "503": ServiceUnavailable().__parse__()
+        }
+    })
+    def patch(self, user_id, job_id):
+        try:
+            rpc_response = rpc.jobs.get_job(user_id, job_id)
+            if rpc_response["status"] == "error":
+                raise self.__res_parser.map_exceptions(rpc_response["exc_key"])
+
+            job_directory = "/job_results/{0}".format(job_id)
+
+            if not path.isdir(job_directory):
+                raise NotFound
+            
+            files_in_dir = listdir(job_directory)
+
+            if not file_name in files_in_dir:
+                raise NotFound
+            
+            
+
             return self.__res_parser.string(200, "The job has been successfully queued.")
         except Exception as exc:
             return self.__res_parser.error(exc)

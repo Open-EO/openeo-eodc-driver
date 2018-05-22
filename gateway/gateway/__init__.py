@@ -65,7 +65,7 @@ def generate_api(gateway):
     from .auth import RegisterApi, LoginApi
     from .data import RecordsApi, ProductDetailApi
     from .processes import ProcessApi, ProcessDetailApi
-    from .jobs import JobsApi, JobDetailApi,BatchJobApi
+    from .jobs import JobsApi, JobDetailApi,BatchJobApi, DownloadApi
 
     api.add_resource(Index, "/")
     api.add_resource(HealthApi, "/health")
@@ -78,3 +78,4 @@ def generate_api(gateway):
     api.add_resource(JobsApi, "/jobs")
     api.add_resource(JobDetailApi, "/jobs/<string:job_id>")
     api.add_resource(BatchJobApi, "/jobs/<string:job_id>/queue")
+    api.add_resource(DownloadApi, "/jobs/<string:job_id>/download")
