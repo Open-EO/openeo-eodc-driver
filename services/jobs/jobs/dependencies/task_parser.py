@@ -13,6 +13,7 @@ class TasksWrapper:
         self.processes = processes
         self.parse_tasks(job_id, process_graph)
         self.tasks = self.tasks[::-1]
+        self.tasks.append(Task(job_id, "convert", len(self.tasks), {"job_id": job_id}))
         for idx, task in enumerate(self.tasks):
             task.seq_num = idx
 

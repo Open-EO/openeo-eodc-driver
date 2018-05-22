@@ -121,27 +121,25 @@ class JobService:
                             "args": task.args
                         })
                     
-                    print(config_map.data)
+                    status, log, obj_image_stream = self.template_controller.build(
+                        self.api_connector, 
+                        template_id, 
+                        process["process_id"],
+                        "latest",   # TODO: Implement tagging in process service
+                        process["git_uri"], 
+                        process["git_ref"], 
+                        process["git_dir"])
 
-                    # status, log, obj_image_stream = self.template_controller.build(
-                    #     self.api_connector, 
-                    #     template_id, 
-                    #     process["process_id"],
-                    #     "latest",   # TODO: Implement tagging in process service
-                    #     process["git_uri"], 
-                    #     process["git_ref"], 
-                    #     process["git_dir"])
-
-                    # status, log, metrics =  self.template_controller.deploy(
-                    #     self.api_connector, 
-                    #     template_id,
-                    #     obj_image_stream, 
-                    #     config_map,
-                    #     pvc,
-                    #     "500m",     # TODO: Implement Ressource Management
-                    #     "1", 
-                    #     "256Mi", 
-                    #     "1Gi")
+                    status, log, metrics =  self.template_controller.deploy(
+                        self.api_connector, 
+                        template_id,
+                        obj_image_stream, 
+                        config_map,
+                        pvc,
+                        "500m",     # TODO: Implement Ressource Management
+                        "1", 
+                        "256Mi", 
+                        "1Gi")
                     
                     previous_folder = template_id
                 except APIConnectionError as exp:

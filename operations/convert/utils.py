@@ -3,7 +3,6 @@
 import json
 
 CONFIG_FILE = "/job_config/config.json"
-IN_MOUNTS_FILE = "/job_config/input_mounts.json"
 
 def read_parameters():
     ''' Return parameters from config file '''
@@ -13,10 +12,8 @@ def read_parameters():
 
     return parameters
 
-def read_input_mounts():
-    ''' Return parameters from config file '''
+def load_last_config(last_folder):
+    with open("{0}/files.json".format(last_folder)) as json_file:
+        config = json.load(json_file)
 
-    with open(IN_MOUNTS_FILE) as json_file:
-        input_mounts = json.load(json_file)
-
-    return input_mounts
+    return config
