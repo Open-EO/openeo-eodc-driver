@@ -27,7 +27,7 @@ class TemplateControllerWrapper:
 
         log += obj_build.get_logs(api_connector)
 
-        # obj_build.delete(api_connector) # TODO: Debug -> If pod does not exist anymore (build)
+        obj_build.delete(api_connector) # TODO: Debug -> If pod does not exist anymore (build) -> vllt wegen falscher refernzierung bei delete()?
 
         return "Finished Building", log, obj_image_stream
 
@@ -40,11 +40,11 @@ class TemplateControllerWrapper:
         obj_job.create(api_connector)
 
         log += obj_job.get_logs(api_connector)
-        metrics = obj_job.get_metrics(api_connector)
+        # metrics = obj_job.get_metrics(api_connector) # TODO: Metrics Error Bug Fixing -> Process to fast executed for metrics
 
-        obj_job.delete(api_connector)
+        # obj_job.delete(api_connector) # TODO: Deactivated just for showcasing
         
-        return "Finished Deploying", log, metrics
+        return "Finished Deploying", log, []
 
     # def __set_status(self, status, log="", metrics={}, error=False):
     #     self.status = status

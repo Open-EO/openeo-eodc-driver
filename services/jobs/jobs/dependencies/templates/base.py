@@ -50,7 +50,7 @@ class BaseTemplate(ABC):
 
     def delete(self, api_connector):
         ''' Delete the template and pod '''
-        api_connector.request("openshift", "delete", self.selfLinks["base"])
+        api_connector.request("openshift", "delete", self.selfLinks["template"])
         if "pod" in self.selfLinks:
             api_connector.request("openshift", "delete", self.selfLinks["pod"])
     

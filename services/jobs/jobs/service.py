@@ -121,10 +121,12 @@ class JobService:
                             "args": task.args
                         })
                     
+                    image_name = process["process_id"].replace("_", "-").lower() # TODO: image name in process spec
+
                     status, log, obj_image_stream = self.template_controller.build(
                         self.api_connector, 
                         template_id, 
-                        process["process_id"],
+                        image_name,
                         "latest",   # TODO: Implement tagging in process service
                         process["git_uri"], 
                         process["git_ref"], 
@@ -145,6 +147,7 @@ class JobService:
                 except APIConnectionError as exp:
                     task.status = exp.__str__()
                     self.db.commit()
+            pvc.delete(self.api_connector)
         except Exception as exp:
             job.status = str(exp)
             self.db.commit()

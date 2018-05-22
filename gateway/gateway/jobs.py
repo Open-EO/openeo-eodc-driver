@@ -142,7 +142,7 @@ class BatchJobApi(Resource):
     })
     def patch(self, user_id, job_id):
         try:
-            rpc.jobs.process_job(job_id)
+            rpc.jobs.process_job.call_async(job_id)
             return self.__res_parser.string(200, "The job has been successfully queued.")
         except Exception as exc:
             return self.__res_parser.error(exc)
