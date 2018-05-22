@@ -261,10 +261,12 @@ class CSWHandler:
         for item in records:
             path = item["gmd:fileIdentifier"]["gco:CharacterString"]
             name = path.split("/")[-1].split(".")[0]
+            date = item["gmd:identificationInfo"]["gmd:MD_DataIdentification"]["gmd:extent"]["gmd:EX_Extent"]["gmd:temporalElement"]["gmd:EX_TemporalExtent"]["gmd:extent"]["gml:TimePeriod"]["gml:beginPosition"][0:10]
 
             results.append(
                 {
                     "name": name,
+                    "date": date,
                     "path": path
                 })
 

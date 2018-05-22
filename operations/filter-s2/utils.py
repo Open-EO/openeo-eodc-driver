@@ -63,4 +63,9 @@ def get_paths_for_files_in_folder(folder_path):
 
     file_list = listdir(folder_path)
 
-    return [folder_path + "/" + file for file in file_list]
+    files = []
+    for file_path in file_list:
+        if path.isfile(path.join(folder_path, file_path)):
+            files.append("{0}/{1}".format(folder_path, file_path))
+
+    return files

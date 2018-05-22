@@ -5,8 +5,8 @@ from ..exceptions import APIConnectionError
 
 
 class TemplateControllerWrapper:
-    def create_pvc(self, api_connector, job_id, storage_size, storage_class):
-        return PersistentVolumeClaim(job_id, storage_size, storage_class).create(api_connector)
+    def create_pvc(self, api_connector, job_id, storage_class, storage_size):
+        return PersistentVolumeClaim(job_id, storage_class, storage_size).create(api_connector)
     
     def create_config(self, api_connector, template_id, args):
         return ConfigMap(template_id, args).create(api_connector)
@@ -19,7 +19,7 @@ class TemplateControllerWrapper:
         
         if obj_image_stream.exists(api_connector) :
             log += "Found existing image...\n"
-            return
+            return "Finished Building", log, obj_image_stream
 
         log += "Building...\n"
         obj_image_stream.create(api_connector, watch=False)
@@ -27,7 +27,7 @@ class TemplateControllerWrapper:
 
         log += obj_build.get_logs(api_connector)
 
-        obj_build.delete(api_connector)
+        # obj_build.delete(api_connector) # TODO: Debug -> If pod does not exist anymore (build)
 
         return "Finished Building", log, obj_image_stream
 

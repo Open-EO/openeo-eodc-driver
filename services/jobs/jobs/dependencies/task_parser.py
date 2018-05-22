@@ -42,7 +42,7 @@ class TasksWrapper:
                 Task(job_id, process_id, len(self.tasks), args))
             self.parse_tasks(job_id, imagery)
         elif process_spec["process_type"] == "filter":
-            process_id = "extract-s2" # TODO: More generic for all products
+            process_id = "filter-s2" # TODO: More generic for all products
             self.extract_filter_args(task_graph)
             self.tasks.append(
                 Task(job_id, process_id, len(self.tasks), self.filters))

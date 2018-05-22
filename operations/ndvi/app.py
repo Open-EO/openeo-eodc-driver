@@ -1,102 +1,43 @@
-''' 
-Sentinel-2 NDVI calculation
-
-Parameters
-----------
-product: string
-    basic dataset product
-    > product: "Sentinel-2"
-
-operations: array of strings
-    applied processing steps / operations
-    > operations: ["filter-s2"]
-
-band_order: dict
-    band name (str): band number in input dataset (int)
-    For band name Sentinel-2 notation (e.g.: B01) is assumed
-    > band_order: {"B03": 1}
-
-data_srs: string
-    Spatial reference system of data as EPSG:4326 atring
-    combination of EPSG:4326 like string
-    > data_srs:"EPSG:4326"
-
-file_paths: array of strings
-    list of file paths to input files
-    filename is like: filter-s2_DATE_epsg-EPSGNUMBER.tif (e.g.: filter-s2_2017-12-07_epsg-4326.tif)
-
-extent: dict
-    bbox: dict
-        left: number
-            Left boundary (longitude / easting) in EPSG:32632
-            > left:652000
-        right: int
-            Right boundary (longitude / easting)
-            > right:672000
-        top: int
-            Top boundary (latitude / northing)
-            > top:5161000
-        bottom: int
-            Bottom boundary (latitude / northing)
-            > bottom:5181000
-    srs: string
-        Spatial reference system of boundaries as proj4 or EPSG:12345 like string
-        > srs: "EPSG:32632"
-
-# OUTPUTS
-    Output contains ndvi data per day
-
-# Volumes
-- /job_config -> Configuration mount
-- /job_out -> output mount
-- /job_in -> input mount ??
-
-'''
-
 from json import load
 from osgeo import gdal
 import numpy
 
-from utils import read_parameters, read_input_mounts, create_folder, \
+from utils import read_parameters, create_folder, load_last_config,\
     write_output_to_json, get_paths_for_files_in_folder
-OUT_VOLUME = "/job_out"
-OUT_FINAL = create_folder(OUT_VOLUME, "out_ndvi")
-PARAMS = read_parameters()
-INPUT_MOUNTS = read_input_mounts()
 
+PARAMS = read_parameters()
+ARGS = PARAMS["args"]
+OUT_VOLUME = "/job_data"
+
+LAST_FOLDER = "{0}/{1}".format(OUT_VOLUME, PARAMS["last"])
+LAST_CONFIG= load_last_config(LAST_FOLDER)
+OUT_FOLDER = create_folder(OUT_VOLUME, PARAMS["template_id"])
 
 def perform_ndvi():
     ''' Performs NDVI '''
 
     print("-> Start calculating NDVI...")
+    for file_path in LAST_CONFIG["file_paths"]:
+        filename = file_path.split("/")[-1]
+        file_date = filename.split("_")[1]
 
-    # Iterate over each file
-    for mount in INPUT_MOUNTS:
-        with open("{0}/files.json".format(mount), 'r') as json_file:
-            file_param = load(json_file)
-            file_paths = file_param["file_paths"]
+        # Open input dataset
+        file_path = "{0}/{1}".format(OUT_VOLUME, file_path)
+        in_dataset = gdal.Open(file_path)
 
-            for file_path in file_paths:
-                filename = file_path.split("/")[-1]
-                file_date = filename.split("_")[1]
+        # Calculate ndvi
+        ndvi_data = calc_ndvi(in_dataset, LAST_CONFIG)
 
-                # Open input dataset
-                file_path = "{0}/{1}".format(mount, file_path)
-                in_dataset = gdal.Open(file_path)
+        # Save output dataset
+        folder_ndvi = create_folder(OUT_FOLDER, "ndvi_first")
+        out_file_path = "{0}/ndvi_{1}_epsg-{2}_first.tif".format(folder_ndvi, file_date, LAST_CONFIG["data_srs"].split(":")[-1])
+        create_output_image(in_dataset, out_file_path, ndvi_data)
 
-                # Calculate ndvi
-                ndvi_data = calc_ndvi(in_dataset, file_param)
+        # Warp out_files to create correct georeference
+        out_file_path_warp = "{0}/ndvi_{1}_epsg-{2}.tif".format(OUT_FOLDER, file_date, LAST_CONFIG["data_srs"].split(":")[-1])
+        gdal.Warp(out_file_path_warp, out_file_path)
 
-                # Save output dataset
-                folder_ndvi = create_folder(OUT_VOLUME, "ndvi_first")
-                out_file_path = "{0}/ndvi_{1}_epsg-{2}_first.tif".format(folder_ndvi, file_date, PARAMS["data_srs"].split(":")[-1])
-                create_output_image(in_dataset, out_file_path, ndvi_data)
-
-                # Warp out_files to create correct georeference
-                out_file_path_warp = "{0}/ndvi_{1}_epsg-{2}.tif".format(OUT_FINAL, file_date, PARAMS["data_srs"].split(":")[-1])
-                gdal.Warp(out_file_path_warp, out_file_path)
-
-                print(" - NDVI calculated for {0}".format(filename))
+        print(" - NDVI calculated for {0}".format(filename))
 
     print("-> Finished calculating NDVI.")
 
@@ -160,12 +101,13 @@ def calc_ndvi(dataset, file_param):
 def write_output():
     '''Writes output's metadata to file'''
 
-    data = {"product": PARAMS["product"],
-            "operations": PARAMS["operations"] + ["ndvi"],
-            "data_srs": PARAMS["data_srs"],
-            "file_paths": get_paths_for_files_in_folder(OUT_FINAL),
-            "extent": PARAMS["extent"]
-            }
+    data = {
+        "product": LAST_CONFIG["product"],
+        "operations": LAST_CONFIG["operations"] + ["ndvi"],
+        "data_srs": LAST_CONFIG["data_srs"],
+        "file_paths": get_paths_for_files_in_folder(OUT_FOLDER),
+        "extent": LAST_CONFIG["extent"]
+    }
     
     #TODO Anders
     cropped_paths = []
@@ -173,7 +115,7 @@ def write_output():
         cropped_paths.append(path.split("/", 2)[2])
     data["file_paths"] = cropped_paths
 
-    write_output_to_json(data, "ndvi", OUT_VOLUME)
+    write_output_to_json(data, "ndvi", OUT_FOLDER)
 
 if __name__ == "__main__":
     print("Start processing 'NDVI' ...")

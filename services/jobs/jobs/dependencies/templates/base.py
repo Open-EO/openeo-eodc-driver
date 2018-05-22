@@ -38,12 +38,14 @@ class BaseTemplate(ABC):
 
             if watch:
                 self.is_ready(api_connector)
-
+            
+            return self
         except APIConnectionError as exp:
             if not exp.code == 409:
                 raise
             self.delete(api_connector)
             self.create(api_connector)
+            return self
             
 
     def delete(self, api_connector):

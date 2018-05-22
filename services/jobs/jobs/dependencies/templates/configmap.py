@@ -8,7 +8,7 @@ class ConfigMap(BaseTemplate):
 
     def __init__(self, template_id, data):
         path = "/api/v1/namespaces/{0}/configmaps"
-        super().__init__(template_id, path, "ImageStream", "v1")
+        super().__init__(template_id, path, "ConfigMap", "v1")
 
         self.selfLinks["template"] = "{0}/{1}".format(path, template_id)
         self.data = data

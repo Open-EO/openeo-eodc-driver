@@ -5,16 +5,16 @@ from .base import BaseTemplate
 class PersistentVolumeClaim(BaseTemplate):
     ''' Class for OpenShift PersistentVolumeClaim Object '''
 
-    def __init__(self, template_id, class_name, storage_size):
+    def __init__(self, template_id, storage_class, storage_size):
         path = "/api/v1/namespaces/{0}/persistentvolumeclaims"
         super().__init__(template_id, path, "PersistentVolumeClaim", "v1")
 
         self.selfLinks["template"] = "{0}/{1}".format(path, template_id)
-        self.class_name = class_name
+        self.storage_class = storage_class
         self.storage_size = storage_size
 
         self.template["spec"] = {
-            "storageClassName": class_name,
+            "storageClassName": storage_class,
             "accessModes": ["ReadWriteOnce"],
             "persistentVolumeReclaimPolicy": "Recycle",
             "resources": {

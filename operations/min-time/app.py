@@ -5,57 +5,53 @@
 from osgeo import gdal
 import numpy
 from json import load
-from utils import read_parameters, read_input_mounts, create_folder, get_paths_for_files_in_folder, write_output_to_json
+from utils import read_parameters, load_last_config, create_folder, get_paths_for_files_in_folder, write_output_to_json
 
-OUT_VOLUME = "/job_out"
-OUT_FINAL = create_folder(OUT_VOLUME, "out_min-time")
 PARAMS = read_parameters()
-INPUT_MOUNTS = read_input_mounts()
+ARGS = PARAMS["args"]
+OUT_VOLUME = "/job_data"
+
+LAST_FOLDER = "{0}/{1}".format(OUT_VOLUME, PARAMS["last"])
+LAST_CONFIG= load_last_config(LAST_FOLDER)
+OUT_FOLDER = create_folder(OUT_VOLUME, PARAMS["template_id"])
 
 
 def perform_min_time():
     ''' Performs min time '''
 
     print("-> Start calculating minimal NDVI...")
+    # Create Out folders
+    folder_stack_time_vrt = create_folder(OUT_FOLDER, "stack_time_vrt")
+    folder_stack_time_tif = create_folder(OUT_FOLDER, "stack_time_tif")
 
-    # Iterate over each file and save the data
-    for idx, mount in enumerate(INPUT_MOUNTS):
+    # Define output paths
+    filename_part = "-time_epsg-{0}".format(LAST_CONFIG["data_srs"].split(":")[-1])
+    path_time_stack_vrt = "{0}/stack{1}.vrt".format(folder_stack_time_vrt, filename_part)
+    path_time_stack_tif = "{0}/stack{1}.tif".format(folder_stack_time_tif, filename_part)
+    path_min_time = "{0}/min{1}.tif".format(OUT_FOLDER, filename_part)
 
-        # Create Out folders
-        folder_stack_time_vrt = create_folder(OUT_VOLUME, "stack_time_vrt")
-        folder_stack_time_tif = create_folder(OUT_VOLUME, "stack_time_tif")
+    abs_file_paths = [OUT_VOLUME + "/" + file_path for file_path in LAST_CONFIG["file_paths"]]
 
-        # Define output paths
-        filename_part = "-time_epsg-{0}_mount-{1}".format(PARAMS["data_srs"].split(":")[-1], idx)
-        path_time_stack_vrt = "{0}/stack{1}.vrt".format(folder_stack_time_vrt, filename_part)
-        path_time_stack_tif = "{0}/stack{1}.tif".format(folder_stack_time_tif, filename_part)
-        path_min_time = "{0}/min{1}.tif".format(OUT_FINAL, filename_part)
+    # Combine all files into one (as different bands -> make sure they can be put on top of each other)
+    gdal.BuildVRT(path_time_stack_vrt, abs_file_paths, separate=True)
+    gdal.Translate(path_time_stack_tif, path_time_stack_vrt)
 
-        with open("{0}/files.json".format(mount), 'r') as json_file:
-            file_paths = load(json_file)["file_paths"]
+    dataset = gdal.Open(path_time_stack_tif)
+    data = numpy.zeros((len(LAST_CONFIG["file_paths"]), dataset.RasterYSize, dataset.RasterXSize))
+    out_dataset = create_out_dataset(dataset, path_min_time)  # Save dummy out dataset to be filled with data
 
-            abs_file_paths = [mount + "/" + file_path for file_path in file_paths]
+    for band_num in range(0, len(LAST_CONFIG["file_paths"])):
 
-            # Combine all files into one (as different bands -> make sure they can be put on top of each other)
-            gdal.BuildVRT(path_time_stack_vrt, abs_file_paths, separate=True)
-            gdal.Translate(path_time_stack_tif, path_time_stack_vrt)
+        band = dataset.GetRasterBand(band_num + 1)
+        file_data = band.ReadAsArray()
 
-            dataset = gdal.Open(path_time_stack_tif)
-            data = numpy.zeros((len(file_paths), dataset.RasterYSize, dataset.RasterXSize))
-            out_dataset = create_out_dataset(dataset, path_min_time)  # Save dummy out dataset to be filled with data
+        # Save data to dict
+        data[band_num] = file_data
 
-            for band_num in range(0, len(file_paths)):
+    min_time_data = numpy.fmin.reduce(data)
 
-                band = dataset.GetRasterBand(band_num + 1)
-                file_data = band.ReadAsArray()
-
-                # Save data to dict
-                data[band_num] = file_data
-
-            min_time_data = numpy.fmin.reduce(data)
-
-        # Write data to dataset
-        fill_dataset(out_dataset, min_time_data)
+    # Write data to dataset
+    fill_dataset(out_dataset, min_time_data)
 
     print("-> Finished calculating minimal NDVI")
 
@@ -93,11 +89,11 @@ def fill_dataset(dataset, data):
 def write_output():
     '''Writes output's metadata to file'''
 
-    data = {"product": PARAMS["product"],
-            "operations": PARAMS["operations"] + ["ndvi"],
-            "data_srs": PARAMS["data_srs"],
-            "file_paths": get_paths_for_files_in_folder(OUT_FINAL),
-            "extent": PARAMS["extent"]
+    data = {"product": LAST_CONFIG["product"],
+            "operations": LAST_CONFIG["operations"] + ["ndvi"],
+            "data_srs": LAST_CONFIG["data_srs"],
+            "file_paths": get_paths_for_files_in_folder(OUT_FOLDER),
+            "extent": LAST_CONFIG["extent"]
             }
     
     #TODO Anders
@@ -106,7 +102,7 @@ def write_output():
         cropped_paths.append(path.split("/", 2)[2])
     data["file_paths"] = cropped_paths
 
-    write_output_to_json(data, OUT_VOLUME)
+    write_output_to_json(data, OUT_FOLDER)
 
 
 if __name__ == "__main__":

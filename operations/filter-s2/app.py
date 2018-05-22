@@ -1,42 +1,3 @@
-''' 
-Sentinel-2 Data extraction
-
-Parameters
-----------
-file_paths: dict
-    File-Paths per day (as array) to Sentinel-2 data on EODC storage
-    > file_paths: {
-        "2017-02-01": ["/eodc/products/...", "/eodc/products/..."],
-        ...
-    }
-left: number
-    Left boundary (longitude / easting) in EPSG:32632
-    > left:652000
-right: int
-    Right boundary (longitude / easting)
-    > right:672000
-top: int
-    Top boundary (latitude / northing)
-    > top:5161000
-bottom: int
-    Bottom boundary (latitude / northing)
-    > bottom:5181000
-srs: string
-    Spatial reference system of boundaries as proj4 or EPSG:12345 like string
-    > srs: "EPSG:32632"
-bands: array
-    Array of numbers containing band ids.
-    bands: [1,2,5]
-
-# OUPUTS
-    Ouput volume contains the extracted, cropped and stitched band Sentinel-2 data per day
-
-# Volumes
-- /eodc -> EODC storage
-- /job_config -> Configuration mount
-- /job_out -> Output mount
-'''
-
 from os import listdir
 from shutil import copyfile, rmtree
 from zipfile import ZipFile
@@ -47,7 +8,6 @@ from utils import read_parameters, build_new_img_name_from_old, build_new_granul
 PARAMS = read_parameters()
 OUT_VOLUME = "/job_data"
 
-IN_FOLDER = PARAMS["last"]
 OUT_FOLDER = create_folder(OUT_VOLUME, PARAMS["template_id"]) 
 TEMP_FOLDERS = {}  # tmp folder: tmp folder path -> deleted in the end
 
@@ -59,14 +19,17 @@ def unzip_data():
 
     print("-> Start data unzipping...")
 
-    TEMP_FOLDERS["unzipped"] = create_folder(OUT_VOLUME, "01_unzipped")
-    for day, file_paths_per_day in PARAMS["file_paths"].items():
+    TEMP_FOLDERS["unzipped"] = create_folder(OUT_FOLDER, "01_unzipped")
+    for item in ARGS["file_paths"]:
 
         # create a Out folder for each day (eg: /job_out/unzipped/2018-02-06/)
-        unzip_path = create_folder(TEMP_FOLDERS["unzipped"], day)
+        unzip_path = create_folder(TEMP_FOLDERS["unzipped"], item["date"])
 
         # extract all files of current day
-        for zip_path in file_paths_per_day:
+        if not isinstance( item["path"], list):
+            item["path"] = [item["path"]]
+
+        for zip_path in item["path"]:
             zip_ref = ZipFile(zip_path, 'r')
             zip_ref.extractall(unzip_path)
             zip_ref.close()
@@ -82,9 +45,9 @@ def extract_sentinel_2_data():
     print("-> Start data extraction...")
 
     # Create Out folder
-    TEMP_FOLDERS["extracted"] = create_folder(OUT_VOLUME, "02_extracted")
+    TEMP_FOLDERS["extracted"] = create_folder(OUT_FOLDER, "02_extracted")
 
-    for day in PARAMS["file_paths"].keys():
+    for day in listdir(TEMP_FOLDERS["unzipped"]):
 
         # Create Out folder for each day inside "extracted" folder
         folder_day = create_folder(TEMP_FOLDERS["extracted"], day)
@@ -105,7 +68,7 @@ def extract_sentinel_2_data():
                 for img_name in listdir(img_path):
                     file_band = img_name.split("_")[-1].split(".")[0]
 
-                    if file_band in PARAMS["bands"] or not PARAMS["bands"]:
+                    if not "filter_bands" in ARGS or file_band in PARAMS["filter_bands"]["bands"]:
 
                         dst_img_name = img_name
                         # Check for old S2 naming convention
@@ -127,10 +90,10 @@ def combine_bands():
     print("-> Start combining bands...")
 
     # Create Out folder
-    TEMP_FOLDERS["combined_bands"] = create_folder(OUT_VOLUME, "03_combined_bands")
+    TEMP_FOLDERS["combined_bands"] = create_folder(OUT_FOLDER, "03_combined_bands")
 
     # Iterate over each day
-    for day in PARAMS["file_paths"].keys():
+    for day in listdir(TEMP_FOLDERS["unzipped"]):
 
         # Create one folder per day
         folder_day = create_folder(TEMP_FOLDERS["combined_bands"], day)
@@ -159,10 +122,10 @@ def combine_same_utm():
     print("-> Start combining same UTM zone...")
 
     # Create Out folder
-    TEMP_FOLDERS["utm"] = create_folder(OUT_VOLUME, "04_combined_utm")
+    TEMP_FOLDERS["utm"] = create_folder(OUT_FOLDER, "04_combined_utm")
 
     # iterate over each day
-    for day in PARAMS["file_paths"].keys():
+    for day in listdir(TEMP_FOLDERS["unzipped"]):
 
         # Create one folder per day
         folder_day = create_folder(TEMP_FOLDERS["utm"], day)
@@ -197,9 +160,9 @@ def reproject():
     print("-> Start reprojection...")
 
     # Create Out folder with subfolders for each day
-    TEMP_FOLDERS["reproject"] = create_folder(OUT_VOLUME, "05_reproject")
+    TEMP_FOLDERS["reproject"] = create_folder(OUT_FOLDER, "05_reproject")
 
-    for day in PARAMS["file_paths"].keys():
+    for day in listdir(TEMP_FOLDERS["unzipped"]):
 
         # Create one folder per day
         folder_day = create_folder(TEMP_FOLDERS["reproject"], day)
@@ -226,11 +189,11 @@ def merge_reprojected():
     print("-> Start merging...")
 
     # Create Out folder
-    TEMP_FOLDERS["merged"] = create_folder(OUT_VOLUME, "06_merged")
+    TEMP_FOLDERS["merged"] = create_folder(OUT_FOLDER, "06_merged")
 
     PARAMS["bbox_out_epsg"] = None
 
-    for day in PARAMS["file_paths"].keys():
+    for day in listdir(TEMP_FOLDERS["unzipped"]):
 
         # Get input path
         file_path_list = get_paths_for_files_in_folder("{0}/{1}/".format(TEMP_FOLDERS["reproject"], day))
@@ -261,7 +224,7 @@ def transform_to_geotiff():
 
         # Build output path
         out_filename = "{0}.tif".format(file.split(".")[0])
-        out_path = "{0}/{1}".format(OUT_FINAL, out_filename)
+        out_path = "{0}/{1}".format(OUT_FOLDER, out_filename)
 
         # Translate vrt-file to GeoTiff
         gdal.Translate(out_path, in_path, outputBounds=PARAMS["bbox_out_epsg"])  # TODO show progress somehow (slow!)
@@ -274,7 +237,7 @@ def get_bbox():
     '''Returns bbox in specified reference system
     :return bbox:[left, bottom, right, top] - array of numbers'''
 
-    bbox_epsg = PARAMS["srs"].split(":")[1]
+    bbox_epsg = ARGS["filter_bbox"]["srs"].split(":")[1]
 
     # Transform bbox coordinates to reference system of data
     if OUT_EPSG != bbox_epsg:
@@ -289,10 +252,10 @@ def get_bbox():
         transform = osr.CoordinateTransformation(bbox_srs, data_srs)
 
         # Transform all corner points
-        left_bottom = transform.TransformPoint(PARAMS["left"], PARAMS["bottom"])
-        left_top = transform.TransformPoint(PARAMS["left"], PARAMS["top"])
-        right_top = transform.TransformPoint(PARAMS["right"], PARAMS["top"])
-        right_bottom = transform.TransformPoint(PARAMS["right"], PARAMS["bottom"])
+        left_bottom = transform.TransformPoint(ARGS["filter_bbox"]["left"], ARGS["filter_bbox"]["bottom"])
+        left_top = transform.TransformPoint(ARGS["filter_bbox"]["left"], ARGS["filter_bbox"]["top"])
+        right_top = transform.TransformPoint(ARGS["filter_bbox"]["right"], ARGS["filter_bbox"]["top"])
+        right_bottom = transform.TransformPoint(ARGS["filter_bbox"]["right"], ARGS["filter_bbox"]["bottom"])
 
         # Find max/min for each corner
         left = min(left_bottom[0], left_top[0])
@@ -322,9 +285,11 @@ def write_output():
     '''Writes output's metadata to file'''
 
     # TODO Bands in Metadaten -> Übergeben als Parameter / Kein empty array
-    bands = PARAMS["bands"]
-    if not bands:
+    # bands = ARGS["filter_bbox"]["bands"]
+    if not "filter_bbox" in ARGS["filter_bbox"]:
         bands = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09", "B10", "B11", "B12", "TCI"]
+    else:
+        bands = ARGS["filter_bbox"]["bands"]
 
     # save band_order
     bands.sort()
@@ -335,14 +300,14 @@ def write_output():
             "operations": ["filter-s2"],
             "band_order": band_order,
             "data_srs": "EPSG:{0}".format(OUT_EPSG),
-            "file_paths": get_paths_for_files_in_folder(OUT_FINAL),
+            "file_paths": get_paths_for_files_in_folder(OUT_FOLDER),
             "extent": {
                 "bbox": {
-                    "top": PARAMS["top"],
-                    "bottom": PARAMS["bottom"],
-                    "left": PARAMS["left"],
-                    "right": PARAMS["right"]},
-                "srs": PARAMS["srs"]},
+                    "top": ARGS["filter_bbox"]["top"],
+                    "bottom": ARGS["filter_bbox"]["bottom"],
+                    "left": ARGS["filter_bbox"]["left"],
+                    "right": ARGS["filter_bbox"]["right"]},
+                "srs": ARGS["filter_bbox"]["srs"]},
             }
 
     #TODO Anders
@@ -351,7 +316,7 @@ def write_output():
         cropped_paths.append(path.split("/", 2)[2])
     data["file_paths"] = cropped_paths
     
-    write_output_to_json(data, "filter-s2", OUT_VOLUME)
+    write_output_to_json(data, "filter-s2", OUT_FOLDER)
 
 
 def clean_up():
@@ -365,7 +330,7 @@ def clean_up():
     print("-> Finished clean up.")
 
 
-    print(listdir(OUT_VOLUME))
+    print(listdir(OUT_FOLDER))
 
 if __name__ == "__main__":
     print("Start Sentinel 2 data extraction process...")
