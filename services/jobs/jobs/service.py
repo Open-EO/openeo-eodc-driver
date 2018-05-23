@@ -80,24 +80,29 @@ class JobService:
 
             tasks = sorted(tasks, key=lambda task: task.seq_num)
 
+            job.status = "running"
+            self.db.commit()
+
             # TODO: Implement in Extraction Service
             filter = tasks[0]
             product = filter.args["product"]
             start = filter.args["filter_daterange"]["from"]
             end = filter.args["filter_daterange"]["to"]
             left = filter.args["filter_bbox"]["left"]
-            right = filter.args["filter_bbox"]["left"]
-            top = filter.args["filter_bbox"]["left"]
-            bottom = filter.args["filter_bbox"]["left"]
+            right = filter.args["filter_bbox"]["right"]
+            top = filter.args["filter_bbox"]["top"]
+            bottom = filter.args["filter_bbox"]["bottom"]
             srs = filter.args["filter_bbox"]["srs"]
 
-            in_proj = Proj(init=srs)
-            out_proj = Proj(init='epsg:4326')
-            in_x1, in_y1 = bottom, left
-            in_x2, in_y2 = top, right
-            out_x1, out_y1 = transform(in_proj, out_proj, in_x1, in_y1)
-            out_x2, out_y2 = transform(in_proj, out_proj, in_x2, in_y2)
-            bbox = [out_x1, out_y1, out_x2, out_y2]
+            bbox = [left, bottom, right, top]
+
+            # in_proj = Proj(init=srs)
+            # out_proj = Proj(init='epsg:4326')
+            # in_x1, in_y1 = bottom, left
+            # in_x2, in_y2 = top, right
+            # out_x1, out_y1 = transform(in_proj, out_proj, in_x1, in_y1)
+            # out_x2, out_y2 = transform(in_proj, out_proj, in_x2, in_y2)
+            # bbox = [out_x1, out_y1, out_x2, out_y2]
 
             file_paths = self.data_service.get_records(qtype="file_paths", qname=product, qgeom=bbox, qstartdate=start, qenddate=end)["data"]
             tasks[0].args["file_paths"] = file_paths
@@ -148,6 +153,8 @@ class JobService:
                     task.status = exp.__str__()
                     self.db.commit()
             pvc.delete(self.api_connector)
+            job.status = "finished"
+            self.db.commit()
         except Exception as exp:
             job.status = str(exp)
             self.db.commit()

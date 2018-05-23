@@ -3,6 +3,7 @@
 from flask_restful_swagger_2 import Resource, swagger, Schema #TODO: Delete?
 from flask_restful.reqparse import RequestParser
 from flask_restful.utils import cors
+from flask import send_from_directory
 from os import path, listdir
 
 from . import rpc
@@ -143,10 +144,11 @@ class BatchJobApi(Resource):
     })
     def patch(self, user_id, job_id):
         try:
-            rpc.jobs.process_job.call_async(job_id)
+            rpc.jobs.process_job(job_id)
             return self.__res_parser.string(200, "The job has been successfully queued.")
         except Exception as exc:
             return self.__res_parser.error(exc)
+
 
 class DownloadApi(Resource):
     __res_parser = ResponseParser()
@@ -181,24 +183,44 @@ class DownloadApi(Resource):
             "503": ServiceUnavailable().__parse__()
         }
     })
-    def patch(self, user_id, job_id):
+    def get(self, user_id, job_id):
         try:
-            rpc_response = rpc.jobs.get_job(user_id, job_id)
-            if rpc_response["status"] == "error":
-                raise self.__res_parser.map_exceptions(rpc_response["exc_key"])
+            # rpc_response = rpc.jobs.get_job(user_id, job_id)
+            # if rpc_response["status"] == "error":
+            #     raise self.__res_parser.map_exceptions(rpc_response["exc_key"])
 
-            job_directory = "/job_results/{0}".format(job_id)
-
-            if not path.isdir(job_directory):
-                raise NotFound
-            
+            job_directory = "c:/job_results/{0}".format(23)
             files_in_dir = listdir(job_directory)
 
-            if not file_name in files_in_dir:
-                raise NotFound
-            
-            
+            output = []
+            for file_name in files_in_dir:
+                output.append("http://127.0.0.1:3000/download/{0}/{1}".format(job_id, file_name))
 
-            return self.__res_parser.string(200, "The job has been successfully queued.")
+            return self.__res_parser.data(200, output)
+        except Exception as exc:
+            return self.__res_parser.error(exc)
+
+
+class DownloadFileApi(Resource):
+    __res_parser = ResponseParser()
+
+    @cors.crossdomain(
+        origin=["*"],
+        methods=["GET"],
+        headers=["Authorization", "Content-Type"],
+        credentials=True)
+    def options(self):
+        return self.__res_parser.code(200)
+
+    @cors.crossdomain(
+        origin=["*"],
+        methods=["GET"],
+        headers=["Authorization", "Content-Type"],
+        credentials=True)
+    # @auth()
+    def get(self, job_id, file_name):
+        try:
+            job_directory = "c:/job_results/{0}".format(23)
+            return send_from_directory(directory=job_directory, filename=file_name)
         except Exception as exc:
             return self.__res_parser.error(exc)

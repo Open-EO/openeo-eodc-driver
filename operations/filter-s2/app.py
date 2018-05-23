@@ -278,7 +278,7 @@ def get_bbox():
         # return [left, top, right, bottom]
 
     else:
-        return [PARAMS["left"], PARAMS["bottom"], PARAMS["right"], PARAMS["top"]]
+        return [ARGS["filter_bbox"]["left"], ARGS["filter_bbox"]["bottom"], ARGS["filter_bbox"]["right"], ARGS["filter_bbox"]["top"]]
 
 
 def write_output():
