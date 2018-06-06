@@ -94,7 +94,7 @@ class JobService:
             bottom = filter.args["filter_bbox"]["bottom"]
             srs = filter.args["filter_bbox"]["srs"]
 
-            bbox = [left, bottom, right, top]
+            bbox = [top, left, bottom, right]
 
             # in_proj = Proj(init=srs)
             # out_proj = Proj(init='epsg:4326')

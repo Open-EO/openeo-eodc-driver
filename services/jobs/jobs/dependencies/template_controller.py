@@ -27,7 +27,7 @@ class TemplateControllerWrapper:
 
         log += obj_build.get_logs(api_connector)
 
-        obj_build.delete(api_connector) # TODO: Debug -> If pod does not exist anymore (build) -> vllt wegen falscher refernzierung bei delete()?
+        # obj_build.delete(api_connector) # TODO: Debug -> If pod does not exist anymore (build) -> vllt wegen falscher refernzierung bei delete()?
 
         return "Finished Building", log, obj_image_stream
 
