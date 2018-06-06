@@ -3,6 +3,7 @@ env
 .vscode/
 template-eodc.yaml
 .dev/
+.doc/
 .http/
 
 # Byte-compiled / optimized / DLL files

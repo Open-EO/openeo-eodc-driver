@@ -96,15 +96,15 @@ class process_graph(Schema):
                                     "imagery": {
                                         "product_id": "s2a_prd_msil1c"
                                     },
-                                    "left": 652000,
-                                    "right": 672000,
-                                    "top": 5161000,
-                                    "bottom": 5181000,
-                                    "srs": "EPSG:32632"
+                                    "left": 16.341818660,
+                                    "right": 16.431082576,
+                                    "top": 48.243246389,
+                                    "bottom": 48.202989476,
+                                    "srs": "EPSG:4326"
                                 }
                             },
-                            "from": "2017-01-01",
-                            "to": "2017-01-08"
+                            "from": "2018-01-01",
+                            "to": "2018-01-05"
                         }
                     },
                     "red": "B04",

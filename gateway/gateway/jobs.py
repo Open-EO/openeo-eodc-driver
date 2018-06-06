@@ -144,7 +144,7 @@ class BatchJobApi(Resource):
     })
     def patch(self, user_id, job_id):
         try:
-            rpc.jobs.process_job(job_id)
+            rpc.jobs.process_job.call_async(job_id)
             return self.__res_parser.string(200, "The job has been successfully queued.")
         except Exception as exc:
             return self.__res_parser.error(exc)
@@ -189,7 +189,7 @@ class DownloadApi(Resource):
             # if rpc_response["status"] == "error":
             #     raise self.__res_parser.map_exceptions(rpc_response["exc_key"])
 
-            job_directory = "c:/job_results/{0}".format(23)
+            job_directory = "c:/job_results/{0}".format(54)
             files_in_dir = listdir(job_directory)
 
             output = []
@@ -220,7 +220,7 @@ class DownloadFileApi(Resource):
     # @auth()
     def get(self, job_id, file_name):
         try:
-            job_directory = "c:/job_results/{0}".format(23)
+            job_directory = "c:/job_results/{0}".format(54)
             return send_from_directory(directory=job_directory, filename=file_name)
         except Exception as exc:
             return self.__res_parser.error(exc)
