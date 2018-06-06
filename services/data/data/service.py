@@ -2,8 +2,7 @@ from nameko.rpc import rpc
 from datetime import datetime
 
 from .dependencies.csw import CSWSession
-from .schema import ProcessSchemaFull, ProcessSchema, ProcessSchemaShort
-from .exceptions import NotFound, CWSError
+from .exceptions import CWSError
 
 
 class DataService:
@@ -23,6 +22,24 @@ class DataService:
             return {
                 "status": "success",
                 "data": results
+            }
+        except CWSError: 
+            return {"status": "error", "exc_key":  "BadRequest"}
+        except Exception as exp:
+            return {"status": "error", "exc_key":  "InternalServerError"}
+    
+    @rpc
+    def prepare_data(self, qname="", qgeom="", qstartdate="", qenddate=""):
+        try:
+            file_paths = self.csw_session.get_data("file_paths", qname, qgeom, qstartdate, qenddate)
+            volume_path = self.
+
+
+
+
+            return {
+                "status": "success",
+                "data": "results"
             }
         except CWSError: 
             return {"status": "error", "exc_key":  "BadRequest"}

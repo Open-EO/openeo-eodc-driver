@@ -1,6 +1,3 @@
-from nameko.extensions import DependencyProvider
-
-
 class Band:
     def __init__(self, band_id, wavelength_nm, res_m, scale, offset, type, unit, name=""):
         self.band_id = band_id

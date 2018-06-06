@@ -259,7 +259,7 @@ class CSWHandler:
 
         results = []
         for item in records:
-            path = item["gmd:fileIdentifier"]["gco:CharacterString"]
+            path = item["gmd:distributionInfo"]["gmd:MD_Distribution"]["gmd:transferOptions"]["gmd:MD_DigitalTransferOptions"]["gmd:onLine"][0]["gmd:CI_OnlineResource"]["gmd:linkage"]["gmd:URL"]
             name = path.split("/")[-1].split(".")[0]
             date = item["gmd:identificationInfo"]["gmd:MD_DataIdentification"]["gmd:extent"]["gmd:EX_Extent"]["gmd:temporalElement"]["gmd:EX_TemporalExtent"]["gmd:extent"]["gml:TimePeriod"]["gml:beginPosition"][0:10]
 
