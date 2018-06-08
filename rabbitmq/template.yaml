@@ -8,7 +8,7 @@ metadata:
     description: >-
       The templates instantiates the users service for openEO on OpenShift Origin.
     openshift.io/long-description: >-
-      Multiple services are setup to provide the OpenEO capabilities. For setting up a
+      Multiple services to provide the OpenEO capabilities. For setting up a
       OpenShift cluster and configure persitant storage please read the OpenShift documentation.
       Fur further information on OpenEO please have a look at http://openeo.org
     tags: openeo, openshift, python, flask

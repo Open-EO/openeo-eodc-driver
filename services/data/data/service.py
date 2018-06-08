@@ -1,13 +1,14 @@
 from nameko.rpc import rpc
-from datetime import datetime
 
 from .dependencies.csw import CSWSession
-from .exceptions import CWSError
+from .dependencies.arg_parser import ArgValidatorProvider
+from .exceptions import CWSError, ValidationError
 
 
 class DataService:
     name = "data"
 
+    arg_parser = ArgValidatorProvider()
     csw_session = CSWSession()
 
     @rpc
@@ -17,30 +18,15 @@ class DataService:
     @rpc
     def get_records(self, qtype="products", qname="", qgeom="", qstartdate="", qenddate=""):
         try:
-            results = self.csw_session.get_data(qtype, qname, qgeom, qstartdate, qenddate)
+            product, bbox, start, end = self.arg_parser.parse(qname, qgeom, qstartdate, qenddate) 
+            results = self.csw_session.get_data(qtype, product, bbox, start, end)
 
             return {
                 "status": "success",
                 "data": results
             }
-        except CWSError: 
-            return {"status": "error", "exc_key":  "BadRequest"}
-        except Exception as exp:
-            return {"status": "error", "exc_key":  "InternalServerError"}
-    
-    @rpc
-    def prepare_data(self, qname="", qgeom="", qstartdate="", qenddate=""):
-        try:
-            file_paths = self.csw_session.get_data("file_paths", qname, qgeom, qstartdate, qenddate)
-            volume_path = self.
-
-
-
-
-            return {
-                "status": "success",
-                "data": "results"
-            }
+        except ValidationError:
+            return {"status": "error", "exc_key":  "BadRequest"} # TODO: Send message
         except CWSError: 
             return {"status": "error", "exc_key":  "BadRequest"}
         except Exception as exp:

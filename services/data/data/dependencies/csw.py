@@ -3,13 +3,13 @@ from requests import post
 from json import loads, dumps
 from datetime import datetime, timedelta
 from xml.dom.minidom import parseString
-from shapely.geometry.base import geom_from_wkt, WKTReadingError
 from nameko.extensions import DependencyProvider
 
 from .bands import BandsExtractor
-from ..exceptions import CWSError
 from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin, xml_end, xml_bbox
 from .products import products # TODO: Just temporary because csw request is currently very slow
+from ..exceptions import CWSError
+
 
 class CSWHandler:
     def __init__(self, csw_server):
@@ -23,17 +23,10 @@ class CSWHandler:
             "file_paths": self.get_file_paths
         }
     
-    def get_data(self, qtype, qname, qgeom, qstartdate, qenddate):
-        return self.map_types[qtype](product=qname, bbox=qgeom, begin=qstartdate, end=qenddate)
+    def get_data(self, qtype, product, bbox, start, end):
+        return self.map_types[qtype](product, bbox, start, end)
     
-    def poly_to_bbox(self, wkt_string):
-        """
-        Gets the bounding box of the dataset from from wkt_geometry.
-        """
-        poly = geom_from_wkt("POLYGON" + wkt_string)
-        return list(poly.bounds)
-
-    def get_records(self, series=False, product=False, begin=False, end=False, bbox=False, just_filepaths=False):
+    def get_records(self, product, bbox, start, end, series=False, just_filepaths=False):
         """ 
         Return the collected csw records of the query 
         """
@@ -41,6 +34,7 @@ class CSWHandler:
         output_schema = "http://www.opengis.net/cat/csw/2.0.2" if series is True else "http://www.isotc211.org/2005/gmd"
 
         xml_filters = []
+
         if series: 
             xml_filters.append(xml_series)
 
@@ -50,40 +44,17 @@ class CSWHandler:
             else:
                 xml_filters.append(xml_product.format(property="apiso:ParentIdentifier", product=product))
 
-        if begin:
-            try:
-                datetime.strptime(begin, '%Y-%m-%d')
-            except ValueError:
-                raise CWSError("Wrong format of begin date.")
+        if start:
+            xml_filters.append(xml_begin.format(start=start))
 
-            begin += "T00:00:00Z"
-            xml_filters.append(xml_begin.format(begin=begin))
-
-        if end: 
-            try:
-                datetime.strptime(end, '%Y-%m-%d')
-            except ValueError:
-                raise CWSError("Wrong format of end date.")
-
-            end += "T23:59:59Z"
-
-            if not series:
-                xml_filters.append(xml_end.format(end=end))
+        if end and not series:
+            xml_filters.append(xml_end.format(end=end))
 
         if bbox: 
-            if isinstance(bbox, str):
-                try:
-                    bbox = self.poly_to_bbox(bbox)
-                except WKTReadingError:
-                    raise CWSError("Wrong format of WKT polygon.")
-
-            if isinstance(bbox, list) and len(bbox) == 4:
-                xml_filters.append(xml_bbox.format(bbox=bbox))
-            else:
-                raise CWSError("Invalid format of BBox")
+            xml_filters.append(xml_bbox.format(bbox=bbox))
             
         if len(xml_filters) == 0:
-            return []
+            return CWSError("Please provide fiters on the data (bounding box, start, end)")
         
         filter_parsed = ""
         if len(xml_filters) == 1:
@@ -140,7 +111,7 @@ class CSWHandler:
 
         return record_next, records
 
-    def get_products(self, product, begin, end, bbox):
+    def get_products(self, product, bbox, start, end):
         # records = self.get_records(
         #     series=True, 
         #     product=product, 
@@ -159,13 +130,8 @@ class CSWHandler:
         # TODO: Just temporary because csw request is currently very slow
         return products #results
     
-    def get_product_details(self, product, begin, end, bbox):
-        record = self.get_records(
-            series=True, 
-            product=product, 
-            begin=begin, 
-            end=end, 
-            bbox=bbox)[0]
+    def get_product_details(self, product, bbox, start, end):
+        record = self.get_records(product, bbox, start, end, series=True)[0]
 
         upper = record["ows:BoundingBox"]["ows:UpperCorner"].split(" ")
         lower = record["ows:BoundingBox"]["ows:LowerCorner"].split(" ")
@@ -189,23 +155,11 @@ class CSWHandler:
 
         return dumped_result
 
-    def get_records_full(self, product, begin, end, bbox):
-        results = self.get_records(
-            series=False, 
-            product=product, 
-            begin=begin, 
-            end=end, 
-            bbox=bbox)
+    def get_records_full(self, product, bbox, start, end):
+        return self.get_records(product, bbox, start, end)
 
-        return results
-
-    def get_records_shorts(self, product, begin, end, bbox):
-        records = self.get_records(
-            series=False, 
-            product=product, 
-            begin=begin, 
-            end=end, 
-            bbox=bbox)
+    def get_records_shorts(self, product, bbox, start, end):
+        records = self.get_records(product, bbox, start, end)
         
         results = []
         for item in records:
@@ -237,7 +191,7 @@ class CSWHandler:
 
         return results
 
-    def get_file_paths(self, product, begin, end, bbox):
+    def get_file_paths(self, product, bbox, start, end):
         ''' Get file paths from records '''
 
         # TODO: Do we need a time extension?
@@ -249,13 +203,7 @@ class CSWHandler:
         # end_date = end_date + timedelta(days=1)
         # end_date = end_date.strftime("%Y-%m-%dT23:59:59Z")
 
-        records = self.get_records(
-            series=False, 
-            product=product, 
-            begin=begin, 
-            end=end, 
-            bbox=bbox, 
-            just_filepaths=True)
+        records = self.get_records(product, bbox, start, end, just_filepaths=True)
 
         results = []
         for item in records:

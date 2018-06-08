@@ -51,7 +51,7 @@ xml_product = (
 xml_begin = (
     "<ogc:PropertyIsGreaterThanOrEqualTo>"
     "<ogc:PropertyName>apiso:TempExtent_begin</ogc:PropertyName>"
-    "<ogc:Literal>{begin}</ogc:Literal>"
+    "<ogc:Literal>{start}</ogc:Literal>"
     "</ogc:PropertyIsGreaterThanOrEqualTo>")
 
 xml_end = (
