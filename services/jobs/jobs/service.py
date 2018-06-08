@@ -1,7 +1,7 @@
 from os import environ
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
-from pyproj import Proj, transform # TODO: Somewhere else
+
 
 from .models import Base, Job, Task
 from .schema import JobSchema, JobSchemaFull
@@ -76,12 +76,15 @@ class JobService:
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
             tasks = self.db.query(Task).filter_by(job_id=job_id).all()
-            processes = self.process_service.get_all_processes_full()["data"]
-
             tasks = sorted(tasks, key=lambda task: task.seq_num)
+            processes = self.process_service.get_all_processes_full()["data"]
 
             job.status = "running"
             self.db.commit()
+
+            data_filter = tasks[0]
+
+            pvc = self.data_service.prepare_pvc(data_filter)["data"]
 
             # TODO: Implement in Extraction Service
             filter = tasks[0]

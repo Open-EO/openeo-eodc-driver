@@ -3,8 +3,14 @@ from random import choice
 from string import ascii_lowercase, digits
 from ..models import Task
 
+# TODO: Exception Handling -> Bad Input?
 
 class TasksWrapper:
+    # TODO: Aliases for product names?
+    _filter_mapper = {
+        "s2a_prd_msil1c": "filter-s2"
+    }
+
     def __init__(self):
         self.tasks = []
         self.filters = {}
@@ -43,8 +49,8 @@ class TasksWrapper:
                 Task(job_id, process_id, len(self.tasks), args))
             self.parse_tasks(job_id, imagery)
         elif process_spec["process_type"] == "filter":
-            process_id = "filter-s2" # TODO: More generic for all products
             self.extract_filter_args(task_graph)
+            process_id = self._filter_mapper[self.filters["product"]]
             self.tasks.append(
                 Task(job_id, process_id, len(self.tasks), self.filters))
 

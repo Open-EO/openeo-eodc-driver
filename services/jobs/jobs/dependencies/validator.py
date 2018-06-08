@@ -64,8 +64,7 @@ class ValidatorWrapper:
             raise BadRequest("String {0} does not match pattern {1}.".format(arg_payload, arg_specs["regex"]))
 
         if arg_id == "imagery":
-            # for collection in arg_payload:
-            # TODO: Change if Core API includes collections 
+            # TODO: Change if Core API includes collections (e.g. for collection in arg_payload:)
             self.validate_node(arg_payload)
 
     def validate_type(self, arg_id, arg_payload, arg_type):
