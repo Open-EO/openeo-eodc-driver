@@ -1,5 +1,5 @@
 from os import environ
-from flask import Flask, redirect
+from flask import Flask, redirect, current_app
 from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
 from flask_restful_swagger_2 import Api, swagger
@@ -15,8 +15,12 @@ def create_gateway():
     gateway.config.from_object(environ.get('GATEWAY_SETTINGS'))
     gateway.config.update(
         dict(
-            NAMEKO_AMQP_URI=environ.get('AMQP_URI'), 
-            NAMEKO_RPC_TIMEOUT=int(environ.get('NAMEKO_RPC_TIMEOUT'))
+            NAMEKO_AMQP_URI="pyamqp://{0}:{1}@{2}:{3}".format(
+                environ.get("RABBIT_USER"),
+                environ.get("RABBIT_PASSWORD"),
+                environ.get("RABBIT_HOST"),
+                environ.get("RABBIT_PORT")
+            )
         )
     )
 
@@ -29,7 +33,7 @@ def create_gateway():
 def generate_api(gateway):
     api = Api(
         gateway,
-        api_version='0.1',
+        api_version='0.0.2',
         host="127.0.0.1:3000",
         title="EODC openEO API",
         description="EODC API implementation of openEO",

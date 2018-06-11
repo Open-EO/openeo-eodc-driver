@@ -1,4 +1,4 @@
-''' Configurations for User Service '''
+''' Configurations for Gateway '''
 
 from os import environ
 
@@ -6,7 +6,6 @@ class BaseConfig:
     ''' Base Configuration '''
     DEBUG = False
     TESTING = False
-    # CORS_ENABLED = True
 
 class DevelopmentConfig(BaseConfig):
     ''' Development Configuration '''
