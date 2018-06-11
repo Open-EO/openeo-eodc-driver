@@ -35,6 +35,7 @@ class LoginApi(Resource):
         "security": [{"Basic": []}],
         "responses": {
             "200": OK("Login successful. Returns the user ID and a bearer token for future API calls.").__parse__(),
+            "401": Unauthorized().__parse__(),
             "403": Forbidden().__parse__(),
             "500": InternalServerError().__parse__(),
             "501": NotImplemented().__parse__(),
@@ -44,14 +45,15 @@ class LoginApi(Resource):
     def get(self):
         try:
             if not request.authorization:
-                raise self.__res_parser.map_exceptions("Unauthorized")
+                exp = {"status": "error", "service": "auth", "key": "Unauthorized", "msg": "Basic Auth header is missing"}
+                raise self.__res_parser.map_exceptions(exp, None)
 
             rpc_response = rpc.auth.login(
                 request.authorization["username"],
                 request.authorization["password"])
 
             if rpc_response["status"] == "error":
-                raise self.__res_parser.map_exceptions(rpc_response["exc_key"])
+                raise self.__res_parser.map_exceptions(rpc_response, None)
 
             return self.__res_parser.data(200, rpc_response["data"])
         except Exception as exc:
@@ -94,7 +96,7 @@ class RegisterApi(Resource):
             rpc_response = rpc.users.create_user(args["password"])
 
             if rpc_response["status"] == "error":
-                raise self.__res_parser.map_exceptions(rpc_response["exc_key"])
+                raise self.__res_parser.map_exceptions(rpc_response, None)
 
             return self.__res_parser.data(200, rpc_response["data"])
         except Exception as exc:

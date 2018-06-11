@@ -44,13 +44,13 @@ class CSWHandler:
             else:
                 xml_filters.append(xml_product.format(property="apiso:ParentIdentifier", product=product))
 
-        if start:
+        if start and not series:
             xml_filters.append(xml_begin.format(start=start))
 
         if end and not series:
             xml_filters.append(xml_end.format(end=end))
 
-        if bbox: 
+        if bbox and not series: 
             xml_filters.append(xml_bbox.format(bbox=bbox))
             
         if len(xml_filters) == 0:

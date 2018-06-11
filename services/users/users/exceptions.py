@@ -1,5 +1,9 @@
 class NotFound(Exception):
-    pass
+    ''' NotFound raises if teh user was not found. '''
+    def __init__(self, msg=""):
+         super(NotFound, self).__init__(msg)
 
 class LoginError(Exception):
-    pass
+    ''' LoginError raises if the user could not be logged in. '''
+    def __init__(self, msg=""):
+         super(LoginError, self).__init__(msg)

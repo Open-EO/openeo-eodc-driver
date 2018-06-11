@@ -27,7 +27,7 @@ def auth(admin=False):
                 rpc_response = rpc.auth.identify(token)
 
                 if rpc_response["status"] == "error":
-                    raise __res_parser.map_exceptions(rpc_response["exc_key"])
+                    raise __res_parser.map_exceptions(rpc_response, None)
                 
                 user = rpc_response["data"]
 

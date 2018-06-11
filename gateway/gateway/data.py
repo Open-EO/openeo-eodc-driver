@@ -56,7 +56,7 @@ class RecordsApi(Resource):
                 args["qenddate"])
 
             if rpc_response["status"] == "error":
-                raise self.__res_parser.map_exceptions(rpc_response["exc_key"])
+                raise self.__res_parser.map_exceptions(rpc_response, user_id)
 
             return self.__res_parser.data(200, rpc_response["data"])
         except Exception as exc:
@@ -103,7 +103,7 @@ class ProductDetailApi(Resource):
                 qname=product_id)
 
             if rpc_response["status"] == "error":
-                raise self.__res_parser.map_exceptions(rpc_response["exc_key"])
+                raise self.__res_parser.map_exceptions(rpc_response, user_id)
 
             return self.__res_parser.data(200, rpc_response["data"])
         except Exception as exc:

@@ -64,7 +64,7 @@ xml_bbox = (
     "<ogc:BBOX>"
     "<ogc:PropertyName>ows:BoundingBox</ogc:PropertyName>"
     "<gml:Envelope>"
-    "<gml:lowerCorner>{bbox[0]} {bbox[1]}</gml:lowerCorner>"
-    "<gml:upperCorner>{bbox[2]} {bbox[3]}</gml:upperCorner>"
+    "<gml:lowerCorner>{bbox.x1} {bbox.y1}</gml:lowerCorner>"
+    "<gml:upperCorner>{bbox.x2} {bbox.y2}</gml:upperCorner>"
     "</gml:Envelope>"
     "</ogc:BBOX>")

@@ -22,8 +22,12 @@ class AuthService:
     def login(self, user_id, password):
         try:
             user = self.db.query(User).filter_by(user_id=user_id).first()
-            if not user or user.password != self.crypt.generate_hash(password, user.password):
-                raise LoginError
+            
+            if not user:
+                raise NotFound("User does not exist.")
+            
+            if user.password != self.crypt.generate_hash(password, user.password):
+                raise LoginError("Password is not correct.")
 
             return {
                 "status": "success",
@@ -32,10 +36,10 @@ class AuthService:
                     "token": self.crypt.encode_auth_token(user.id)
                 }
             }
-        except LoginError:
-            return {"status": "error", "exc_key":  "Forbidden"}
-        except Exception:
-            return {"status": "error", "exc_key":  "InternalServerError"}
+        except (NotFound, LoginError) as exp:
+            return {"status": "error", "service": self.name, "key": "Forbidden", "msg": str(exp)}
+        except Exception as exp:
+            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
 
     @rpc
     def identify(self, token):
@@ -43,17 +47,18 @@ class AuthService:
             user_id = self.crypt.decode_auth_token(token)
 
             user = self.db.query(User).filter_by(id=user_id).first()
+            
             if not user:
-                raise LoginError
+                raise NotFound("User does not exist.")
 
             return {
                 "status": "success",
                 "data": UserSchema().dump(user)
             }
-        except LoginError:
-            return {"status": "error", "exc_key":  "Forbidden"}
-        except Exception:
-            return {"status": "error", "exc_key":  "InternalServerError"}
+        except LoginError as exp:
+            return {"status": "error", "service": self.name, "key": "Forbidden", "msg": str(exp)}
+        except Exception as exp:
+            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
 
 
 class UsersService:
@@ -90,8 +95,8 @@ class UsersService:
                     "user_id": user.user_id
                 }
             }
-        except Exception:
-            return {"status": "error", "exc_key":  "InternalServerError"}
+        except Exception as exp:
+            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
 
     # @rpc
     # def get_user(self, id):

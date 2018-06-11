@@ -27,11 +27,11 @@ class BBox:
         try:
             bounds = types.get(type(qgeom), None)(qgeom)
             if not bounds:
-                return None
+                raise ValidationError("Type of Polygon/Bbox '{0}' is wrong.".format(qgeom))
 
             return BBox(bounds[0], bounds[1], bounds[2], bounds[3])
         except WKTReadingError:
-            return None
+            raise ValidationError("Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(qgeom))
 
     def __init__(self, x1, y1, x2, y2, epsg=None):
         self.x1 = x1
@@ -57,38 +57,29 @@ class ArgValidator:
     def parse(self, product, bbox, start, end):
         """ Parses the input arguments """
 
-        if product:
-            product = self.parse_product(product.lower().replace(" ", ""))
-            if not product:
-                raise ValidationError("Product specifier '{0}' is not valid.".format(product))
+        product = self.parse_product(product) if product else None
+        bbox = self.parse_bbox(bbox) if bbox else None
+        start = self.parse_start(start) if start else None
+        end = self.parse_end(end) if end else None
 
-        if bbox:
-            bbox = self.parse_bbox(bbox)
-            if not bbox:
-                raise ValidationError("Format of Polygon/Bbox '{0}' is wrong.".format(bbox))
-
-        if start:
-            start = self.parse_start(start)
-            if not start:
-                raise ValidationError("Format of start date '{0}' is wrong.".format(start))
-        
-        if end:
-            end = self.parse_end(end)
-            if not end:
-                raise ValidationError("Format of end date '{0}' is wrong.".format(end))
-        
         return product, bbox, start, end
 
     def parse_product(self, qname):
-        return self._prd_map.get(qname, None)
+        qname = qname.lower().replace(" ", "")
+        product = self._prd_map.get(qname, None)
+
+        if not product:
+            raise ValidationError("Product specifier '{0}' is not valid.".format(qname))
+
+        return product
 
     def parse_bbox(self, qgeom):
         if isinstance(qgeom, list):
             if not len(qgeom) == 4:
-                return None
+                raise ValidationError("Dimension of Bbox '{0}' is wrong (north, west, south, east).".format(qgeom))
         if isinstance(qgeom, str):
             if not (qgeom.startswith("((") or qgeom.startswith("[")):
-                return None
+                raise ValidationError("Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(qgeom))
 
         bbox = BBox.get_bbox(qgeom)
         if "srs" in qgeom:
@@ -101,14 +92,14 @@ class ArgValidator:
             datetime.strptime(start, '%Y-%m-%d')
             return start + "T00:00:00Z"
         except ValueError:
-            return None
+            raise ValidationError("Format of start date '{0}' is wrong.".format(start))
     
     def parse_end(self, end):
         try:
             datetime.strptime(end, '%Y-%m-%d')
             return end + "T23:59:59Z"
         except ValueError:
-            return None
+            raise ValidationError("Format of end date '{0}' is wrong.".format(end))
 
 
 class ArgValidatorProvider(DependencyProvider):

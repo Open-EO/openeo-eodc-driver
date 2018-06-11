@@ -11,7 +11,7 @@ class DataService:
     arg_parser = ArgValidatorProvider()
     csw_session = CSWSession()
 
-    @rpc
+    @rpc #TODO: As html -> Faster response
     def health(self):
         return {"status": "success"}
     
@@ -25,9 +25,7 @@ class DataService:
                 "status": "success",
                 "data": results
             }
-        except ValidationError:
-            return {"status": "error", "exc_key":  "BadRequest"} # TODO: Send message
-        except CWSError: 
-            return {"status": "error", "exc_key":  "BadRequest"}
-        except Exception as exp:
-            return {"status": "error", "exc_key":  "InternalServerError"}
+        except (ValidationError, CWSError) as exp:
+            return {"status": "error", "service": self.name, "key": "BadRequest", "msg": str(exp)}
+        except Exception as exp: 
+            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
