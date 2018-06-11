@@ -6,7 +6,7 @@ metadata:
   annotations:
     openshift.io/display-name: openeo-rabbitmq
     description: >-
-      The templates instantiates the users service for openEO on OpenShift Origin.
+      The templates instantiates the RabbitMQ server for openEO on OpenShift Origin.
     openshift.io/long-description: >-
       Multiple services to provide the OpenEO capabilities. For setting up a
       OpenShift cluster and configure persitant storage please read the OpenShift documentation.
@@ -43,7 +43,7 @@ parameters:
   from: "[a-zA-Z0-9]{16}"
   required: true
 - name: RABBITMQ_DEFAULT_PORT
-  displayName: Postgres Port
+  displayName: RabbitMQ default port
   value: "5672"
   required: true
 
