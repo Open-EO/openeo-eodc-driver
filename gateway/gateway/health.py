@@ -1,8 +1,7 @@
 """ /health """
 from flask_restful_swagger_2 import swagger, Resource
 from flask_restful.utils import cors
-from nameko.exceptions import RpcTimeout
-from eventlet import Timeout
+from requests import get
 
 from . import rpc
 from .src.response import *
@@ -32,30 +31,32 @@ class HealthApi(Resource):
         }
     })
     def get(self):
-        checks = {"gateway": "Running"}
+        checks = {
+            "gateway": "Running",
+            "users": "Running",
+            "data": "Running",
+            "processes": "Running",
+            "jobs": "Running"
+        }
 
-        try:
-            rpc.auth.health()
-            checks["auth"] = "Running"
-        except RpcTimeout:
-            checks["auth"] = "Not Running"
-
-        try:
-            rpc.users.health()
-            checks["users"] = "Running"
-        except RpcTimeout:
+        try: 
+            get("http://openeo-users:8000/health", timeout=2)
+        except Exception:
             checks["users"] = "Not Running"
-
-        try:
-            rpc.data.health()
-            checks["data"] = "Running"
-        except RpcTimeout:
+        
+        try: 
+            get("http://openeo-data:8000/health", timeout=2)
+        except Exception:
             checks["data"] = "Not Running"
-
-        try:
-            rpc.processes.health()
-            checks["processes"] = "Running"
-        except RpcTimeout:
+        
+        try: 
+            get("http://openeo-processes:8000/health", timeout=2)
+        except Exception:
             checks["processes"] = "Not Running"
+        
+        try: 
+            get("http://openeo-jobs:8000/health", timeout=2)
+        except Exception:
+            checks["jobs"] = "Not Running"
 
         return self.__res_parser.data(200, checks)

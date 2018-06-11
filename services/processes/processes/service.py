@@ -1,4 +1,5 @@
 from nameko.rpc import rpc
+from nameko.web.handlers import http
 from nameko_sqlalchemy import DatabaseSession
 from sqlalchemy import exc
 
@@ -11,9 +12,9 @@ class ProcessesService:
 
     db = DatabaseSession(Base)
 
-    @rpc
-    def health(self):
-        return {"status": "success"}
+    @http('GET', '/health')
+    def health(self, request):
+        return 200, ""
 
     @rpc
     def create_process(self, user_id, process_data):
@@ -36,10 +37,11 @@ class ProcessesService:
                 "status": "success",
                 "data": ProcessSchemaFull().dump(process)
             }
-        except exc.IntegrityError:
-            return {"status": "error", "exc_key":  "IntegrityError"}
-        except Exception:
-            return {"status": "error", "exc_key":  "InternalServerError"}
+        except exc.IntegrityError as exp:
+            msg = "Process '{0}' does already exist.".format(process_data["process_id"])
+            return {"status": "error", "service": self.name, "key": "BadRequest", "msg": msg}
+        except Exception as exp:
+            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
 
     @rpc
     def get_all_processes(self, qname):
@@ -56,8 +58,8 @@ class ProcessesService:
                 "status": "success",
                 "data": dumped_processes
             }
-        except Exception:
-            return {"status": "error", "exc_key":  "InternalServerError"}
+        except Exception as exp:
+            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
 
     @rpc
     def get_process(self, process_id):
@@ -65,16 +67,16 @@ class ProcessesService:
             process = self.db.query(Process).filter_by(process_id=process_id).first()
 
             if not process:
-                raise NotFound
+                raise NotFound("Process '{0}' does not exist.".format(process_id))
 
             return {
                 "status": "success",
                 "data": ProcessSchema().dump(process)
             }
-        except NotFound:
-            return {"status": "error", "exc_key":  "NotFound"}
-        except Exception:
-            return {"status": "error", "exc_key":  "InternalServerError"}
+        except NotFound as exp:
+            return {"status": "error", "service": self.name, "key": "BadRequest", "msg": str(exp)}
+        except Exception as exp:
+            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
 
     @rpc
     def get_all_processes_full(self):
@@ -89,7 +91,5 @@ class ProcessesService:
                 "status": "success",
                 "data": dumped_processes
             }
-        except NotFound:
-            return {"status": "error", "exc_key":  "NotFound"}
-        except Exception:
-            return {"status": "error", "exc_key":  "InternalServerError"}
+        except Exception as exp:
+            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}

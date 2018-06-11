@@ -1,7 +1,7 @@
 from os import environ
 from nameko.rpc import rpc, RpcProxy
+from nameko.web.handlers import http
 from nameko_sqlalchemy import DatabaseSession
-
 
 from .models import Base, Job, Task
 from .schema import JobSchema, JobSchemaFull
@@ -21,6 +21,10 @@ class JobService:
     taskparser = TaskParser()
     api_connector = APIConnector()
     template_controller = TemplateController()
+
+    @http('GET', '/health')
+    def health(self, request):
+        return 200, ""
 
     @rpc
     def create_job(self, user_id, process_graph, output):
@@ -45,9 +49,9 @@ class JobService:
                 "data": JobSchema().dump(job)
             }
         except BadRequest as exp:
-            return {"status": "error", "exc_key":  "BadRequest"} # TODO: Validation with Feedback
+            return {"status": "error", "service": self.name, "key": "BadRequest", "msg": str(exp)}
         except Exception as exp:
-            return {"status": "error", "exc_key":  "InternalServerError"}
+            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
     
     @rpc
     def get_job(self, user_id, job_id):
@@ -55,21 +59,21 @@ class JobService:
             job = self.db.query(Job).filter_by(id=job_id).first()
 
             if not job:
-                raise BadRequest
+                raise BadRequest("Job with id '{0}' does not exist.").format(job_id)
 
             if job.user_id != user_id:
-                raise Forbidden
+                raise Forbidden("You don't have the permission to access job with id '{0}'.").format(job_id)
 
             return {
                 "status": "success",
                 "data": JobSchemaFull().dump(job)
             }
         except BadRequest:
-            return {"status": "error", "exc_key":  "BadRequest"}
+            return {"status": "error", "service": self.name, "key": "BadRequest", "msg": str(exp)}
         except Forbidden:
-            return {"status": "error", "exc_key":  "Forbidden"}
+            return {"status": "error", "service": self.name, "key": "Forbidden", "msg": str(exp)}
         except Exception as exp:
-            return {"status": "error", "exc_key":  "InternalServerError"}
+            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
     
     @rpc
     def process_job(self, job_id):

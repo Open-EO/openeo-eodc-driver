@@ -2,9 +2,9 @@
 kind: Template
 apiVersion: v1
 metadata:
-  name: openeo-users
+  name: openeo-gateway
   annotations:
-    openshift.io/display-name: openeo-users
+    openshift.io/display-name: openeo-gateway
     description: >-
       The templates instantiates the users service for openEO on OpenShift Origin.
     openshift.io/long-description: >-
@@ -14,10 +14,10 @@ metadata:
     tags: openeo, openshift, python, flask
     iconClass: icon-python
 labels:
-  application: openeo-users
+  application: openeo-gateway
   provider: openeo
   project: openeo
-  app: openeo-users
+  app: openeo-gateway
   version: 0.0.1
 message: "The openEO template will be instantiated." 
 
@@ -28,7 +28,7 @@ parameters:
   required: true
 - name: SERVICE_NAME
   displayName: Service Name
-  value: users
+  value: gateway
   required: true
 
 ### SERVICE ####

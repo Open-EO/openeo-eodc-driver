@@ -1,5 +1,6 @@
 from os import environ
 from nameko.rpc import rpc
+from nameko.web.handlers import http
 from nameko_sqlalchemy import DatabaseSession
 
 from .models import Base, User
@@ -14,9 +15,9 @@ class AuthService:
     db = DatabaseSession(Base)
     crypt = CryptHandler()
 
-    @rpc
-    def health(self):
-        return {"status": "success"}
+    @http('GET', '/health')
+    def health(self, request):
+        return 200, ""
 
     @rpc
     def login(self, user_id, password):

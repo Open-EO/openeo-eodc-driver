@@ -55,7 +55,7 @@ class ProcessApi(Resource):
             rpc_response = rpc.processes.create_process(user_id, args)
 
             if rpc_response["status"] == "error":
-                raise self.__res_parser.map_exceptions(rpc_response["exc_key"])
+                raise self.__res_parser.map_exceptions(rpc_response, user_id)
 
             return self.__res_parser.data(200, rpc_response["data"])
         except Exception as exc:
@@ -87,7 +87,7 @@ class ProcessApi(Resource):
             rpc_response = rpc.processes.get_all_processes(args["qname"])
 
             if rpc_response["status"] == "error":
-                raise self.__res_parser.map_exceptions(rpc_response["exc_key"])
+                raise self.__res_parser.map_exceptions(rpc_response, user_id)
 
             return self.__res_parser.data(200, rpc_response["data"])
         except Exception as exc:
@@ -132,7 +132,7 @@ class ProcessDetailApi(Resource):
             rpc_response = rpc.processes.get_process(process_id)
 
             if rpc_response["status"] == "error":
-                raise self.__res_parser.map_exceptions(rpc_response["exc_key"])
+                raise self.__res_parser.map_exceptions(rpc_response, user_id)
 
             return self.__res_parser.data(200, rpc_response["data"])
         except Exception as exc:

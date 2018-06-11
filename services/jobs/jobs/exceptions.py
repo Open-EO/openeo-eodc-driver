@@ -1,9 +1,13 @@
-class BadRequest(Exception):
-    pass
+class NotFound(Exception):
+    ''' NotFound raises if the job was not found. '''
+    def __init__(self, msg=""):
+         super(NotFound, self).__init__(msg)
 
 
 class Forbidden(Exception):
-    pass
+    ''' Forbidden raises if the user ha snot the permission tt perform action. '''
+    def __init__(self, msg=""):
+         super(Forbidden, self).__init__(msg)
 
 class APIConnectionError(Exception):
     ''' Template Exception raises if the template could not be parsed or excecuted. '''
