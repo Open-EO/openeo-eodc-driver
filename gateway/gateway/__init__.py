@@ -35,12 +35,12 @@ def generate_api(gateway):
     api = Api(
         gateway,
         api_version='0.0.2',
-        host="127.0.0.1:3000",
+        host="https://openeo.eodc.eu",
         title="EODC openEO API",
         description="EODC API implementation of openEO",
         contact={
             "name": "EODC",
-            "url": "https://openeo.eodc.eu",
+            "url": "https://eodc.eu",
             "email": "gunnar.busch@eodc.eu"
         },
         consumes=[
