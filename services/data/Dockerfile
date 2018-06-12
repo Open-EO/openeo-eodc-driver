@@ -1,17 +1,11 @@
-FROM alpine:3.7
+FROM python:3.6.2
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 COPY requirements.txt .
 
-RUN apk update && \
-    apk add build-base libressl-dev libgeos-dev libffi-dev gcc python3-dev musl-dev postgresql-dev && \
-    pip3 install --upgrade pip && \
-    python3 -m pip install -r requirements.txt --no-cache-dir
-
+RUN pip install -r requirements.txt
 ADD . /usr/src/app
 
-EXPOSE 5000
-
-CMD nameko run --config config.yaml data.service --backdoor 3000
+CMD nameko run --config config.yaml data.service
