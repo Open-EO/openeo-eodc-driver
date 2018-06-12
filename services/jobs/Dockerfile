@@ -14,4 +14,4 @@ ADD . /usr/src/app
 
 EXPOSE 5000
 
-CMD nameko run --config config.yaml users.service --backdoor 3000
+CMD nameko run --config config.yaml jobs.service --backdoor 3000
