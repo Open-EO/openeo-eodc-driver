@@ -7,7 +7,6 @@ eventlet==0.21.0
 greenlet==0.4.13
 idna==2.6
 kombu==3.0.37
-mkl-random==1.0.1
 mock==2.0.0
 nameko==2.9.0
 numpy==1.14.3
