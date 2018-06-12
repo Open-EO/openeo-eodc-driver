@@ -34,6 +34,10 @@ parameters:
   displayName: Settings configuration
   value: config.ProductionConfig
   required: true
+- name: GATEWAY_URL
+  displayName: Settings configuration
+  value: 
+  required: true
 - name: GIT_URI
   displayName: Git URI
   value: https://github.com/Open-EO/openeo-openshift-driver.git
@@ -169,8 +173,7 @@ objects:
     annotations:
       description: openEO API Gateway
   spec:
-    host: "${OPENEO_API_HOST}"
-    path: /
+    host: "${GATEWAY_URL}"
     to:
       kind: Service
       name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
@@ -185,6 +188,6 @@ objects:
     ports:
     - protocol: TCP
       port: 5000
-      targetPort: 80
+      targetPort: 5000
     selector:
       name: "${SERVICE_PREFIX}-${SERVICE_NAME}"

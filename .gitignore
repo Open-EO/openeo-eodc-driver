@@ -1,4 +1,5 @@
 # Addtitional
+*.eodc.yaml
 env
 .vscode/
 template-eodc.yaml
