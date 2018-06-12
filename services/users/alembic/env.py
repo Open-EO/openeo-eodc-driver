@@ -7,11 +7,13 @@ from logging.config import fileConfig
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option('sqlalchemy.url', "postgresql://{0}:{1}@127.0.0.1:{2}/users"
+config.set_main_option('sqlalchemy.url', "postgresql://{0}:{1}@{2}:{3}/{4}"
                        .format(
                            environ.get("DB_USER"),
                            environ.get("DB_PASSWORD"),
-                           environ.get("DB_PORT")
+                           environ.get("DB_HOST"),
+                           environ.get("DB_PORT"),
+                           environ.get("DB_NAME")
                        ))
 
 # Interpret the config file for Python logging.
