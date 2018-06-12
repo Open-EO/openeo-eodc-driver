@@ -35,9 +35,10 @@ class APIException(Exception):
         }
     
     def _log(self):
-        print("{0} - {1}: {2}".format(self.user_id, self.service, self.msg))    # TODO: Logging
+        print("{0} - {1}: {2}".format(self.user_id, self.service, self.msg))    # TODO: File Logging
 
     def __str__(self):
+        self._log()
         return self.out_msg
 
     def __parse__(self):

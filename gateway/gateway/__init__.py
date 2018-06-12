@@ -50,7 +50,6 @@ def generate_api(gateway):
             "application/json"
         ],
         schemes=[
-            "http",
             "https"
         ],
         security_definitions={
