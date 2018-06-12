@@ -1,3 +1,4 @@
+alembic==0.9.9
 amqp==1.4.9
 anyjson==0.3.3
 asn1crypto==0.24.0
@@ -11,6 +12,8 @@ eventlet==0.21.0
 greenlet==0.4.13
 idna==2.7
 kombu==3.0.37
+Mako==1.0.7
+MarkupSafe==1.0
 marshmallow==2.15.0
 mock==2.0.0
 nameko==2.9.0
@@ -20,6 +23,8 @@ pbr==4.0.4
 psycopg2==2.7.4
 pycparser==2.18
 PyJWT==1.6.4
+python-dateutil==2.7.3
+python-editor==1.0.3
 PyYAML==3.12
 requests==2.18.4
 six==1.11.0
