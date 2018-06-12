@@ -1,3 +1,4 @@
+from sys import stderr
 from flask import make_response, jsonify
 from .cors import response_headers
 from uuid import uuid4
@@ -36,7 +37,7 @@ class APIException(Exception):
     
     def _log(self):
         log = "{0} - {1}: {2}".format(self.user_id, self.service, self.msg)
-        print(log, file=open("log.txt", "a"))
+        print(log, file=stderr)
 
     def __str__(self):
         self._log()
