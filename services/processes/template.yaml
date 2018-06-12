@@ -34,15 +34,15 @@ parameters:
 ### SERVICE ####
 - name: GIT_URI
   displayName: Git URI
-  value: https://github.com/gunnarbusch/openeo-test
-  required: true
-- name: GIT_DIR
-  displayName: Git Reference
-  value: master
+  value: https://github.com/Open-EO/openeo-openshift-driver.git
   required: true
 - name: GIT_REF
+  displayName: Git Reference
+  value: release-0.0.2
+  required: true
+- name: GIT_DIR
   displayName: Git Directory
-  value: master
+  value: services/processes
   required: true
 - name: SECRET
   displayName: Secret for Password Hashing
@@ -51,7 +51,7 @@ parameters:
   required: true
 - name: MEMORY_LIMIT_SERVICE
   displayName: Memory Limit
-  value: 256Mi
+  value: 512Mi
   required: true
 
 ### DATABASE ####
@@ -60,7 +60,7 @@ parameters:
   value: "9.5"
 - name: MEMORY_LIMIT_POSTGRES
   displayName: Memory Limit
-  value: 256Mi
+  value: 512Mi
   required: true
 - name: DB_USER
   displayName: PostgreSQL Connection Username
@@ -110,7 +110,7 @@ objects:
       git:
         uri: "${GIT_URI}"
         ref: "${GIT_REF}"
-      contextDir: "${SERVICE_NAME}"
+      contextDir: "${GIT_DIR}"
     strategy:
       dockerStrategy:
         dockerfilePath: Dockerfile

@@ -24,7 +24,33 @@ class HealthApi(Resource):
         headers=["Content-Type"])
     @swagger.doc({
         "tags": ["Health"],
-        "description": "Health Check of API",
+        "description": "Health Check of API gateway",
+        "responses": {
+            "200": OK("The gateway is running.").__parse__(),
+            "503": ServiceUnavailable().__parse__()
+        }
+    })
+    def get(self):
+        return self.__res_parser.code(200)
+
+class ServiceHealthApi(Resource):
+    __res_parser = ResponseParser()
+
+    @cors.crossdomain(
+        origin=["*"], 
+        methods=["GET"],
+        headers=["Content-Type"])
+    @swagger.doc(CORS().__parse__())
+    def options(self):
+        return self.__res_parser.code(200)
+
+    @cors.crossdomain(
+        origin=["*"], 
+        methods=["GET"],
+        headers=["Content-Type"])
+    @swagger.doc({
+        "tags": ["Health"],
+        "description": "Health Check of Services",
         "responses": {
             "200": OK("Returns the services that are running.").__parse__(),
             "503": ServiceUnavailable().__parse__()

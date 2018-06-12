@@ -76,8 +76,8 @@ class UsersService:
     def create_user(self, password):
         try:
             user_id = "user-" + self.crypt.generate_random_string(8)
-            project = environ.get("PROJECT")  # TODO: Implement Project Service
-            sa_token = environ.get("SERVICEACCOUNT_TOKEN") # TODO: Implement Project Service
+            project = "execution-environment" # environ.get("PROJECT")  # TODO: Implement Project Service
+            sa_token = "" # environ.get("SERVICEACCOUNT_TOKEN") # TODO: Implement Project Service
             password_hash = self.crypt.generate_hash(password)
 
             user = User(

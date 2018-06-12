@@ -34,24 +34,36 @@ parameters:
 ### SERVICE ####
 - name: GIT_URI
   displayName: Git URI
-  value: https://github.com/gunnarbusch/openeo-test
-  required: true
-- name: GIT_DIR
-  displayName: Git Reference
-  value: master
+  value: https://github.com/Open-EO/openeo-openshift-driver.git
   required: true
 - name: GIT_REF
+  displayName: Git Reference
+  value: release-0.0.2
+  required: true
+- name: GIT_DIR
   displayName: Git Directory
-  value: master
+  value: services/users
   required: true
 - name: SECRET
   displayName: Secret for Password Hashing
   from: "[a-zA-Z0-9]{16}"
   generate: expression
   required: true
+- name: BCRYPT_LOG_ROUNDS
+  displayName: BCRYPT_LOG_ROUNDS
+  value: "13"
+  required: true
+- name: TOKEN_EXPIRATION_DAYS
+  displayName: TOKEN_EXPIRATION_DAYS
+  value: "30"
+  required: true
+- name: TOKEN_EXPIRATION_SECONDS
+  displayName: TOKEN_EXPIRATION_SECONDS
+  value: "0"
+  required: true
 - name: MEMORY_LIMIT_SERVICE
   displayName: Memory Limit
-  value: 256Mi
+  value: 512Mi
   required: true
 
 ### DATABASE ####
@@ -60,7 +72,7 @@ parameters:
   value: "9.5"
 - name: MEMORY_LIMIT_POSTGRES
   displayName: Memory Limit
-  value: 256Mi
+  value: 512Mi
   required: true
 - name: DB_USER
   displayName: PostgreSQL Connection Username
@@ -110,7 +122,7 @@ objects:
       git:
         uri: "${GIT_URI}"
         ref: "${GIT_REF}"
-      contextDir: "${SERVICE_NAME}"
+      contextDir: "${GIT_DIR}"
     strategy:
       dockerStrategy:
         dockerfilePath: Dockerfile
@@ -164,6 +176,12 @@ objects:
           env:
           - name: SECRET
             value: "${SECRET}"
+          - name: BCRYPT_LOG_ROUNDS
+            value: "${BCRYPT_LOG_ROUNDS}"
+          - name: TOKEN_EXPIRATION_DAYS
+            value: "${TOKEN_EXPIRATION_DAYS}"
+          - name: TOKEN_EXPIRATION_SECONDS
+            value: "${TOKEN_EXPIRATION_SECONDS}"
           - name: DB_HOST
             value: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
           - name: DB_USER

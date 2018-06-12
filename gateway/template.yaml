@@ -119,6 +119,18 @@ objects:
         containers:
         - name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
           image: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+          ports:
+          - containerPort: 5000
+            protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: "/health"
+              port: 5000
+          livenessProbe:
+            timeoutSeconds: 1
+            initialDelaySeconds: 30
+            tcpSocket:
+              port: 5000
           env:
           - name: GATEWAY_SETTINGS
             value: "${GATEWAY_SETTINGS}"
@@ -149,3 +161,30 @@ objects:
             privileged: false
         restartPolicy: Always
         dnsPolicy: ClusterFirst
+
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+    annotations:
+      description: openEO API Gateway
+  spec:
+    host: "${OPENEO_API_HOST}"
+    path: /
+    to:
+      kind: Service
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+    annotations:
+      description: The port of the gateway
+  spec:
+    ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 80
+    selector:
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
