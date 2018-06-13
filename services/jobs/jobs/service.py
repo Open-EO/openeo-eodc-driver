@@ -79,8 +79,9 @@ class JobService:
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
             tasks = self.db.query(Task).filter_by(job_id=job_id).all()
-            tasks = sorted(tasks, key=lambda task: task.seq_num)
             processes = self.process_service.get_all_processes_full()["data"]
+
+            tasks = sorted(tasks, key=lambda task: task.seq_num)
 
             job.status = "running"
             self.db.commit()
