@@ -19,7 +19,7 @@ class BBox:
     @staticmethod
     def get_bbox(qgeom):
         types = {
-            dict: lambda x: [x["left"], x["right"], x["top"], x["bottom"]],
+            dict: lambda x: [x["top"], x["right"], x["bottom"], x["left"]],
             list: lambda x: [x[0], x[1], x[2], x[3]],
             str:  lambda x: list(geom_from_wkt("POLYGON" + x).bounds) if x.startswith("((") else literal_eval(x)
         }
