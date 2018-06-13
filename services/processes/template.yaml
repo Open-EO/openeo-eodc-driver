@@ -2,11 +2,11 @@
 kind: Template
 apiVersion: v1
 metadata:
-  name: openeo-users
+  name: openeo-processes
   annotations:
-    openshift.io/display-name: openeo-users
+    openshift.io/display-name: openeo-processes
     description: >-
-      The templates instantiates the users service for openEO on OpenShift Origin.
+      The templates instantiates the processes service for openEO on OpenShift Origin.
     openshift.io/long-description: >-
       Multiple services are setup to provide the OpenEO capabilities. For setting up a
       OpenShift cluster and configure persitant storage please read the OpenShift documentation.
@@ -14,10 +14,10 @@ metadata:
     tags: openeo, openshift, python, flask
     iconClass: icon-python
 labels:
-  application: openeo-users
+  application: openeo-processes
   provider: openeo
   project: openeo
-  app: openeo-users
+  app: openeo-processes
   version: 0.0.1
 message: "The openEO template will be instantiated." 
 
@@ -28,7 +28,7 @@ parameters:
   required: true
 - name: SERVICE_NAME
   displayName: Service Name
-  value: users
+  value: processes
   required: true
 
 ### SERVICE ####
@@ -48,6 +48,18 @@ parameters:
   displayName: Secret for Password Hashing
   from: "[a-zA-Z0-9]{16}"
   generate: expression
+  required: true
+- name: BCRYPT_LOG_ROUNDS
+  displayName: BCRYPT_LOG_ROUNDS
+  value: "13"
+  required: true
+- name: TOKEN_EXPIRATION_DAYS
+  displayName: TOKEN_EXPIRATION_DAYS
+  value: "30"
+  required: true
+- name: TOKEN_EXPIRATION_SECONDS
+  displayName: TOKEN_EXPIRATION_SECONDS
+  value: "0"
   required: true
 - name: MEMORY_LIMIT_SERVICE
   displayName: Memory Limit
@@ -78,7 +90,7 @@ parameters:
   required: true
 - name: DB_NAME
   displayName: PostgreSQL Database Name
-  value: users
+  value: processes
   required: true
 - name: STORAGE_CLASS
   displayName: Storage Class Name
@@ -162,8 +174,6 @@ objects:
         - name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
           image: "${SERVICE_PREFIX}-${SERVICE_NAME}"
           env:
-          - name: SECRET
-            value: "${SECRET}"
           - name: DB_HOST
             value: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
           - name: DB_USER

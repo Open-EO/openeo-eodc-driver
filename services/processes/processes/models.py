@@ -1,7 +1,6 @@
 from os import environ
 from sqlalchemy import Column, Integer, String, Boolean, TEXT, DateTime, JSON
 from sqlalchemy.ext.declarative import declarative_base
-from bcrypt import gensalt, hashpw
 from datetime import datetime
 
 Base = declarative_base()
