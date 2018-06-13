@@ -31,17 +31,16 @@ def create_gateway():
 
 
 def generate_api(gateway):
-    # TODO: SWAGGER general API information more generic
     api = Api(
         gateway,
         api_version='0.0.2',
-        host="openeo.eodc.eu",
-        title="EODC openEO API",
-        description="EODC API implementation of openEO",
+        host=environ.get("HOST"),
+        title="openEO API",
+        description="API implementation of openEO",
         contact={
-            "name": "EODC",
-            "url": "https://www.eodc.eu",
-            "email": "gunnar.busch@eodc.eu"
+            "name": environ.get("CONTACT_NAME"),
+            "url": environ.get("CONTACT_URL"),
+            "email": environ.get("CONTACT_EMAIL")
         },
         consumes=[
             "application/json"
@@ -50,7 +49,8 @@ def generate_api(gateway):
             "application/json"
         ],
         schemes=[
-            "https"
+            "https",
+            "http"
         ],
         security_definitions={
             "Bearer": {

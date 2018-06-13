@@ -34,8 +34,20 @@ parameters:
   displayName: Settings configuration
   value: config.ProductionConfig
   required: true
+- name: HOST
+  displayName: HOST URL
+  value: 
+- name: CONTACT_NAME
+  displayName: Name of Organization
+  value: 
+- name: CONTACT_URL
+  displayName: URL of Organization
+  value: 
+- name: CONTACT_EMAIL
+  displayName: Email of Organization
+  value: 
 - name: GATEWAY_URL
-  displayName: Settings configuration
+  displayName: GATEWAY URL (Internal OpenShift)
   value: 
   required: true
 - name: GIT_URI
