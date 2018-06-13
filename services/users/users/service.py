@@ -58,7 +58,6 @@ class AuthService:
         except (LoginError, InvalidSignatureError) as exp:
             return {"status": "error", "service": self.name, "key": "Forbidden", "msg": str(exp)}
         except Exception as exp:
-            print(exp)
             return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
 
 
