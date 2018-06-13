@@ -163,8 +163,10 @@ class CSWHandler:
         
         results = []
         for item in records:
-            path = item["gmd:fileIdentifier"]["gco:CharacterString"]
-            name = path.split("/")[-1].split(".")[0]
+            path = item["gmd:distributionInfo"]["gmd:MD_Distribution"]["gmd:transferOptions"]["gmd:MD_DigitalTransferOptions"]["gmd:onLine"][0]["gmd:CI_OnlineResource"]["gmd:linkage"]["gmd:URL"]
+
+            name = item["gmd:fileIdentifier"]["gco:CharacterString"]
+            name = name.split("/")[-1].split(".")[0]
 
             extend = item["gmd:identificationInfo"]["gmd:MD_DataIdentification"]["gmd:extent"]["gmd:EX_Extent"]
             spatial_extend = extend["gmd:geographicElement"]["gmd:EX_GeographicBoundingBox"]
@@ -205,6 +207,7 @@ class CSWHandler:
 
         records = self.get_records(product, bbox, start, end, just_filepaths=True)
 
+        # TODO: Better solution than this b*s* xml paths
         results = []
         for item in records:
             path = item["gmd:distributionInfo"]["gmd:MD_Distribution"]["gmd:transferOptions"]["gmd:MD_DigitalTransferOptions"]["gmd:onLine"][0]["gmd:CI_OnlineResource"]["gmd:linkage"]["gmd:URL"]

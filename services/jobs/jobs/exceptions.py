@@ -1,8 +1,7 @@
-class NotFound(Exception):
-    ''' NotFound raises if the job was not found. '''
+class BadRequest(Exception):
+    ''' BadRequest raises if the job was not found. '''
     def __init__(self, msg=""):
-         super(NotFound, self).__init__(msg)
-
+         super(BadRequest, self).__init__(msg)
 
 class Forbidden(Exception):
     ''' Forbidden raises if the user ha snot the permission tt perform action. '''
