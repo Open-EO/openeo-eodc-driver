@@ -58,7 +58,7 @@ class JobsApi(Resource):
             rpc_response = rpc.jobs.create_job(user_id, args["process_graph"],  args["output"])
 
             if rpc_response["status"] == "error":
-                raise self.__res_parser.map_exceptions(rpc_response)
+                raise self.__res_parser.map_exceptions(rpc_response, user_id)
 
             return self.__res_parser.data(200, rpc_response["data"])
         except Exception as exc:
