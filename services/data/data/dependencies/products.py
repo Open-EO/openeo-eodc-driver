@@ -4,7 +4,7 @@ products = [
     {
         'product_id': 's2a_prd_msil1c', 
         'aliases': [
-            "s1a_csar_grdh_iw",
+            "s2a_prd_msil1c",
             "sentinel2",
             "sentinel 2",
             "sentinel-2", 
