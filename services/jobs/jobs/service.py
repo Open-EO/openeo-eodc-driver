@@ -1,6 +1,5 @@
 from os import environ
 from nameko.rpc import rpc, RpcProxy
-from nameko.web.handlers import http
 from nameko_sqlalchemy import DatabaseSession
 
 from .models import Base, Job, Task
@@ -22,9 +21,9 @@ class JobService:
     api_connector = APIConnector()
     template_controller = TemplateController()
 
-    @http('GET', '/health')
+    @rpc
     def health(self, request):
-        return 200, ""
+        return { "status": "success"}
 
     @rpc
     def create_job(self, user_id, process_graph, output):
@@ -46,7 +45,7 @@ class JobService:
 
             return {
                 "status": "success",
-                "data": JobSchema().dump(job)
+                "data": JobSchema().dump(job).data
             }
         except BadRequest as exp:
             return {"status": "error", "service": self.name, "key": "BadRequest", "msg": str(exp)}
@@ -66,7 +65,7 @@ class JobService:
 
             return {
                 "status": "success",
-                "data": JobSchemaFull().dump(job)
+                "data": JobSchemaFull().dump(job).data
             }
         except BadRequest:
             return {"status": "error", "service": self.name, "key": "BadRequest", "msg": str(exp)}

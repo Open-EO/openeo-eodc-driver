@@ -1,5 +1,4 @@
 from nameko.rpc import rpc
-from nameko.web.handlers import http
 from nameko_sqlalchemy import DatabaseSession
 from sqlalchemy import exc
 
@@ -12,9 +11,9 @@ class ProcessesService:
 
     db = DatabaseSession(Base)
 
-    @http('GET', '/health')
+    @rpc
     def health(self, request):
-        return 200, ""
+        return { "status": "success"}
 
     @rpc
     def create_process(self, user_id, process_data):
@@ -35,7 +34,7 @@ class ProcessesService:
 
             return {
                 "status": "success",
-                "data": ProcessSchemaFull().dump(process)
+                "data": ProcessSchemaFull().dump(process).data
             }
         except exc.IntegrityError as exp:
             msg = "Process '{0}' does already exist.".format(process_data["process_id"])
@@ -52,7 +51,7 @@ class ProcessesService:
 
             dumped_processes = []
             for process in processes:
-                dumped_processes.append(ProcessSchemaShort().dump(process))
+                dumped_processes.append(ProcessSchemaShort().dump(process).data)
 
             return {
                 "status": "success",
@@ -85,7 +84,7 @@ class ProcessesService:
 
             dumped_processes = []
             for process in processes:
-                dumped_processes.append(ProcessSchemaFull().dump(process))
+                dumped_processes.append(ProcessSchemaFull().dump(process).data)
 
             return {
                 "status": "success",

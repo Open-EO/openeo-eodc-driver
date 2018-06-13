@@ -1,5 +1,4 @@
 from nameko.rpc import rpc
-from nameko.web.handlers import http
 from .dependencies.csw import CSWSession
 from .dependencies.arg_parser import ArgValidatorProvider
 from .exceptions import CWSError, ValidationError
@@ -11,9 +10,9 @@ class DataService:
     arg_parser = ArgValidatorProvider()
     csw_session = CSWSession()
 
-    @http('GET', '/health')
+    @rpc
     def health(self, request):
-        return 200, ""
+        return { "status": "success"}
     
     @rpc
     def get_records(self, qtype="products", qname="", qgeom="", qstartdate="", qenddate=""):

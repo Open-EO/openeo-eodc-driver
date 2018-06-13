@@ -1,13 +1,13 @@
 from os import environ
 from nameko.rpc import rpc
-from nameko.web.handlers import http
 from nameko_sqlalchemy import DatabaseSession
+from jwt import InvalidSignatureError
 
 from .models import Base, User
 from .schema import UserSchema
 from .exceptions import NotFound, LoginError
 from .dependencies.crypt import CryptHandler
-
+from marshmallow import pprint
 
 class AuthService:
     name = "auth"
@@ -15,9 +15,9 @@ class AuthService:
     db = DatabaseSession(Base)
     crypt = CryptHandler()
 
-    @http('GET', '/health')
+    @rpc
     def health(self, request):
-        return 200, ""
+        return { "status": "success"}
 
     @rpc
     def login(self, user_id, password):
@@ -46,19 +46,19 @@ class AuthService:
     def identify(self, token):
         try:
             user_id = self.crypt.decode_auth_token(token)
-
             user = self.db.query(User).filter_by(id=user_id).first()
-            
+
             if not user:
                 raise NotFound("User does not exist.")
 
             return {
                 "status": "success",
-                "data": UserSchema().dump(user)
+                "data": UserSchema().dump(user).data
             }
-        except LoginError as exp:
+        except (LoginError, InvalidSignatureError) as exp:
             return {"status": "error", "service": self.name, "key": "Forbidden", "msg": str(exp)}
         except Exception as exp:
+            print(exp)
             return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
 
 
