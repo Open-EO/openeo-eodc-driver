@@ -1,5 +1,5 @@
 from sys import stderr
-from flask import make_response, jsonify
+from flask import make_response, jsonify, send_file
 from .cors import response_headers
 from uuid import uuid4
 #TODO: Aggregated Logging
@@ -25,9 +25,10 @@ class APIException(Exception):
         self.code = code
         self.msg = msg
         self.out_msg = ""
-        self.url = "http://www.openeo.org/tbd"
+        self.url = "http://www.openeo.org/tbd" # TODO: Error page with # referencing
 
     def out(self):
+        # TODO: openEO v0.0.3 error messages
         return {
             "id": self.id,
             "code": self.code,
@@ -132,14 +133,11 @@ class ResponseParser:
 
     def data(self, code, data):
         return make_response(jsonify(data), code)
+    
+    def html(self, file_name):
+        return send_file("html/" + file_name)
 
-    def error(self, exc): #error(self, exc_str, msg=""):
-        # if isinstance(exc_str, object):
-        #     exc_str = type(exc_str).__name__
-
-        # exc = self.EXC_MAPPING.get(exc_str, InternalServerError)
-        # if msg:
-        #     exc = exc(msg)
+    def error(self, exc):
         return make_response(str(exc), exc.code)
 
     def map_exceptions(self, exc, user_id):
