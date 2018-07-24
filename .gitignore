@@ -4,6 +4,8 @@ env
 template-eodc.yaml
 .dev/
 .http/
+.doc/
+*.eodc.yaml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
