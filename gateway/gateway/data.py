@@ -11,6 +11,7 @@ from .src.request import ModelRequestParser
 from .src.cors import CORS
 from .src.parameters import qtype, qname, qgeom, qstartdate, qenddate, product_id
 
+
 class RecordsApi(Resource):
     __res_parser = ResponseParser()
     __req_parser = ModelRequestParser([qtype, qname, qgeom, qstartdate, qenddate], location="args")

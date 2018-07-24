@@ -14,6 +14,7 @@ from .src.cors import CORS
 from .src.parameters import job_body, job_id
 from .src.models import process_graph, output, job_val
 
+
 class JobsApi(Resource):
     __res_parser = ResponseParser()
     __req_parser = ModelRequestParser(job_val)

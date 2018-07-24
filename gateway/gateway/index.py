@@ -7,8 +7,6 @@ from . import rpc
 from .src.response import *
 from .src.cors import CORS
 
-from flask import redirect
-from flask_restful import Resource
 
 class Index(Resource):
     __res_parser = ResponseParser()

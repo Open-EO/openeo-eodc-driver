@@ -12,6 +12,7 @@ from .src.parameters import password_body
 from .src.models import password
 from .src.cors import CORS
 
+
 class LoginApi(Resource):
     __res_parser = ResponseParser()
 

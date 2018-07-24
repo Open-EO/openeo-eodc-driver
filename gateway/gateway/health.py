@@ -7,6 +7,7 @@ from . import rpc
 from .src.response import *
 from .src.cors import CORS
 
+
 class HealthApi(Resource):
     __res_parser = ResponseParser()
 
