@@ -56,7 +56,7 @@ parameters:
   required: true
 - name: GIT_REF
   displayName: Git Directory
-  value: release-0.0.2
+  value: master
   required: true
 - name: GIT_DIR
   displayName: Git Directory
