@@ -10,6 +10,9 @@ class TemplateControllerWrapper:
     
     def create_config(self, api_connector, template_id, args):
         return ConfigMap(template_id, args).create(api_connector)
+    
+    def create_job(self, api_connector, template_id, img_, obj_config_map, obj_pvc):
+        return Job(template_id, obj_image_stream, obj_config_map, obj_pvc, cpu_request, cpu_limit, mem_request, mem_limit).create(api_connector)
 
     def build(self, api_connector, template_id, image_name, tag, git_uri, git_ref, git_dir):
         log = ""
@@ -31,27 +34,18 @@ class TemplateControllerWrapper:
 
         return "Finished Building", log, obj_image_stream
 
-    def deploy(self, api_connector, template_id, obj_image_stream, obj_config_map, obj_pvc, cpu_request, cpu_limit, mem_request, mem_limit):
-        log = ""
-
-        obj_job = Job(template_id, obj_image_stream, obj_config_map, obj_pvc, cpu_request, cpu_limit, mem_request, mem_limit)
+    def deploy(self, api_connector, vrt, job, storage_class, storage_size, cpu_request, cpu_limit, mem_request, mem_limit):
         
-        log += "Deploying..."
-        obj_job.create(api_connector)
+        config_map = self.create_config(api_connector, job.id, vrt)
+        job = self.create_job(api_connector, job.id, pvc, config_map, "500m", "1", "256Mi", "1Gi")
 
-        log += obj_job.get_logs(api_connector)
-        # metrics = obj_job.get_metrics(api_connector) # TODO: Metrics Error Bug Fixing -> Process to fast executed for metrics
+        log = job.get_logs(api_connector)
+        metrics = job.get_metrics(api_connector) # TODO: Metrics Error Bug Fixing -> Process to fast executed for metrics?
 
-        # obj_job.delete(api_connector) # TODO: Deactivated just for showcasing
-        
-        return "Finished Deploying", log, []
+        job.delete(api_connector)
 
-    # def __set_status(self, status, log="", metrics={}, error=False):
-    #     self.status = status
-    #     self.__log = self.__log + " -> {0}\n{1}".format(status, log)
-    #     self.__metrics = self.__metrics
-    #     if error:
-    #         self.__error = True
+        return log, metrics
+
 
 class TemplateController(DependencyProvider):
     def get_dependency(self, worker_ctx):

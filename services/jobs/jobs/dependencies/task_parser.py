@@ -15,8 +15,9 @@ class TasksWrapper:
         self.tasks = []
         self.filters = {}
 
-    def parse_process_graph(self, job_id, process_graph, processes):
+    def parse_process_graph(self, job_id, process_graph, processes, products):
         self.processes = processes
+        self.products = products
         self.parse_tasks(job_id, process_graph)
         self.tasks = self.tasks[::-1]
         self.tasks.append(Task(job_id, "convert", len(self.tasks), {"job_id": job_id}))
@@ -32,7 +33,10 @@ class TasksWrapper:
             self.filters[filter_graph["process_id"]] = args
             self.extract_filter_args(imagery)
         elif "product_id" in filter_graph:
-            self.filters["product"] = filter_graph["product_id"]
+            for product in self.products:
+                if filter_graph["product_id"] in product["aliases"]:
+                    break
+            self.filters["product"] = product["product_id"]
 
     def parse_tasks(self, job_id, task_graph):
         process_id = task_graph["process_id"]

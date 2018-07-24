@@ -41,7 +41,7 @@ class ValidatorWrapper:
             self.validate_args(process_id, node_payload["args"], process_spec["args"])
 
         elif "product_id" in node_payload:
-            if not any(p['product_id'] == node_payload["product_id"] for p in self.products):
+            if not any(node_payload["product_id"] in p['aliases'] for p in self.products):
                 raise BadRequest("Product {0} is not available.".format(node_payload["product_id"]))
         else:
             raise BadRequest("Node is missing a ProcessID or ProductID.")

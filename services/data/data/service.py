@@ -15,10 +15,10 @@ class DataService:
         return { "status": "success"}
     
     @rpc
-    def get_records(self, qtype="products", qname="", qgeom="", qstartdate="", qenddate=""):
+    def get_records(self, qtype="products", qname="", qgeom="", qstartdate="", qenddate="", p_start=None, p_max=None):
         try:
             product, bbox, start, end = self.arg_parser.parse(qname, qgeom, qstartdate, qenddate) 
-            results = self.csw_session.get_data(qtype, product, bbox, start, end)
+            results = self.csw_session.get_data(qtype, product, bbox, start, end, p_start, p_max)
 
             return {
                 "status": "success",

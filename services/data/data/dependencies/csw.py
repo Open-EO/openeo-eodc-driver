@@ -1,5 +1,5 @@
 from os import environ
-from requests import post
+from requests import post, get
 from json import loads, dumps
 from datetime import datetime, timedelta
 from xml.dom.minidom import parseString
@@ -10,6 +10,7 @@ from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin
 from .products import products # TODO: Just temporary because csw request is currently very slow
 from ..exceptions import CWSError
 
+#TODO: OpenSearch integration
 
 class CSWHandler:
     def __init__(self, csw_server):
@@ -20,18 +21,24 @@ class CSWHandler:
             "product_details": self.get_product_details,  
             "full": self.get_records_full, 
             "short": self.get_records_shorts, 
-            "file_paths": self.get_file_paths
+            "file_paths": self.get_file_paths,
+            "opensearch": self.get_opensearch
         }
     
-    def get_data(self, qtype, product, bbox, start, end):
-        return self.map_types[qtype](product, bbox, start, end)
+    def get_data(self, qtype, product, bbox, start, end, p_start, p_max):
+        return self.map_types[qtype](product, bbox, start, end, p_start, p_max)
     
-    def get_records(self, product, bbox, start, end, series=False, just_filepaths=False):
+    def get_records(self, product, bbox, start, end, p_start=None, p_max=None, series=False, just_filepaths=False, opensearch=False):
         """ 
         Return the collected csw records of the query 
         """
 
-        output_schema = "http://www.opengis.net/cat/csw/2.0.2" if series is True else "http://www.isotc211.org/2005/gmd"
+        output_schema = "http://www.isotc211.org/2005/gmd"
+
+        if series:
+            output_schema = "http://www.opengis.net/cat/csw/2.0.2"
+            if opensearch:
+                output_schema = "http://www.w3.org/2005/Atom"
 
         xml_filters = []
 
@@ -111,7 +118,7 @@ class CSWHandler:
 
         return record_next, records
 
-    def get_products(self, product, bbox, start, end):
+    def get_products(self, product, bbox, start, end, p_start, p_max):
         # records = self.get_records(
         #     series=True, 
         #     product=product, 
@@ -130,7 +137,7 @@ class CSWHandler:
         # TODO: Just temporary because csw request is currently very slow
         return products #results
     
-    def get_product_details(self, product, bbox, start, end):
+    def get_product_details(self, product, bbox, start, end, p_start, p_max):
         record = self.get_records(product, bbox, start, end, series=True)[0]
 
         upper = record["ows:BoundingBox"]["ows:UpperCorner"].split(" ")
@@ -155,10 +162,10 @@ class CSWHandler:
 
         return dumped_result
 
-    def get_records_full(self, product, bbox, start, end):
+    def get_records_full(self, product, bbox, start, end,p_start, p_max):
         return self.get_records(product, bbox, start, end)
 
-    def get_records_shorts(self, product, bbox, start, end):
+    def get_records_shorts(self, product, bbox, start, end, p_start, p_max):
         records = self.get_records(product, bbox, start, end)
         
         results = []
@@ -193,7 +200,7 @@ class CSWHandler:
 
         return results
 
-    def get_file_paths(self, product, bbox, start, end):
+    def get_file_paths(self, product, bbox, start, end, p_start, p_max):
         ''' Get file paths from records '''
 
         # TODO: Do we need a time extension?
@@ -222,6 +229,74 @@ class CSWHandler:
                 })
 
         return results
+    
+    def get_opensearch(self, product, bbox, start, end, p_start, p_max):
+        url = "https://csw2.eodc.eu/"
+        url += "?mode=opensearch"
+        url += "&?service=CSW"
+        url += "&version=2.0.2"
+        url += "&request=GetRecords"
+        url += "&typenames=csw:Record"
+        url += "&elementSetName=full"
+        url += "&resultType=results"
+        url += "&constraintLanguage=CQL_TEXT"
+        url += "&startposition=1"
+        url += "&constraint=apiso:Type%20=%20%27series%27"
+        url += "&constraint=dc:identifier%20=%20%27{0}%27".format(product)
+        url += "&outputschema=http://www.w3.org/2005/Atom"
+        url += "&outputformat=application/json"
+
+        response = get(url)
+
+        if not response.ok:
+            print("Server Error {0}: {1}".format(response.status_code, response.text))
+            raise CWSError("Error while communicating with CSW server.")
+        
+        if response.text.startswith("<?xml"):
+            xml = parseString(response.text)
+            print("{0}".format(xml.toprettyxml()))
+            raise CWSError("Error while communicating with CSW server.")
+
+        response_json = loads(response.text)
+
+        if "ows:ExceptionReport" in response_json:
+            print("{0}".format(dumps(response_json, indent=4, sort_keys=True)))
+            raise CWSError("Error while communicating with CSW server.")
+
+        search_results = response_json["csw:GetRecordsResponse"]["csw:SearchResults"]["atom:entry"]
+
+        base = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <feed xmlns="http://www.w3.org/2005/Atom" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">
+        """
+
+        for result in search_results:
+            item = """<entry>
+                <title>{0}</title>
+                <link rel="alternate" href="http://www.exmaple.com/api/1.0/data/MOD09Q1"/>
+                <id>urn:uuid:1223c695-cfb8-4ebb-aaaa-80da344efa6a</id>
+                <updated>2017-09-18T10:30:00Z</updated>
+                <rights type="text">U.S. Geological Survey (USGS), DOI: 10.5067/MODIS/MOD09Q1.006</rights>
+                <summary type="text">MODIS/Terra Surface Reflectance 8-Day L3 Global 250m SIN Grid V00 </summary>
+            </entry>"""
+
+        
+        records = self.get_records(
+            series=True, 
+            product=product, 
+            start=start, 
+            end=end, 
+            bbox=bbox, 
+            opensearch=True)
+        
+        results = []
+        for item in records:
+            results.append({
+                "product_id": item["dc:identifier"],
+                "description": item["dct:abstract"],
+                "source": item["dc:creator"]
+            })
+
 
 class CSWSession(DependencyProvider):
     def get_dependency(self, worker_ctx):

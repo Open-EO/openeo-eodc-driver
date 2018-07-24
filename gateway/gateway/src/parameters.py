@@ -85,6 +85,34 @@ qenddate = {
     "default": ""
 }
 
+q = {
+    "name": "q",
+    "description": "string expression to search available datasets.",
+    "required": False,
+    "type": "string",
+    "in": "query",
+    "default": ""
+}
+
+start = {
+    "name": "start",
+    "description": "page start value.",
+    "required": False,
+    "type": "integer",
+    "in": "query",
+    "default": ""
+}
+
+rows = {
+    "name": "rows",
+    "description": "page size value.",
+    "required": False,
+    "type": "integer",
+    "in": "query",
+    "default": ""
+}
+
+
 # JOB
 job_body = {
     "name": "job",
