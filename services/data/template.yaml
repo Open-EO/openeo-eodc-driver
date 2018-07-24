@@ -1,0 +1,162 @@
+---
+kind: Template
+apiVersion: v1
+metadata:
+  name: openeo-data
+  annotations:
+    openshift.io/display-name: openeo-data
+    description: >-
+      The templates instantiates the data service for openEO on OpenShift Origin.
+    openshift.io/long-description: >-
+      Multiple services are setup to provide the OpenEO capabilities. For setting up a
+      OpenShift cluster and configure persitant storage please read the OpenShift documentation.
+      Fur further information on OpenEO please have a look at http://openeo.org
+    tags: openeo, openshift, python, flask
+    iconClass: icon-python
+labels:
+  application: openeo-data
+  provider: openeo
+  project: openeo
+  app: openeo-data
+  version: 0.0.1
+message: "The openEO template will be instantiated." 
+
+parameters:
+- name: SERVICE_PREFIX
+  displayName: Service Prefix
+  value: openeo
+  required: true
+- name: SERVICE_NAME
+  displayName: Service Name
+  value: data
+  required: true
+
+### SERVICE ####
+- name: CSW_SERVER
+  displayName: Git Directory
+  value: 
+  required: true
+- name: GIT_URI
+  displayName: Git URI
+  value: https://github.com/Open-EO/openeo-openshift-driver.git
+  required: true
+- name: GIT_REF
+  displayName: Git Reference
+  value: release-0.0.2
+  required: true
+- name: GIT_DIR
+  displayName: Git Directory
+  value: services/data
+  required: true
+- name: SECRET
+  displayName: Secret for Password Hashing
+  from: "[a-zA-Z0-9]{16}"
+  generate: expression
+  required: true
+- name: MEMORY_LIMIT_SERVICE
+  displayName: Memory Limit
+  value: 512Mi
+  required: true
+
+objects:
+### SERVICE ####
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+  spec:
+    dockerImageRepository:
+    tags:
+    - name: latest
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+  spec:
+    source:
+      type: Git
+      git:
+        uri: "${GIT_URI}"
+        ref: "${GIT_REF}"
+      contextDir: "${GIT_DIR}"
+    strategy:
+      dockerStrategy:
+        dockerfilePath: Dockerfile
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "${SERVICE_PREFIX}-${SERVICE_NAME}:latest"
+    triggers:
+    - type: GitLab
+      gitlab:
+        secret: "${GITLAB_SECRET}"
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange:
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+    labels:
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+      application: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+      provider: "${SERVICE_PREFIX}"
+      project: "${SERVICE_PREFIX}"
+      app: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+      version: 0.0.1
+  spec:
+    strategy:
+      type: Recreate
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - "${SERVICE_PREFIX}-${SERVICE_NAME}"
+        from:
+          kind: ImageStreamTag
+          name: "${SERVICE_PREFIX}-${SERVICE_NAME}:latest"
+    - type: ConfigChange
+    replicas: 1
+    selector:
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+    template:
+      metadata:
+        labels:
+          name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+      spec:
+        containers:
+        - name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+          image: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+          env:
+          - name: CSW_SERVER
+            value: "${CSW_SERVER}"
+          - name: RABBIT_HOST
+            value: "${SERVICE_PREFIX}-rabbitmq"
+          - name: RABBIT_USER
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-user
+          - name: RABBIT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-password
+          - name: RABBIT_PORT
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-port
+          resources:
+            limits:
+              memory: "${MEMORY_LIMIT_SERVICE}"
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: Always
+          securityContext:
+            capabilities:
+            privileged: false
+        restartPolicy: Always
+        dnsPolicy: ClusterFirst

@@ -1,0 +1,146 @@
+---
+kind: Template
+apiVersion: v1
+metadata:
+  name: openeo-rabbitmq
+  annotations:
+    openshift.io/display-name: openeo-rabbitmq
+    description: >-
+      The templates instantiates the RabbitMQ server for openEO on OpenShift Origin.
+    openshift.io/long-description: >-
+      Multiple services to provide the OpenEO capabilities. For setting up a
+      OpenShift cluster and configure persitant storage please read the OpenShift documentation.
+      Fur further information on OpenEO please have a look at http://openeo.org
+    tags: openeo, openshift, python, flask
+    iconClass: icon-python
+labels:
+  application: openeo-rabbitmq
+  provider: openeo
+  project: openeo
+  app: openeo-rabbitmq
+  version: 0.0.1
+message: "The openEO template will be instantiated." 
+
+parameters:
+- name: SERVICE_PREFIX
+  displayName: Service Prefix
+  value: openeo
+  required: true
+- name: SERVICE_NAME
+  displayName: Service Name
+  value: rabbitmq
+  required: true
+- name: RABBITMQ_DEFAULT_USER
+  displayName: RabbitMQ default user
+  description: Username of RabbitMQ default user
+  generate: expression
+  from: user[A-Z0-9]{3}
+  required: true
+- name: RABBITMQ_DEFAULT_PASS
+  displayName: RabbitMQ default password
+  description: Password of RabbitMQ default user
+  generate: expression
+  from: "[a-zA-Z0-9]{16}"
+  required: true
+- name: RABBITMQ_DEFAULT_PORT
+  displayName: RabbitMQ default port
+  value: "5672"
+  required: true
+
+objects:
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+  stringData:
+    rabbitmq-user: "${RABBITMQ_DEFAULT_USER}"
+    rabbitmq-password: "${RABBITMQ_DEFAULT_PASS}"
+    rabbitmq-port: ${RABBITMQ_DEFAULT_PORT}
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    strategy:
+      type: Recreate
+    triggers:
+    - type: ConfigChange
+    replicas: 1
+    selector:
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+    template:
+      metadata:
+        labels:
+          name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+      spec:
+        containers:
+        - name: "${SERVICE_NAME}"
+          image: rabbitmq:3-management
+          ports:
+          - name: "${SERVICE_NAME}"
+            containerPort: 5672
+            protocol: TCP
+          - name: "${SERVICE_NAME}-http"
+            containerPort: 15672
+            protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 5672
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 5672
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          env:
+          - name: RABBITMQ_DEFAULT_USER
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+                key: rabbitmq-user
+          - name: RABBITMQ_DEFAULT_PASS
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+                key: rabbitmq-password
+        restartPolicy: Always
+        dnsPolicy: ClusterFirst
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+    annotations:
+      description: The service port
+  spec:
+    ports:
+    - name: "${SERVICE_NAME}"
+      port: 5672
+      targetPort: "${SERVICE_NAME}"
+    - name: "${SERVICE_NAME}-http"
+      port: 15672
+      targetPort: "${SERVICE_NAME}-http"
+    selector:
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+  spec:
+    to:
+      kind: Service
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+    port:
+      targetPort: "${SERVICE_NAME}"
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}-http"
+  spec:
+    to:
+      kind: Service
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+    port:
+      targetPort: "${SERVICE_NAME}-http"

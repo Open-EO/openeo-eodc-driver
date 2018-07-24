@@ -1,0 +1,355 @@
+---
+kind: Template
+apiVersion: v1
+metadata:
+  name: openeo-processes
+  annotations:
+    openshift.io/display-name: openeo-processes
+    description: >-
+      The templates instantiates the processes service for openEO on OpenShift Origin.
+    openshift.io/long-description: >-
+      Multiple services are setup to provide the OpenEO capabilities. For setting up a
+      OpenShift cluster and configure persitant storage please read the OpenShift documentation.
+      Fur further information on OpenEO please have a look at http://openeo.org
+    tags: openeo, openshift, python, flask
+    iconClass: icon-python
+labels:
+  application: openeo-processes
+  provider: openeo
+  project: openeo
+  app: openeo-processes
+  version: 0.0.1
+message: "The openEO template will be instantiated." 
+
+parameters:
+- name: SERVICE_PREFIX
+  displayName: Service Prefix
+  value: openeo
+  required: true
+- name: SERVICE_NAME
+  displayName: Service Name
+  value: processes
+  required: true
+
+### SERVICE ####
+- name: GIT_URI
+  displayName: Git URI
+  value: https://github.com/Open-EO/openeo-openshift-driver.git
+  required: true
+- name: GIT_REF
+  displayName: Git Reference
+  value: release-0.0.2
+  required: true
+- name: GIT_DIR
+  displayName: Git Directory
+  value: services/processes
+  required: true
+- name: SECRET
+  displayName: Secret for Password Hashing
+  from: "[a-zA-Z0-9]{16}"
+  generate: expression
+  required: true
+- name: BCRYPT_LOG_ROUNDS
+  displayName: BCRYPT_LOG_ROUNDS
+  value: "13"
+  required: true
+- name: TOKEN_EXPIRATION_DAYS
+  displayName: TOKEN_EXPIRATION_DAYS
+  value: "30"
+  required: true
+- name: TOKEN_EXPIRATION_SECONDS
+  displayName: TOKEN_EXPIRATION_SECONDS
+  value: "0"
+  required: true
+- name: MEMORY_LIMIT_SERVICE
+  displayName: Memory Limit
+  value: 512Mi
+  required: true
+
+### DATABASE ####
+- name: POSTGRESQL_VERSION
+  displayName: Version of PostgreSQL Image
+  value: "9.5"
+- name: MEMORY_LIMIT_POSTGRES
+  displayName: Memory Limit
+  value: 512Mi
+  required: true
+- name: DB_USER
+  displayName: PostgreSQL Connection Username
+  generate: expression
+  from: users[A-Z0-9]{3}
+  required: true
+- name: DB_PASSWORD
+  displayName: PostgreSQL Connection Password
+  generate: expression
+  from: "[a-zA-Z0-9]{16}"
+  required: true
+- name: DB_PORT
+  displayName: Postgres Port
+  value: "5432"
+  required: true
+- name: DB_NAME
+  displayName: PostgreSQL Database Name
+  value: processes
+  required: true
+- name: STORAGE_CLASS
+  displayName: Storage Class Name
+  value: storage-write
+  required: true
+- name: VOLUME_CAPACITY_POSTGRES
+  displayName: Volume Capacity
+  value: 5Gi
+  required: true
+
+objects:
+### SERVICE ####
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+  spec:
+    dockerImageRepository:
+    tags:
+    - name: latest
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+  spec:
+    source:
+      type: Git
+      git:
+        uri: "${GIT_URI}"
+        ref: "${GIT_REF}"
+      contextDir: "${GIT_DIR}"
+    strategy:
+      dockerStrategy:
+        dockerfilePath: Dockerfile
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "${SERVICE_PREFIX}-${SERVICE_NAME}:latest"
+    triggers:
+    - type: GitLab
+      gitlab:
+        secret: "${GITLAB_SECRET}"
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange:
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+    labels:
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+      application: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+      provider: "${SERVICE_PREFIX}"
+      project: "${SERVICE_PREFIX}"
+      app: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+      version: 0.0.1
+  spec:
+    strategy:
+      type: Recreate
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - "${SERVICE_PREFIX}-${SERVICE_NAME}"
+        from:
+          kind: ImageStreamTag
+          name: "${SERVICE_PREFIX}-${SERVICE_NAME}:latest"
+    - type: ConfigChange
+    replicas: 1
+    selector:
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+    template:
+      metadata:
+        labels:
+          name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+      spec:
+        containers:
+        - name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+          image: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+          env:
+          - name: DB_HOST
+            value: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+                key: database-user
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+                key: database-password
+          - name: DB_PORT
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+                key: database-port
+          - name: DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+                key: database-name
+          - name: RABBIT_HOST
+            value: "${SERVICE_PREFIX}-rabbitmq"
+          - name: RABBIT_USER
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-user
+          - name: RABBIT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-password
+          - name: RABBIT_PORT
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-rabbitmq"
+                key: rabbitmq-port
+          resources:
+            limits:
+              memory: "${MEMORY_LIMIT_SERVICE}"
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: Always
+          securityContext:
+            capabilities:
+            privileged: false
+        restartPolicy: Always
+        dnsPolicy: ClusterFirst
+
+### DATABASE ####
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+  stringData:
+    database-user: "${DB_USER}"
+    database-password: "${DB_PASSWORD}"
+    database-port: "${DB_PORT}"
+    database-name: "${DB_NAME}"
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: 'true'
+    labels:
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+      application: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+      provider: "${SERVICE_PREFIX}"
+      project: "${SERVICE_PREFIX}"
+      app: "${SERVICE_PREFIX}-${SERVICE_NAME}"
+      version: 0.0.1
+  spec:
+    strategy:
+      type: Recreate
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - postgresql
+        from:
+          kind: ImageStreamTag
+          name: "postgresql:${POSTGRESQL_VERSION}"
+          namespace: openshift
+        lastTriggeredImage:
+    - type: ConfigChange
+    replicas: 1
+    selector:
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+    template:
+      metadata:
+        labels:
+          name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+      spec:
+        containers:
+        - name: postgresql
+          image:
+          ports:
+          - containerPort: "${DB_PORT}"
+            protocol: TCP
+          readinessProbe:
+            timeoutSeconds: 1
+            initialDelaySeconds: 5
+            exec:
+              command:
+              - "/bin/sh"
+              - "-i"
+              - "-c"
+              - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c
+                'SELECT 1'
+          livenessProbe:
+            timeoutSeconds: 1
+            initialDelaySeconds: 30
+            tcpSocket:
+              port: 5432
+          env:
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+                key: database-user
+          - name: POSTGRESQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+                key: database-password
+          - name: POSTGRESQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+                key: database-name
+          - name: POSTGRESQL_PORT
+            valueFrom:
+              secretKeyRef:
+                name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+                key: database-port
+          resources:
+            limits:
+              memory: "${MEMORY_LIMIT_POSTGRES}"
+          volumeMounts:
+          - name: vol-${SERVICE_PREFIX}-${SERVICE_NAME}
+            mountPath: "/var/lib/pgsql/data"
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: IfNotPresent
+        volumes:
+        - name: vol-${SERVICE_PREFIX}-${SERVICE_NAME}
+          persistentVolumeClaim:
+            claimName: ${SERVICE_PREFIX}-${SERVICE_NAME}-db
+        restartPolicy: Always
+        dnsPolicy: ClusterFirst
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+  spec:
+    ports:
+    - name: postgresql
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+    selector:
+      name: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
+
+- kind: PersistentVolumeClaim
+  apiVersion: v1
+  metadata:
+    name: ${SERVICE_PREFIX}-${SERVICE_NAME}-db
+  spec:
+    storageClassName: "${STORAGE_CLASS}"
+    accessModes:
+    - ReadWriteOnce
+    persistentVolumeReclaimPolicy: Recycle
+    resources:
+      requests:
+        storage: "${VOLUME_CAPACITY_POSTGRES}"

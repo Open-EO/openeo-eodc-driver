@@ -1,8 +1,10 @@
 # Addtitional
+*.eodc.yaml
 env
 .vscode/
 template-eodc.yaml
 .dev/
+.doc/
 .http/
 .doc/
 *.eodc.yaml
