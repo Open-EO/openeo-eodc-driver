@@ -62,7 +62,7 @@ class ArgValidator:
         start = self.parse_start(start) if start else None
         end = self.parse_end(end) if end else None
 
-        return product, bbox, start, end
+        return product
 
     def parse_product(self, qname):
         qname = qname.lower().replace(" ", "")
