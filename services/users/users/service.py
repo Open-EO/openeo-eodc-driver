@@ -34,7 +34,7 @@ class AuthService:
                 "status": "success",
                 "data": {
                     "user_id": user.user_id,
-                    "token": self.crypt.encode_auth_token(user.id)
+                    "auth_token": self.crypt.encode_auth_token(user.id)
                 }
             }
         except (NotFound, LoginError) as exp:
