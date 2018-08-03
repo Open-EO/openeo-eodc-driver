@@ -1,0 +1,101 @@
+openapi: 3.0.1
+servers:
+  - url: 'https://api.eodc.eu/api/v0/'
+    description: 'The URL of the API MAY freely be chosen by the back-end providers. The path, including API versioning, is a *recommendation* only. Nevertheless, all servers MUST support HTTPS as the authentication methods are not secure with HTTP only!'
+    variables:
+      version:
+        default: v0
+        description: API versioning is RECOMMENDED. It MUST not be used by the clients to detect the version number of the API. Use the version number returned from `GET /` instead.
+info:
+  title: EODC API
+  version: 0.3.0
+  description: 'The EODC API provides access to the EODC services and data, as well as access to the openEO endpoints.'
+  contact:
+    name: Gunnar Busch
+    url: 'https://api.eodc.eu'
+    email: gunnar.busch@eodc.eu
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+externalDocs:
+  description: EODC API Description
+  url: 'https://api.eodc.eu/redoc'
+tags:
+  - name: OpenAPI
+    description: The OpenAPI specification and Tools for inspecting
+  - name: Capabilities
+    description: General information about the API implementation and other supported capabilities at the back-end.
+  - name: EO Data Discovery
+    description: Discovery of Earth observation datasets that are available at the back-end.
+  - name: Process Discovery
+    description: Discovery of processes that are available at the back-end.
+  - name: Authentication
+    description: Authentication of users.
+  - name: File Management
+    description: Management of user-uploaded assets and processed data.
+  - name: Process Graph Management
+    description: Management of stored process graphs.
+  - name: Job Management
+    description: Management of batch processing tasks (jobs) and their results.
+  - name: Web Service Management
+    description: On-demand access to data using other web services protocols.
+paths:
+# Included from the OpenEO specification
+  /:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1
+  /data:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1data
+  '/data/{data_id}':
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1data~1{data_id}
+
+# Extensions for the EODC API
+  /openapi:
+    get:
+      summary: OpenAPI v3.0.1 specification
+      description: >-
+        The request will return the OpenAPI v3.0.1 specification as JSON document.
+        \n\n **Note:** This is an extension of the EODC API!
+      tags: 
+        - OpenAPI
+      responses:
+        '200':
+          description: The OpenAPI v3.0.1 specification.
+        4XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
+        5XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
+  /redoc:
+    get:
+      summary: API Reference
+      description: >-
+        The request will return a ReDoc client that can be used to inspect the OpenAPi v3.0.1 specification.
+        \n\n **Note:** This is an extension of the EODC API!
+      tags: 
+        - OpenAPI
+      responses:
+        '200':
+          description: Returns the ReDoc client to view the OpenAPI v3.0.1 specification.
+        4XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
+        5XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
+  '/data/{data_id}/records':
+    parameters:
+      - $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/parameters/data_id
+    get:
+      summary: Information the records of a specific EO dataset.
+      description: >-
+        The request will ask the back-end for further details about the records of a dataset specified by the identifier `data_id`. 
+        \n\n **Note:** This is an extension of the EODC API!
+      tags:
+        - EO Data Discovery
+      security:
+        - {}
+        - Bearer: []
+      responses:
+        '200':
+          description: The records that are matching the filter parameters.
+        4XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
+        5XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error

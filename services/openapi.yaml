@@ -1,0 +1,31 @@
+openapi: 3.0.0
+info:
+  title: asdasd
+  version: 0.0.5
+paths:
+  /:
+    get:
+      description: Test 123
+      responses:
+        200:
+          description: TEst3
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - data_id,
+                    - description
+                  properties:
+                    data_id:
+                      $ref: "https://github.com/Open-EO/openeo-api/blob/0.3.0/openapi.json#/components/schemas/data_id"
+components:
+  schemas:
+    data_id:
+      type: string
+      description: Unique identifier for EO datasets. MUST match the specified pattern.
+      pattern: ^[A-Za-z0-9_\\-\\.~\\/]+$
+      example: Sentinel2
+

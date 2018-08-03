@@ -1,0 +1,60 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "API",
+        "version": "1.0.0",
+        "contact": {}
+    },
+    "security": [],
+    "servers": [],
+    "paths": {
+        "/test": {
+            "get": {
+                "summary": "The Test Method for retrieval",
+                "description": "This is the test method description",
+                "parameters": [
+                    {
+                        "name": "test_path",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Test parameter in Path",
+                        "default": "12"
+                    },
+                    {
+                        "name": "test_body",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Test parameter in Body"
+                    }
+                ],
+                "operationId": "",
+                "responses": {
+                    "200": {
+                        "description": "Description"
+                    },
+                    "default": {
+                        "description": "Internal server error!"
+                    }
+                },
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {}
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "links": {},
+        "callbacks": {},
+        "schemas": {}
+    }
+}

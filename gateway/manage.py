@@ -1,11 +1,10 @@
 from flask_script import Manager
 from unittest import TestLoader, TextTestRunner
-from gateway import create_gateway
+from gateway import gateway
 
-GATEWAY = create_gateway()
-MANAGER = Manager(GATEWAY)
+manager = Manager(gateway.service)
 
-@MANAGER.command
+@manager.command
 def test():
     ''' Runs Unit tests. '''
 
@@ -17,4 +16,4 @@ def test():
     return 1
 
 if __name__ == '__main__':
-    MANAGER.run()
+    manager.run()

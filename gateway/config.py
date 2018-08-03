@@ -1,6 +1,6 @@
 ''' Configurations for Gateway '''
 
-from os import environ
+from os import path
 
 class BaseConfig:
     ''' Base Configuration '''
