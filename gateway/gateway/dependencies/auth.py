@@ -31,7 +31,7 @@ class AuthenticationHandler:
             raise APIException(
                 msg="Missing 'Authorization' header.",
                 code=400,
-                servide="gateway",
+                service="gateway",
                 internal=False)
 
         token_split = req.headers["Authorization"].split(" ")
@@ -40,7 +40,7 @@ class AuthenticationHandler:
             raise APIException(
                 msg="Invalid Bearer token.",
                 code=401,
-                servide="gateway",
+                service="gateway",
                 internal=False)
 
         return token_split[1]

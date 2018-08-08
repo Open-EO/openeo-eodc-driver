@@ -1,11 +1,11 @@
 openapi: 3.0.1
 servers:
-  - url: 'https://api.eodc.eu/api/v0/'
-    description: 'The URL of the API MAY freely be chosen by the back-end providers. The path, including API versioning, is a *recommendation* only. Nevertheless, all servers MUST support HTTPS as the authentication methods are not secure with HTTP only!'
+  - url: 'https://api.eodc.eu/api/v0.5/'
+    description: 'The URL to the EODC API'
     variables:
       version:
-        default: v0
-        description: API versioning is RECOMMENDED. It MUST not be used by the clients to detect the version number of the API. Use the version number returned from `GET /` instead.
+        default: v0.5
+        description: API versioning
 info:
   title: EODC API
   version: 0.3.0
@@ -47,6 +47,29 @@ paths:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1data
   '/data/{data_id}':
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1data~1{data_id}
+  /processes:
+    get:
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1processes/get
+    post:
+      summary: Creates a new process.
+      description: >-
+        The request will ask the back-end to create a new process using the desciption send in the request body. 
+        \n\n **Note:** This is an extension of the EODC API!
+      tags:
+        - Process Discovery
+      requestBody:
+        $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1processes/get/responses/200
+      security:
+        - {}
+        - Bearer: []
+      responses:
+        '201':
+          description: The processes has been successfully created.
+        4XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
+        5XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
+
 
 # Extensions for the EODC API
   /openapi:
@@ -82,8 +105,11 @@ paths:
   '/data/{data_id}/records':
     parameters:
       - $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/parameters/data_id
+      - $ref: "#/components/parameters/detail"
+      - $ref: "#/components/parameters/spatial_extent"
+      - $ref: "#/components/parameters/temporal_extent"
     get:
-      summary: Information the records of a specific EO dataset.
+      summary: Information the records of a specific EO dataset with the spatial and temporal extents.
       description: >-
         The request will ask the back-end for further details about the records of a dataset specified by the identifier `data_id`. 
         \n\n **Note:** This is an extension of the EODC API!
@@ -94,8 +120,56 @@ paths:
         - Bearer: []
       responses:
         '200':
-          description: The records that are matching the filter parameters.
+          description: The dataset records that are matching the the spatial and temporal extents.
         4XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
         5XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
+components:
+  schemas:
+    process_graph:
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/schemas/process_graph
+    variable:
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/schemas/variable
+    detail:
+      type: string
+      description: Detail level of the record (full, short, file_paths)
+      enum: [
+        "full",
+        "short",
+        "file_path"
+      ]
+      default: short
+      example: short
+    spatial_extent:
+      type: string
+      description: "Spatial extent covered by the data ( Bbox: [-4, -4, 4, 4] or WKT ((-4 -4, -4 4, 4 -4, 4 4, -4 -4)) )."
+      pattern: ^(\[(\-?\d{1,3}\,?\s*){4}\]|\(\((\-?\d{1,3}\s\-?\d{1,3}\,?\s*){5}\)\))$
+      example: "[-4, -4, 4, 4]"
+    temporal_extent:
+      type: string
+      description: Spatial extent covered by the data
+      pattern: ^([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))\/([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]))$
+      example: 2016-01-01/2017-10-31
+  parameters:
+    detail:
+      name: detail
+      in: query
+      description: Detail level of the record (full, short, file_paths)
+      required: false
+      schema:
+        "$ref": "#/components/schemas/detail"
+    spatial_extent:
+      name: spatial_extent
+      in: query
+      description: Spatial extent covered by the data
+      required: true
+      schema:
+        "$ref": "#/components/schemas/spatial_extent"
+    temporal_extent:
+      name: temporal_extent
+      in: query
+      description: Temporal extent covered by the data
+      required: true
+      schema:
+        "$ref": "#/components/schemas/temporal_extent"

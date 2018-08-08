@@ -5,42 +5,85 @@ from shapely.geometry.base import geom_from_wkt, WKTReadingError
 from pyproj import Proj, transform
 from datetime import datetime
 from ast import literal_eval
-from .products import products
-from ..exceptions import ValidationError
-import ast
+
+from .aliases import product_aliases
+
+
+class ValidationError(Exception):
+    ''' ValidationError raises if a error occures while validating the arguments. '''
+
+    def __init__(self, msg: str=""):
+        super(ValidationError, self).__init__(msg)
+
 
 class MultiDict(dict):
-    def map_keys(self, keys, value):
+    """The MultiDict is an extention to the Python dict, providing the
+    mapping of multiple keys to the same value.
+    """
+
+    def map_keys(self, keys: list, value: any):
+        """Maps the keys to the same value.
+
+        Arguments:
+            keys {list} -- List of keys
+            value {any} -- The value, to which the keys should point
+        """
+
         for key in keys:
             self[key] = value
 
 
 class BBox:
+    """The BBox represents a spatial extention
+    """
+
     @staticmethod
-    def get_bbox(qgeom):
+    def get_bbox(qgeom: any) -> object:
+        """Returns the parsed Bounding Box object. Input representations can be a lists, dicts or a strings.
+
+        Arguments:
+            qgeom {any} -- The input bounding box representation 
+
+        Raises:
+            ValidationError -- If a error occures while parsing the spatial extent
+
+        Returns:
+            BBox -- The bounding box object 
+        """
+
         types = {
             dict: lambda x: [x["top"], x["right"], x["bottom"], x["left"]],
             list: lambda x: [x[0], x[1], x[2], x[3]],
-            str:  lambda x: list(geom_from_wkt("POLYGON" + x).bounds) if x.startswith("((") else literal_eval(x)
+            str: lambda x: list(geom_from_wkt(
+                "POLYGON" + x).bounds) if x.startswith("((") else literal_eval(x)
         }
 
         try:
+            # Map the bounding box type
             bounds = types.get(type(qgeom), None)(qgeom)
             if not bounds:
-                raise ValidationError("Type of Polygon/Bbox '{0}' is wrong.".format(qgeom))
+                raise ValidationError(
+                    "Type of Polygon/Bbox '{0}' is wrong.".format(qgeom))
 
             return BBox(bounds[0], bounds[1], bounds[2], bounds[3])
         except WKTReadingError:
-            raise ValidationError("Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(qgeom))
+            raise ValidationError(
+                "Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(qgeom))
 
-    def __init__(self, x1, y1, x2, y2, epsg=None):
+    def __init__(self, x1: float, y1: float, x2: float, y2: float, epsg: str=None):
         self.x1 = x1
         self.y1 = y1
         self.x2 = x2
         self.y2 = y2
         self.epsg = epsg
 
-    def map_cords(self, out_epsg="epsg:4326"):
+    def map_cords(self, out_epsg: str="epsg:4326"):
+        """Maps the coordinates between different projections.
+
+        Keyword Arguments:
+            out_epsg {str} -- Output projection (default: {"epsg:4326"})
+        """
+
         in_proj = Proj(init=self.epsg)
         out_proj = Proj(init=out_epsg)
         self.x1, self.y1 = transform(in_proj, out_proj, self.x1, self.y1)
@@ -48,60 +91,106 @@ class BBox:
         self.epsg = out_epsg
 
 
-class ArgValidator:
+class ArgParser:
+    """The ArgParser provides methods for parsing and validating the input data.
+    """
+
     def __init__(self):
         self._prd_map = MultiDict()
-        for product in products:
+        for product in product_aliases:
             self._prd_map.map_keys(product["aliases"], product["product_id"])
 
-    def parse(self, product, bbox, start, end):
-        """ Parses the input arguments """
+    def parse_product(self, data_id: str) -> str:
+        """Parse the product identifier
 
-        product = self.parse_product(product) if product else None
-        bbox = self.parse_bbox(bbox) if bbox else None
-        start = self.parse_start(start) if start else None
-        end = self.parse_end(end) if end else None
+        Arguments:
+            data_id {str} -- The product identifier
 
-        return product, bbox, start, end
+        Raises:
+            ValidationError -- If a error occures while parsing the spatial extent
 
-    def parse_product(self, qname):
-        qname = qname.lower().replace(" ", "")
-        product = self._prd_map.get(qname, None)
+        Returns:
+            str -- The validated and product identifier
+        """
+
+        data_id = data_id.lower().replace(" ", "")
+        product = self._prd_map.get(data_id, None)
 
         if not product:
-            raise ValidationError("Product specifier '{0}' is not valid.".format(qname))
+            raise ValidationError(
+                "Product specifier '{0}' is not valid.".format(data_id))
 
         return product
 
-    def parse_bbox(self, qgeom):
-        if isinstance(qgeom, list):
-            if not len(qgeom) == 4:
-                raise ValidationError("Dimension of Bbox '{0}' is wrong (north, west, south, east).".format(qgeom))
-        if isinstance(qgeom, str):
-            if not (qgeom.startswith("((") or qgeom.startswith("[")):
-                raise ValidationError("Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(qgeom))
+    def parse_spatial_extent(self, spatial_extent: str) -> list:
+        """Parse the spatial extent
 
-        bbox = BBox.get_bbox(qgeom)
-        if "srs" in qgeom:
-            bbox.epsg = qgeom["srs"]
+        Arguments:
+            spatial_extent {str} -- The spatial extent
+
+        Raises:
+            ValidationError -- If a error occures while parsing the spatial extent
+
+        Returns:
+            list -- The validated and parsed spatial extent
+        """ 
+
+        if isinstance(spatial_extent, list):
+            if not len(spatial_extent) == 4:
+                raise ValidationError(
+                    "Dimension of Bbox '{0}' is wrong (north, west, south, east).".format(spatial_extent))
+        if isinstance(spatial_extent, str):
+            if not (spatial_extent.startswith("((") or spatial_extent.startswith("[")):
+                raise ValidationError(
+                    "Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(spatial_extent))
+
+        bbox = BBox.get_bbox(spatial_extent)
+        if "srs" in spatial_extent:
+            bbox.epsg = spatial_extent["srs"]
 
         return bbox
 
-    def parse_start(self, start):
+    def parse_temporal_extent(self, temporal_extent: str) -> str:
+        """Parse the temporal extent
+
+        Arguments:
+            temporal_extent {str} -- The temporal extent
+
+        Raises:
+            ValidationError -- If a error occures while parsing the temporal extent
+
+        Returns:
+            str -- The validated and parsed start and end dates
+        """
+
         try:
-            datetime.strptime(start, '%Y-%m-%d')
-            return start + "T00:00:00Z"
+            temp_split = temporal_extent.split("/")
+
+            start = datetime.strptime(temp_split[0], '%Y-%m-%d')
+            end = datetime.strptime(temp_split[1], '%Y-%m-%d')
+
+            if end < start:
+                raise ValidationError("End date is before start date.")
+
+            return temp_split[0] + "T00:00:00Z", temp_split[1] + "T23:59:59Z"
         except ValueError:
-            raise ValidationError("Format of start date '{0}' is wrong.".format(start))
-    
-    def parse_end(self, end):
-        try:
-            datetime.strptime(end, '%Y-%m-%d')
-            return end + "T23:59:59Z"
-        except ValueError:
-            raise ValidationError("Format of end date '{0}' is wrong.".format(end))
+            raise ValidationError(
+                "Format of start date '{0}' is wrong.".format(start))
 
 
-class ArgValidatorProvider(DependencyProvider):
-    def get_dependency(self, worker_ctx):
-        return ArgValidator()
+class ArgParserProvider(DependencyProvider):
+    """The ArgParserProvider is the DependencyProvider of the ArgParser.
+    """
+
+    def get_dependency(self, worker_ctx: object) -> ArgParser:
+        """Return the instantiated object that is injected to a 
+        service worker
+
+        Arguments:
+            worker_ctx {object} -- The worker object
+
+        Returns:
+            ArgParser -- he instantiated ArgParser object
+        """
+
+        return ArgParser()

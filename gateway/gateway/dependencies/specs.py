@@ -8,6 +8,8 @@ from requests import get
 from typing import Callable, Any
 from re import match
 
+from .response import APIException
+
 
 class OpenAPISpecException(Exception):
     """The OpenAPISpecParserException throws if an Exception occures while parsing from the
@@ -59,11 +61,12 @@ class OpenAPISpecParser:
         status = {}
         for rule in endpoints.iter_rules():
             if not rule.rule.startswith("/static"):
-                status[rule.rule] = []
+                endpoint = rule.rule.replace("<", "{").replace(">", "}")
+                status[endpoint] = []
                 for method in rule.methods:
                     method = method.lower()
                     if method in allowed_methods:
-                        status[rule.rule].append(method)
+                        status[endpoint].append(method)
         
         # Check if the target matches the status
         routes_valid = target.keys() == status.keys()
@@ -88,7 +91,7 @@ class OpenAPISpecParser:
             Callable -- The validator decorator
         """
 
-        def decorator(user_id=None):
+        def decorator(user_id=None, **kwargs):
 
             type_map = {
                 "integer": lambda x: int(x),
@@ -114,7 +117,7 @@ class OpenAPISpecParser:
                 in_method = "parameters" in route_specs[req_method]
                 
                 if not in_root and not in_method:
-                    return f(user_id)
+                    return f(user_id=user_id)
                 
                 parameter_specs = []
                 if in_root:
@@ -124,25 +127,43 @@ class OpenAPISpecParser:
                     parameter_specs += route_specs[req_method]["parameters"]
 
                 if len(parameter_specs) == 0:
-                    return f(user_id)
+                    return f(user_id=user_id)
 
                 for p_spec in parameter_specs:
                     parameters = params_map[p_spec["in"]](request)
 
                     if p_spec["name"] not in parameters:
                         if "required" in p_spec and p_spec["required"]:
-                            raise OpenAPISpecException("Missing parameter {0}.".format(p_spec["name"]))
-
-                    p_value =  parameters[p_spec["name"]]
-                    if "schema" in p_spec:
-                        if "type" in p_spec["schema"]:
-                            p_value = type_map[p_spec["schema"]["type"]](p_value)
-                        if "pattern" in p_spec["schema"]:
-                            if not match(p_spec["schema"]["pattern"], p_value):
-                                raise OpenAPISpecException("Parameter {0} does not match pattern {1}."\
-                                                            .format(p_spec["name"], p_spec["schema"]["pattern"]))
-                    
-                    parsed_params[p_spec["name"]] = p_value
+                            raise APIException(
+                                msg="Missing parameter {0}.".format(p_spec["name"]),
+                                code=400,
+                                service="gateway",
+                                internal=False)
+                        if "schema" in p_spec and "default" in p_spec["schema"]:
+                            parsed_params[p_spec["name"]] = p_spec["schema"]["default"]
+                    else:    
+                        p_value = parameters[p_spec["name"]]
+                        if "schema" in p_spec:
+                            if "type" in p_spec["schema"]:
+                                p_value = type_map[p_spec["schema"]["type"]](p_value)
+                            if "pattern" in p_spec["schema"]:
+                                if not match(p_spec["schema"]["pattern"], p_value):
+                                    raise APIException(
+                                        msg="Parameter {0} does not match pattern {1}."\
+                                            .format(p_spec["name"], p_spec["schema"]["pattern"]),
+                                        code=400,
+                                        service="gateway",
+                                        internal=False)
+                            if "enum" in p_spec["schema"]:
+                                if not p_value in p_spec["schema"]["enum"]:
+                                    raise APIException(
+                                        msg="Parameter {0} does not match enum item {1}."\
+                                            .format(p_spec["name"], p_spec["schema"]["enum"]),
+                                        code=400,
+                                        service="gateway",
+                                        internal=False)
+                            
+                            parsed_params[p_spec["name"]] = p_value
                 return f(user_id=user_id, **parsed_params)
             except Exception as exc:
                 return self._res.error(exc)
@@ -196,7 +217,9 @@ class OpenAPISpecParser:
 
         out_dict = {}
         for key, value in in_dict.items():
-            if key == "$ref" and isinstance(value, str):
+            if key == "oneOf":
+                out_dict[key] = value
+            elif key == "$ref" and isinstance(value, str):
                 return self._parse_ref(value, ref)
             else:
                 out_dict[key] = self._map_type(type(value))(value, ref)

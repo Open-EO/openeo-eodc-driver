@@ -1,6 +1,6 @@
 """ ResponseParser, APIException """
 
-from flask import make_response, jsonify, send_file
+from flask import make_response, jsonify, send_file, request
 from flask.wrappers import Response
 from uuid import uuid4
 from typing import Union
@@ -10,9 +10,12 @@ class APIException(Exception):
     """APIException if a Exception in the API gateway or one of the services raises
     or a HTTP error is send back by one of the services.
     """
+    # TODO: links -> To exact Reference
+    # TODO: links -> Rertrieve own host name
 
     def __init__(self, msg: str=None, code: int=500, service: str=None,
-                 user_id: str=None, internal: bool=True, links: list=[], **args):
+                 user_id: str=None, internal: bool=True, 
+                 links: list=[""], **args):
 
         self._id = uuid4()
         self._service = service
@@ -20,7 +23,7 @@ class APIException(Exception):
         self._code = code
         self._msg = msg
         self._internal = internal
-        self._links = links
+        self._links = [request.host_url + "redoc" + (link[1:] if link.startswith("/") else link) for link in links]
 
     def to_dict(self):
         """Returns a dict representation of the APIException object.
@@ -121,9 +124,9 @@ class ResponseParser:
         if isinstance(exc, dict):
             error = APIException(**exc)
         elif isinstance(exc, APIException):
-             error = exc
+            error = exc
         else:
-            APIException(str(exc))
+            error = APIException(str(exc))
 
         self._logger.error(str(error))
         error_dict = error.to_dict()

@@ -2,7 +2,7 @@ from flask_script import Manager
 from unittest import TestLoader, TextTestRunner
 from gateway import gateway
 
-manager = Manager(gateway.service)
+manager = Manager(gateway.get_service())
 
 @manager.command
 def test():

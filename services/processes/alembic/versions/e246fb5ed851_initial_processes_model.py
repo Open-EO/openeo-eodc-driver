@@ -15,19 +15,20 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-
 def upgrade():
     op.create_table(
         'processes',
-        sa.Column('process_id', sa.String(), primary_key=True),
-        sa.Column('user_id', sa.String(), nullable=False),
+        sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
+        sa.Column('name', sa.String(), nullable=False, unique=True),
+        sa.Column('summary', sa.TEXT(), nullable=True),
         sa.Column('description', sa.TEXT(), nullable=False),
-        sa.Column('process_type', sa.String(), nullable=False),
-        sa.Column('link', sa.String(), nullable=True),
-        sa.Column('args', sa.JSON(), nullable=True),
-        sa.Column('git_uri', sa.String(), nullable=True),
-        sa.Column('git_ref', sa.String(), nullable=True),
-        sa.Column('git_dir', sa.String(), nullable=True),
+        sa.Column('parameters', sa.JSON(), nullable=False),
+        sa.Column('min_parameters', sa.Integer(), nullable=True),
+        sa.Column('returns', sa.JSON(), nullable=False),
+        sa.Column('deprecated', sa.Boolean(), default=False),
+        sa.Column('exceptions', sa.JSON(), nullable=True),
+        sa.Column('examples', sa.JSON(), nullable=True),
+        sa.Column('links', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(), default=sa.func.now(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), default=sa.func.now(), onupdate=sa.func.now(), nullable=False),
     )

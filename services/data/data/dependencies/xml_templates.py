@@ -1,3 +1,7 @@
+"""Templates used to parse an XML object, that is send to the
+CSW server.
+"""
+
 xml_base = (
     "<?xml version='1.0' encoding='ISO-8859-1' standalone='no'?>"
     "<csw:GetRecords "

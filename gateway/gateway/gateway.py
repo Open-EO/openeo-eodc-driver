@@ -31,6 +31,14 @@ class Gateway:
         self._init_index()
         self._init_openapi()
         self._init_redoc()
+    
+    def get_service(self) -> Flask:
+        """Returns the Flask service object
+        
+        Returns:
+            Flask -- The Flask object
+        """
+        return self._service
 
     def get_rpc_context(self) -> Union[AppContext, FlaskPooledClusterRpcProxy]:
         """Returns the application context of the Flask application object and the
@@ -73,14 +81,16 @@ class Gateway:
             rpc {bool} -- Setting up a RPC or local function (default: {True})
         """
 
+        methods = [method.upper() for method in methods]
+
+        if rpc:
+            func = self._rpc_wrapper(func)
         if validate:
             func = self._validate(func)
         if admin:
             func = self._authenticate(func)
         if auth:
             func = self._authenticate(func)
-        if rpc:
-            func = self._rpc_wrapper(func)
 
         self._service.add_url_rule(
             route,

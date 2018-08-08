@@ -1,41 +1,160 @@
+""" Data Service """
+# TODO: Adding paging with start= maxRecords= parameter for record requesting 
+
 from nameko.rpc import rpc
-from .dependencies.csw import CSWSession
-from .dependencies.arg_parser import ArgValidatorProvider
-from .exceptions import CWSError, ValidationError
+from datetime import datetime
+from typing import Union
+
+from .schemas import ProductRecordSchema, RecordSchema, FilePathSchema
+from .dependencies.csw import CSWSession, CWSError
+from .dependencies.arg_parser import ArgParserProvider, ValidationError
+
+
+service_name = "data"
+
+
+class ServiceException(Exception):
+    """ServiceException raises if an exception occured while processing the 
+    request. The ServiceException is mapping any exception to a serializable
+    format for the API gateway.
+    """
+
+    def __init__(self, code: int, user_id: str, msg: str,
+                 internal: bool=True, links: list=[]):
+        self._service = service_name
+        self._code = code
+        self._user_id = user_id
+        self._msg = msg
+        self._internal = internal
+        self._links = links
+
+    def to_dict(self) -> dict:
+        """Serializes the object to a dict.
+
+        Returns:
+            dict -- The serialized exception
+        """
+
+        return {
+            "status": "error",
+            "service": self._service,
+            "code": self._code,
+            "user_id": self._user_id,
+            "msg": self._msg,
+            "internal": self._internal,
+            "links": self._links
+        }
 
 
 class DataService:
-    name = "data"
+    """Discovery of Earth observation datasets that are available at the back-end.
+    """
 
-    arg_parser = ArgValidatorProvider()
+    name = service_name
+
+    arg_parser = ArgParserProvider()
     csw_session = CSWSession()
-    
+
     @rpc
-    def get_records(self, user_id=None, qtype="products", data_id="", qgeom="", qstartdate="", qenddate=""):
+    def get_all_products(self, user_id: str=None) -> Union[list, dict]:
+        """Requests will ask the back-end for available data and will return an array of 
+        available datasets with very basic information such as their unique identifiers.
+
+        Keyword Arguments:
+            user_id {str} -- The user id (default: {None})
+
+        Returns:
+             Union[list, dict] -- The products or a serialized exception
+        """
+
         try:
-            product, bbox, start, end = self.arg_parser.parse(data_id, qgeom, qstartdate, qenddate) 
-            results = self.csw_session.get_data(qtype, product, bbox, start, end)
+            product_records = self.csw_session.get_all_products()
+            response = ProductRecordSchema(many=True).dump(product_records)
 
             return {
                 "status": "success",
-                "data": results
+                "data": response.data
             }
-        except (ValidationError, CWSError) as exp:
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp),
+                links=["#tag/EO-Data-Discovery/paths/~1data/get"]).to_dict()
+
+    @rpc
+    def get_product_detail(self, user_id: str=None, data_id: str=None) -> dict:
+        """The request will ask the back-end for further details about a dataset.
+
+        Keyword Arguments:
+            user_id {str} -- The user id (default: {None})
+            data_id {str} -- The product identifier (default: {None})
+
+        Returns:
+            dict -- The product or a serialized exception
+        """
+
+        try:
+            data_id = self.arg_parser.parse_product(data_id)
+            product_record = self.csw_session.get_product(data_id)
+            response = ProductRecordSchema().dump(product_record).data
+
             return {
-                "status": "error", 
-                "service": self.name, 
-                "user_id": user_id, 
-                "code": 400, 
-                "msg": str(exp),
-                "internal":False, 
-                "links": "http://docs.api.eodc.eu/tbd"
-                }
-        except Exception as exp: 
+                "status": "success",
+                "data": response
+            }
+        except ValidationError as exp:
+            return ServiceException(400, user_id, str(exp), internal=False,
+                links=["#tag/EO-Data-Discovery/paths/~1data~1{data_id}/get"]).to_dict()
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp)).to_dict()
+
+    @rpc
+    def get_records(self, user_id: str=None, data_id: str=None, detail: str="full", 
+                    spatial_extent: str=None, temporal_extent: str=None) -> Union[list, dict]:
+        """The request will ask the back-end for further details about the records of a dataset.
+        The records must be filtered by time and space. Different levels of detail can be returned.
+
+        Keyword Arguments:
+            user_id {str} -- The user id (default: {None})
+            detail {str} -- The detail level (full, short, file_paths) (default: {"full"})
+            data_id {str} -- The product identifier (default: {None})
+            spatial_extent {str} -- The spatial extent (default: {None})
+            temporal_extent {str} -- The temporal extent (default: {None})
+
+        Returns:
+             Union[list, dict] -- The records or a serialized exception
+        """
+
+        try:
+            data_id = self.arg_parser.parse_product(data_id)
+
+            # Parse the argeuments
+            if spatial_extent:
+                spatial_extent = self.arg_parser.parse_spatial_extent(spatial_extent)
+            if temporal_extent:
+                start, end = self.arg_parser.parse_temporal_extent(temporal_extent)
+            else:
+                start = None
+                end = None
+
+            # Retrieve records, based on detail level, and serialize
+            response = []
+            if detail == "full":
+                response = self.csw_session.get_records_full(
+                    data_id, spatial_extent, start, end)
+            elif detail == "short":
+                records = self.csw_session.get_records_shorts(
+                    data_id, spatial_extent, start, end)
+                response = RecordSchema(many=True).dump(records).data
+            elif detail == "file_path":
+                file_paths = self.csw_session.get_file_paths(
+                    data_id, spatial_extent, start, end)
+                response = FilePathSchema(many=True).dump(file_paths).data
+
             return {
-                "status": "error", 
-                "service": self.name, 
-                "user_id": user_id, 
-                "code": 500, 
-                "msg": str(exp),
-                "internal":True,
-                "links": "http://docs.api.eodc.eu/tbd"}
+                "status": "success",
+                "data": response
+            }
+        except ValidationError as exp:
+            return ServiceException(400, user_id, str(exp), internal=False,
+                links=["#tag/EO-Data-Discovery/paths/~1data~1{data_id}~1records/get"]).to_dict()
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp)).to_dict()
