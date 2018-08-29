@@ -1,13 +1,14 @@
+""" Process Discovery """
+
 from nameko.rpc import rpc
 from nameko_sqlalchemy import DatabaseSession
 from sqlalchemy import exc
 
 from .models import Base, Process
 from .schema import ProcessSchema
-from .exceptions import NotFound
 
 
-service_name = "data"
+service_name = "processes"
 
 
 class ServiceException(Exception):
@@ -43,44 +44,59 @@ class ServiceException(Exception):
         }
 
 
-
 class ProcessesService:
+    """Discovery of processes that are available at the back-end.
+    """
 
     name = service_name
     db = DatabaseSession(Base)
 
     @rpc
-    def create_process(self, user_id, name, description, summary, min_parameters, 
-                       deprecated, parameters, exceptions, examples, returns, links):
+    def create_process(self, user_id: str=None, **process_args):
+        """he request will ask the back-end to create a new process using the desciption send in the request body.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user (default: {None})
+        """
+
         try:
-            process = Process(
-                name=name,
-                description=description,
-                summary=summary,
-                min_parameters=min_parameters,
-                deprecated=deprecated,
-                parameters=parameters,
-                exceptions=exceptions,
-                examples=examples,
-                returns=returns,
-                links=links)
+            process = Process(**process_args)
 
             self.db.add(process)
             self.db.commit()
 
             return {
                 "status": "success",
-                "data": ProcessSchema().dump(process).data
+                "data": "The process {0} has been successfully created.".format(process_args["name"])
             }
         except exc.IntegrityError as exp:
-            msg = "Process '{0}' does already exist.".format(name)
+            msg = "Process '{0}' does already exist.".format(
+                process_args["name"])
             return ServiceException(400, user_id, msg, internal=False,
-                links=["#tag/EO-Data-Discovery/paths/~1data~1{data_id}/get"]).to_dict() # TODO
+                                    links=["#tag/EO-Data-Discovery/paths/~1processes/post"]).to_dict()
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp)).to_dict()
+
+    @rpc
+    def get_processes(self, user_id: str=None):
+        """The request asks the back-end for available processes and returns detailed process descriptions.
+        
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user (default: {None})
+        """
+
+        try:
+            processes = self.db.query(Process).order_by(Process.name).all()
+
+            return {
+                "status": "success",
+                "data": ProcessSchema(many=True).dump(processes).data
+            }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp)).to_dict()
 
     # @rpc
-    # def get_all_processes(self, user_id, qname):
+    # def get_processes(self, user_id):
     #     try:
     #         processes = self.db.query(Process).filter(Process.process_id.like("%{0}%".format(qname))).all() \
     #                     if qname else \

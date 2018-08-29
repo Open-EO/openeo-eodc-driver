@@ -31,22 +31,17 @@ tags:
     description: Discovery of processes that are available at the back-end.
   - name: Authentication
     description: Authentication of users.
-  - name: File Management
-    description: Management of user-uploaded assets and processed data.
-  - name: Process Graph Management
-    description: Management of stored process graphs.
   - name: Job Management
     description: Management of batch processing tasks (jobs) and their results.
-  - name: Web Service Management
-    description: On-demand access to data using other web services protocols.
 paths:
-# Included from the OpenEO specification
   /:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1
   /data:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1data
   '/data/{data_id}':
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1data~1{data_id}
+  /credentials/oidc:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1credentials~1oidc
   /processes:
     get:
       $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1processes/get
@@ -58,20 +53,23 @@ paths:
       tags:
         - Process Discovery
       requestBody:
-        $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1processes/get/responses/200
+        content:
+          application/json:
+            schema:
+              $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1processes/get/responses/200/content/application~1json/schema/items
       security:
         - {}
         - Bearer: []
       responses:
-        '201':
+        '200':
           description: The processes has been successfully created.
         4XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
         5XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
-
-
-# Extensions for the EODC API
+  /jobs:
+    get:
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1jobs/get
   /openapi:
     get:
       summary: OpenAPI v3.0.1 specification
@@ -121,6 +119,20 @@ paths:
       responses:
         '200':
           description: The dataset records that are matching the the spatial and temporal extents.
+        4XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
+        5XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
+  /oidc_callback:
+    get:
+      summary: Callback for OpenID Connect
+      description: >-
+        URL relative to the web root to indicate where the oidc_callback url is mounted on.
+      tags: 
+        - Authentication
+      responses:
+        '200':
+          description: The verifiction endpoint of OIDC.
         4XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
         5XX:

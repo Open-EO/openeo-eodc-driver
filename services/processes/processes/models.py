@@ -27,19 +27,19 @@ class Process(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-
-    def __init__(self, name, summary, description, parameters, min_parameters, 
-                 returns, deprecated, exceptions, examples, links):
+    def __init__(self, name: str, description: str, parameters: dict, returns: dict,
+                 summary: str=None, min_parameters: int=None, deprecated: bool=None,  
+                 exceptions: dict=None, examples: dict=None, links: dict=None):
         self.name = name
-        self.summary = summary
         self.description = description
         self.parameters = parameters
-        self.min_parameters = min_parameters
         self.returns = returns
-        self.deprecated = deprecated
-        self.exceptions = exceptions
-        self.examples = examples
-        self.links = links
+        if summary: self.summary = summary
+        if min_parameters: self.min_parameters = min_parameters
+        if deprecated: self.deprecated = deprecated
+        if exceptions: self.exceptions = exceptions
+        if examples: self.examples = examples
+        if links: self.links = links
 
 
 # class Process(Base):

@@ -1,4 +1,4 @@
-""" Data Service """
+""" EO Data Discovery """
 # TODO: Adding paging with start= maxRecords= parameter for record requesting 
 
 from nameko.rpc import rpc

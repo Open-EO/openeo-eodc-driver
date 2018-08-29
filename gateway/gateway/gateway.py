@@ -1,14 +1,15 @@
 """ Gateway """
 
 from os import environ
-from flask import Flask
+from flask import Flask, g
 from flask.ctx import AppContext
 from flask.wrappers import Response
 from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
+from flask_oidc import OpenIDConnect
 from typing import Union, Callable
 
-from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler
+from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException
 
 
 class Gateway:
@@ -22,15 +23,20 @@ class Gateway:
         self._res = self._init_response()
         self._spec = self._init_specs()
         self._auth = self._init_auth()
-
+        
         # Decorators
-        self._authenticate = self._auth.bearer
         self._validate = self._spec.validate
+        self._authenticate = self._auth.oidc
+        self._authorize = self._auth.check_role 
 
         # Setup system endpoints
         self._init_index()
+        self._init_openid_discovery()
         self._init_openapi()
         self._init_redoc()
+
+        # Add custom error handler
+        self._service.register_error_handler(404, self._not_found_handler)
     
     def get_service(self) -> Flask:
         """Returns the Flask service object
@@ -64,7 +70,7 @@ class Gateway:
         CORS(self._service, resources=resources)
 
     def add_endpoint(self, route: str, func: Callable, methods: list=["GET"],
-                     auth: bool=False, admin: bool=False, validate: bool=False, rpc: bool=True):
+                     auth: bool=False, role: str=None, validate: bool=False, rpc: bool=True):
         """Adds an endpoint to the API, pointing to a Remote Procedure Call (RPC) of a microservice or a
         local function. Serval decorators can be added to enable authentication, authorization and input 
         validation.
@@ -75,27 +81,23 @@ class Gateway:
         
         Keyword Arguments:
             methods {list} -- The allowed HTTP methods (default: {["GET"]})
-            auth {bool} -- Activate authentication (default: {False})
-            admin {bool} -- Activate authorization (default: {False})
+            auth {bool} -- Activate authentication (default: {False})   TODO
+            admin {bool} -- Activate authorization (default: {False})   TODO
             validate {bool} -- Activate input validation (default: {False})
             rpc {bool} -- Setting up a RPC or local function (default: {True})
         """
 
         methods = [method.upper() for method in methods]
 
-        if rpc:
-            func = self._rpc_wrapper(func)
-        if validate:
-            func = self._validate(func)
-        if admin:
-            func = self._authenticate(func)
-        if auth:
-            func = self._authenticate(func)
+        if rpc: func = self._rpc_wrapper(func)
+        if validate: func = self._validate(func)
+        if role: func = self._authorize(func, role)
+        if auth: func = self._authenticate(func)
 
         self._service.add_url_rule(
             route,
             view_func=func,
-            endpoint=route,
+            endpoint=route + '_'.join(methods),
             provide_automatic_options=True,
             methods=methods)
 
@@ -164,7 +166,19 @@ class Gateway:
             AuthenticationHandler -- The instantiated AuthenticationHandler object
         """
 
-        return AuthenticationHandler(self._res, self._rpc)
+        oidc_config = {
+            "SECRET_KEY": environ.get("SECRET_KEY"),
+            "OIDC_CLIENT_SECRETS": environ.get("OIDC_CLIENT_SECRETS"),
+            "OIDC_OPENID_REALM": environ.get("OIDC_OPENID_REALM"),
+            'OIDC_ID_TOKEN_COOKIE_SECURE': False    # TODO: Just for development
+        }
+
+        self._service.config.update(oidc_config)
+
+        oicd = OpenIDConnect()
+        oicd.init_app(self._service)
+
+        return AuthenticationHandler(self._res, self._rpc, oicd)
 
     def _rpc_wrapper(self, f:Callable) -> Union[Callable, Response]:
         """The RPC decorator function to handle repsonsed and exception when communicating 
@@ -222,6 +236,21 @@ class Gateway:
             return self._res.data(200, capabilities)
 
         self.add_endpoint("/", send_index, rpc=False)
+    
+    def _init_openid_discovery(self):
+        """Initializes the '/credentials/oidc' route and returns a endpoint function.
+        """
+
+        def send_openid_connect_discovery() -> Response:
+            """Redirects to the OpenID Connect discovery document.
+            
+            Returns:
+                Response -- Redirect to the OpenID Connect discovery document
+            """
+
+            return self._res.redirect(environ.get("OPENID_DISCOVERY"))
+
+        self.add_endpoint("/credentials/oidc", send_openid_connect_discovery, rpc=False)
 
     def _init_openapi(self):
         """Initializes the '/openapi' route and returns a endpoint function.
@@ -246,9 +275,17 @@ class Gateway:
             """Returns the ReDoc clients
             
             Returns:
-                Response -- THe HTML file conating the ReDoc client setup
+                Response -- The HTML file containing the ReDoc client setup
             """
 
             return self._res.html("redoc.html")
 
         self.add_endpoint("/redoc", send_redoc, rpc=False)
+    
+    def _not_found_handler(self, e):
+        return self._res.error(
+            APIException(
+                msg="The requested URL was not found.",
+                code=404,
+                service="gateway",
+                internal=False))

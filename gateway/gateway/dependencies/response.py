@@ -1,6 +1,6 @@
 """ ResponseParser, APIException """
 
-from flask import make_response, jsonify, send_file, request
+from flask import make_response, jsonify, send_file, request, redirect
 from flask.wrappers import Response
 from uuid import uuid4
 from typing import Union
@@ -132,3 +132,15 @@ class ResponseParser:
         error_dict = error.to_dict()
 
         return make_response(jsonify(error_dict), error_dict["code"])
+    
+    def redirect(self, url:str) -> Response:
+        """Redirects to another URL
+        
+        Arguments:
+            url {str} -- The URL to redirect to
+        
+        Returns:
+            Response -- The Response object
+        """
+
+        return redirect(url, code=303)

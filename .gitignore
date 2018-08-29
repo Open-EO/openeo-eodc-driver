@@ -8,6 +8,7 @@ template-eodc.yaml
 .http/
 .doc/
 *.eodc.yaml
+client_secrets.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -62,17 +62,18 @@ class OpenAPISpecParser:
         for rule in endpoints.iter_rules():
             if not rule.rule.startswith("/static"):
                 endpoint = rule.rule.replace("<", "{").replace(">", "}")
-                status[endpoint] = []
+                if endpoint not in status:
+                    status[endpoint] = []
                 for method in rule.methods:
                     method = method.lower()
                     if method in allowed_methods:
                         status[endpoint].append(method)
         
         # Check if the target matches the status
-        routes_valid = target.keys() == status.keys()
+        difference = set(target.keys()).symmetric_difference(status.keys())
 
-        if not routes_valid:
-            raise OpenAPISpecException("The endpoints in the specification and the current endpoints do not match!")
+        if len(difference) > 0:
+            raise OpenAPISpecException("The endpoints in the specification and the current endpoints do not match! Difference: " + str(difference))
 
         for status_endpoint, status_methods in status.items():
             target_methods = target[status_endpoint]
@@ -91,79 +92,104 @@ class OpenAPISpecParser:
             Callable -- The validator decorator
         """
 
+        def get_parameter_specs():
+            # Get the OpenAPI parameter specifications for the route and method
+            req_path = str(request.url_rule).replace("<","{").replace(">","}")
+            req_method = request.method.lower()
+            route_specs = self._route(req_path)
+
+            # Check if parameters requried in request specification
+            in_root = route_specs.keys() & {"parameters"}
+            in_method = route_specs[req_method].keys() & {"parameters", "requestBody"}
+
+            has_specs = bool(in_root) or bool(in_method)
+
+            params_specs = {}
+            param_required = []
+            if has_specs:
+                if in_root:
+                    for p in route_specs["parameters"]:
+                        if "required" in p:
+                            param_required.append(p["name"])
+                        if "schema" in p:
+                            params_specs[p["name"]] = p["schema"]
+                if in_method:
+                    if "parameters" in in_method:
+                        for p in route_specs[req_method]["parameters"]:
+                            if "required" in p:
+                                param_required.append(p["name"])
+                            if "schema" in p:
+                                params_specs[p["name"]] = p["schema"]
+                    if "requestBody" in in_method:
+                        body = route_specs[req_method]["requestBody"]["content"]["application/json"]["schema"]
+                        if "required" in body:
+                            param_required  += body["required"]
+                        if "properties" in body:
+                            for p_key, p_value in body["properties"].items():
+                                params_specs[p_key] = p_value
+
+            return has_specs, params_specs, param_required
+        
+        def get_parameters():
+            parameters = {}
+
+            if len(request.view_args) > 0:
+                parameters = {**parameters, **request.view_args}
+
+            if len(request.args) > 0:
+                parameters = {**parameters, **request.args.to_dict(flat=True)}
+            
+            if request.data:
+                parameters = {**parameters, **request.get_json()}
+            
+            return parameters
+            
+
         def decorator(user_id=None, **kwargs):
 
             type_map = {
                 "integer": lambda x: int(x),
+                "float": lambda x: float(x),
+                "double": lambda x: float(x),
+                "boolean": lambda x: bool(x),
                 "string": lambda x: str(x)
             }
 
-            params_map = {
-                "path": lambda req: req.view_args,
-                "query": lambda req: req.args,
-                "body": lambda req: req.get_json(),
-            }
-
             try:
+                has_params, specs, required = get_parameter_specs()
+
+                if not has_params:
+                    return f(user_id=user_id)
+
+                parameters = get_parameters()
+
                 parsed_params = {}
+                for p_name, p_specs in specs.items():
+                    if p_name not in parameters.keys():
+                        if p_name in required:
+                            if "default" in p_specs:
+                                parsed_params[p_name] = p_specs["default"]
+                            else:
+                                msg = "Missing parameter {0}.".format(p_name)
+                                raise APIException(msg=msg, code=400, service="gateway", internal=False)
+                    else:
+                        p_value = parameters[p_name]
 
-                req_path = str(request.url_rule).replace("<","{").replace(">","}")
-                req_method = request.method.lower()
+                        if "type" in p_specs:
+                            p_value = type_map.get(p_specs["type"], lambda x: x)(p_value)
+                        
+                        if "pattern" in p_specs:
+                            if not match(p_specs["pattern"], p_value):
+                                msg = "Parameter {0} does not match pattern {1}.".format(p_name, p_specs["pattern"])
+                                raise APIException(msg=msg, code=400, service="gateway", internal=False)
 
-                # Get the OpenAPI parameter specifications for the route and method
-                route_specs = self._route(req_path)
-
-                in_root = "parameters" in route_specs
-                in_method = "parameters" in route_specs[req_method]
-                
-                if not in_root and not in_method:
-                    return f(user_id=user_id)
-                
-                parameter_specs = []
-                if in_root:
-                    parameter_specs += route_specs["parameters"]
-                
-                if in_method:
-                    parameter_specs += route_specs[req_method]["parameters"]
-
-                if len(parameter_specs) == 0:
-                    return f(user_id=user_id)
-
-                for p_spec in parameter_specs:
-                    parameters = params_map[p_spec["in"]](request)
-
-                    if p_spec["name"] not in parameters:
-                        if "required" in p_spec and p_spec["required"]:
-                            raise APIException(
-                                msg="Missing parameter {0}.".format(p_spec["name"]),
-                                code=400,
-                                service="gateway",
-                                internal=False)
-                        if "schema" in p_spec and "default" in p_spec["schema"]:
-                            parsed_params[p_spec["name"]] = p_spec["schema"]["default"]
-                    else:    
-                        p_value = parameters[p_spec["name"]]
-                        if "schema" in p_spec:
-                            if "type" in p_spec["schema"]:
-                                p_value = type_map[p_spec["schema"]["type"]](p_value)
-                            if "pattern" in p_spec["schema"]:
-                                if not match(p_spec["schema"]["pattern"], p_value):
-                                    raise APIException(
-                                        msg="Parameter {0} does not match pattern {1}."\
-                                            .format(p_spec["name"], p_spec["schema"]["pattern"]),
-                                        code=400,
-                                        service="gateway",
-                                        internal=False)
-                            if "enum" in p_spec["schema"]:
-                                if not p_value in p_spec["schema"]["enum"]:
-                                    raise APIException(
-                                        msg="Parameter {0} does not match enum item {1}."\
-                                            .format(p_spec["name"], p_spec["schema"]["enum"]),
-                                        code=400,
-                                        service="gateway",
-                                        internal=False)
-                            
-                            parsed_params[p_spec["name"]] = p_value
+                        if "enum" in p_specs:
+                            if not p_value in p_specs["enum"]:
+                                msg = "Parameter {0} does not match enum item {1}.".format(p_name, p_specs["enum"])
+                                raise APIException(msg=msg, code=400, service="gateway", internal=False)
+                        
+                        parsed_params[p_name] = p_value
+    
                 return f(user_id=user_id, **parsed_params)
             except Exception as exc:
                 return self._res.error(exc)
@@ -217,6 +243,7 @@ class OpenAPISpecParser:
 
         out_dict = {}
         for key, value in in_dict.items():
+            # Don't parse oneOf, keys as these might be recursive
             if key == "oneOf":
                 out_dict[key] = value
             elif key == "$ref" and isinstance(value, str):

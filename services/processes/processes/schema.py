@@ -9,6 +9,8 @@ class DictField(fields.Field):
         self.nested_field = nested_field
 
     def _deserialize(self, value, attr, obj):
+        if not value: return None
+
         ret = {}
         for key, val in value.items():
             k = self.key_field.deserialize(key)
@@ -17,11 +19,14 @@ class DictField(fields.Field):
         return ret
 
     def _serialize(self, value, attr, obj):
+        if not value: return None
+
         ret = {}
         for key, val in value.items():
             k = self.key_field._serialize(key, attr, obj)
             v = self.nested_field.serialize(key, self.get_value(attr, obj))
             ret[k] = v
+
         return ret
 
 
