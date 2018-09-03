@@ -19,38 +19,19 @@ depends_on = None
 def upgrade():
     op.create_table(
         'jobs',
-        sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('user_id', sa.String(), nullable=False),
-        sa.Column('status', sa.String(), default="submitted", nullable=False),
-        sa.Column('credits', sa.Integer(), default=0, nullable=False),
-        sa.Column('process_graph', sa.JSON, nullable=True),
-        sa.Column('output', sa.JSON, nullable=True),
-        sa.Column('created_at', sa.DateTime(),
-                  default=sa.func.now(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), default=sa.func.now(),
-                  onupdate=sa.func.now(), nullable=False),
-    )
-
-    op.create_table(
-        'tasks',
-        sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('job_id', sa.Integer(), sa.ForeignKey(
-            "jobs.id"), nullable=False),
-        sa.Column('process_id', sa.String(), nullable=False),
-        sa.Column('seq_num', sa.Integer(), nullable=False),
-        sa.Column('status', sa.String(),
-                  default="initialized", nullable=False),
-        # sa.Column('next', sa.Integer(), sa.ForeignKey(
-        #     "tasks.id"), nullable=True),
-        sa.Column('args', sa.JSON, nullable=True),
-        sa.Column('created_at', sa.DateTime(),
-                  default=sa.func.now(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), default=sa.func.now(),
-                  onupdate=sa.func.now(), nullable=False),
+        sa.Column('id', sa.String(), primary_key=True),
+        sa.Column('title', sa.String(), nullable=True),
+        sa.Column('description', sa.String(), nullable=True),
+        sa.Column('process_graph_id', sa.String(), nullable=False),
+        sa.Column('output', sa.JSON(), default={"format": "GTiff"}),
+        sa.Column('plan', sa.String(), default="free"),
+        sa.Column('budget', sa.Integer(), default=0),
+        sa.Column('current_costs', sa.Integer(), default=0),
+        sa.Column('status', sa.String(), default="submitted"),
+        sa.Column('created_at', sa.DateTime(),default=sa.func.now(), nullable=False),
+        sa.Column('updated_at', sa.DateTime(), default=sa.func.now(), onupdate=sa.func.now(), nullable=False),
     )
 
 
 def downgrade():
-    op.drop_table('tasks')
     op.drop_table('jobs')
-    

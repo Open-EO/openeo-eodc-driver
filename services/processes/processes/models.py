@@ -1,10 +1,12 @@
 """ Models """
-# TODO: Normalize model? -> Currently not possible because of variable dict names
+# TODO: Further normalize models
 
 from os import environ
-from sqlalchemy import Column, Integer, String, Boolean, TEXT, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Boolean, TEXT, DateTime, JSON, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
+from uuid import uuid4
 
 Base = declarative_base()
 
@@ -13,26 +15,31 @@ class Process(Base):
 
     __tablename__ = 'processes'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String, primary_key=True, autoincrement=True)
+    user_id = Column(String, nullable=False)
     name = Column(String, nullable=False, unique=True)
     summary = Column(TEXT, nullable=True)
     description = Column(TEXT, nullable=False)
-    parameters = Column(JSON, nullable=False)
+    parameters = relationship('Parameter', backref='process')
     min_parameters = Column(Integer, nullable=True)
     returns = Column(JSON, nullable=False)
     deprecated = Column(Boolean, default=False)
     exceptions = Column(JSON, nullable=True)
     examples = Column(JSON, nullable=True)
     links = Column(JSON, nullable=True)
+    p_type = Column(String, default="operation")
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    def __init__(self, name: str, description: str, parameters: dict, returns: dict,
-                 summary: str=None, min_parameters: int=None, deprecated: bool=None,  
-                 exceptions: dict=None, examples: dict=None, links: dict=None):
+
+    def __init__(self, user_id: str, name: str, description: str, returns: dict, summary: str=None,
+                 min_parameters: int=None, deprecated: bool=None, exceptions: dict=None, 
+                 examples: dict=None, links: dict=None, p_type :dict=None):
+        
+        self.id = uuid4()
+        self.user_id = user_id
         self.name = name
         self.description = description
-        self.parameters = parameters
         self.returns = returns
         if summary: self.summary = summary
         if min_parameters: self.min_parameters = min_parameters
@@ -40,30 +47,84 @@ class Process(Base):
         if exceptions: self.exceptions = exceptions
         if examples: self.examples = examples
         if links: self.links = links
+        if p_type: self.p_type = p_type
 
 
-# class Process(Base):
-#     __tablename__ = 'processes'
+class Parameter(Base):
+    """ Base model for a process graph parameters. """
 
-#     process_id = Column(String, primary_key=True, nullable=False)
-#     user_id = Column(String, unique=True, nullable=False)
-#     description = Column(TEXT, nullable=False)
-#     process_type = Column(String, nullable=False)
-#     link = Column(String, nullable=True)
-#     args = Column(JSON, nullable=True)
-#     git_uri = Column(String, nullable=True)
-#     git_ref = Column(String, nullable=True)
-#     git_dir = Column(String, nullable=True)
-#     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-#     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    __tablename__ = 'parameters'
 
-#     def __init__(self, process_id, user_id, description, process_type, link="", args={}, git_uri="", git_ref="", git_dir=""):
-#         self.process_id = process_id
-#         self.user_id = user_id
-#         self.description = description
-#         self.process_type = process_type
-#         self.link = link
-#         self.args = args
-#         self.git_uri = git_uri
-#         self.git_ref = git_ref
-#         self.git_dir = git_dir
+    id = Column(String, primary_key=True, autoincrement=True)
+    process_id = Column(String, ForeignKey('processes.id'), nullable=False)
+    name = Column(String, nullable=False)
+    description = Column(TEXT, nullable=False)
+    required = Column(Boolean, default=False)
+    deprecated = Column(Boolean, default=False)
+    mime_type = Column(String, nullable=True)
+    schema = Column(JSON, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def __init__(self, process_id: str, name: str, description: str, schema: dict,
+                 required: bool=None, deprecated: bool=None,mime_type: str=None):
+
+        self.id = uuid4()
+        self.process_id = process_id
+        self.name = name
+        self.description = description
+        self.required = required
+        self.deprecated = deprecated
+        self.schema = schema
+        if required: self.required = required
+        if deprecated: self.deprecated = deprecated
+        if mime_type: self.mime_type = mime_type
+
+
+class ProcessGraph(Base):
+    """ Base model for a process graph. """
+
+    __tablename__ = 'process_graphs'
+
+    id = Column(String, primary_key=True)
+    user_id = Column(String, nullable=False)
+    title = Column(String, nullable=True)
+    description = Column(TEXT, nullable=True)
+    nodes = relationship('ProcessNode', backref='process_graph')
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def __init__(self, user_id: str, title: str, description: str):
+
+        self.id = uuid4()
+        self.user_id = user_id
+        if title: self.title = title
+        if description: self.description = description
+
+
+class ProcessNode(Base):
+    """ Base model for a node of a process graph. """
+
+    __tablename__ = 'process_nodes'
+
+    id = Column(String, primary_key=True)
+    user_id = Column(String, nullable=False)
+    seq_num = Column(Integer, nullable=True)
+    process_graph_id = Column(String, ForeignKey("process_graphs.id"), nullable=False)
+    process_id = Column(String, nullable=False)
+    imagery_id = Column(String, ForeignKey("process_nodes.id"), nullable=True)
+    imagery = relationship('ProcessNode', remote_side=[id])
+    args = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def __init__(self, user_id: str, seq_num: int, process_graph_id: str, process_id: str,
+                 imagery_id: str=None, args: dict=None):
+
+        self.id = uuid4()
+        self.user_id = user_id
+        self.seq_num = seq_num
+        self.process_graph_id = process_graph_id
+        self.process_id = process_id
+        if imagery_id: self.imagery_id = imagery_id
+        if args: self.args = args

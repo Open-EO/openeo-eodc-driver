@@ -36,7 +36,8 @@ class Gateway:
         self._init_redoc()
 
         # Add custom error handler
-        self._service.register_error_handler(404, self._not_found_handler)
+        self._service.register_error_handler(404, self._parse_error_to_json)
+        self._service.register_error_handler(405, self._parse_error_to_json)
     
     def get_service(self) -> Flask:
         """Returns the Flask service object
@@ -282,10 +283,10 @@ class Gateway:
 
         self.add_endpoint("/redoc", send_redoc, rpc=False)
     
-    def _not_found_handler(self, e):
+    def _parse_error_to_json(self, exc):
         return self._res.error(
             APIException(
-                msg="The requested URL was not found.",
-                code=404,
+                msg=str(exc),
+                code=exc.code,
                 service="gateway",
                 internal=False))

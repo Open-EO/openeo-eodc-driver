@@ -30,6 +30,21 @@ class DictField(fields.Field):
         return ret
 
 
+class ParameterField(fields.Field):
+    def __init__(self, array_field, *args, **kwargs):
+        fields.Field.__init__(self, *args, **kwargs)
+        self.array_field = array_field
+
+    def _serialize(self, parameter_array, attr, obj):
+        if not parameter_array: return None
+
+        ret = {}
+        for parameter in parameter_array:
+            ret[parameter.name] = self.array_field._serialize(parameter, attr, obj)
+
+        return ret
+
+
 class LinksSchema(Schema):
     href = fields.Url(required=True)
     rel = fields.String()
@@ -82,17 +97,16 @@ class ProcessSchema(Schema):
     summary = fields.String()
     min_parameters = fields.Integer()
     deprecated = fields.Boolean(default=False)
-    parameters = DictField(
+    parameters = ParameterField(fields.Nested(ParameterSchema))
+    examples = DictField(
         fields.String(validate=validate.Regexp(r'^[a-zA-Z\_\-\d]+$')),
-        fields.Nested(ParameterSchema))
+        fields.Nested(ExampleSchema), many=True)
     exceptions = DictField(
         fields.String(validate=validate.Regexp(r'^[a-zA-Z\_\-\d]+$')),
         fields.Nested(ExceptionSchema))
-    examples = DictField(
-        fields.String(validate=validate.Regexp(r'^[a-zA-Z\_\-\d]+$')),
-        fields.Nested(ExampleSchema))
     returns = fields.Nested(ReturnSchema)
     links = fields.Nested(LinksSchema, many=True)
+    p_type = fields.String(required=True)
 
 
 # class ProcessSchemaFull(Schema):

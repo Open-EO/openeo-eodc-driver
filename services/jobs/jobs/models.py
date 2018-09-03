@@ -2,48 +2,31 @@ from sqlalchemy import Column, Integer, String, Boolean, TEXT, DateTime, Foreign
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
+from uuid import uuid4
 
 Base = declarative_base()
-
 
 class Job(Base):
     __tablename__ = 'jobs'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, nullable=False)
-    tasks = relationship("Task", back_populates="job")
+    id = Column(String, primary_key=True)
+    title = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    process_graph_id = Column(String, nullable=False)
+    output = Column(JSON, default={"format": "GTiff"})    # Integrate output formats in table at data/volume service
+    plan = Column(String, default="free")   # Implement plans in database/service
+    budget = Column(Integer, default=0)
+    current_costs = Column(Integer, default=0, nullable=False)
     status = Column(String, default="submitted", nullable=False)
-    credits = Column(Integer, default=0, nullable=False)
-    process_graph = Column(JSON, nullable=True)
-    output = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow,
-                        onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    def __init__(self, user_id, process_graph, output):
-        self.user_id = user_id
-        self.process_graph = process_graph
-        self.output = output
-
-
-class Task(Base):
-    __tablename__ = 'tasks'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    job_id = Column(Integer, ForeignKey("jobs.id"), nullable=False)
-    job = relationship("Job", back_populates="tasks")
-    process_id = Column(String, nullable=False)
-    seq_num = Column(Integer, nullable=False)
-    # next = Column(Integer, ForeignKey('tasks.id'), nullable=True)
-    args = Column(JSON, nullable=True)
-    status = Column(String, default="initialized", nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow,
-                        onupdate=datetime.utcnow, nullable=False)
-
-    def __init__(self, job_id, process_id, seq_num, args): #, next
-        self.job_id = job_id
-        self.process_id = process_id
-        self.seq_num = seq_num
-        self.args = args
-        # self.next = next
+    def __init__(self, process_graph_id: str, title: str=None, description: str=None, output: dict=None,
+                 plan: str=None, budget: int=None):
+        self.id = uuid4()
+        self.process_graph_id = process_graph_id
+        if title: self.title = title
+        if description: self.description = description
+        if output: self.output = output
+        if plan: self.plan = plan
+        if budget: self.budget = budget

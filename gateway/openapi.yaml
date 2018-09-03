@@ -67,9 +67,11 @@ paths:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
         5XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
+  /process_graphs:
+    post:
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1process_graphs/post
   /jobs:
-    get:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1jobs/get
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1jobs
   /openapi:
     get:
       summary: OpenAPI v3.0.1 specification
@@ -89,7 +91,7 @@ paths:
     get:
       summary: API Reference
       description: >-
-        The request will return a ReDoc client that can be used to inspect the OpenAPi v3.0.1 specification.
+        The request will return a ReDoc client that can be used to inspect the OpenAPI v3.0.1 specification.
         \n\n **Note:** This is an extension of the EODC API!
       tags: 
         - OpenAPI

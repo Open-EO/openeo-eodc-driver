@@ -47,7 +47,7 @@ class APIException(Exception):
         """Returns a string representation of the APIException object.
         """
 
-        return "(code: {0}, service {1}, uid: {2}) {3}: {4}"\
+        return "(code: {0}, service: {1}, uid: {2}) - Error {3}: {4}"\
                .format(self._code, self._service, self._user_id, self._id, self._msg)
 
 

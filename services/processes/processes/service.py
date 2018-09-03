@@ -1,14 +1,14 @@
 """ Process Discovery """
 
-from nameko.rpc import rpc
+from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
 from sqlalchemy import exc
+from uuid import uuid4
 
-from .models import Base, Process
+from .models import Base, Process, Parameter, ProcessGraph, ProcessNode
 from .schema import ProcessSchema
-
-
-service_name = "processes"
+from .dependencies import NodeParser, Validator
+from jsonschema import ValidationError
 
 
 class ServiceException(Exception):
@@ -17,9 +17,9 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, code: int, user_id: str, msg: str,
+    def __init__(self, service:str, code: int, user_id: str, msg: str,
                  internal: bool=True, links: list=[]):
-        self._service = service_name
+        self._service = service
         self._code = code
         self._user_id = user_id
         self._msg = msg
@@ -48,19 +48,24 @@ class ProcessesService:
     """Discovery of processes that are available at the back-end.
     """
 
-    name = service_name
+    name = "processes"
     db = DatabaseSession(Base)
 
     @rpc
     def create_process(self, user_id: str=None, **process_args):
-        """he request will ask the back-end to create a new process using the desciption send in the request body.
+        """The request will ask the back-end to create a new process using the description send in the request body.
 
         Keyword Arguments:
             user_id {str} -- The identifier of the user (default: {None})
         """
 
         try:
-            process = Process(**process_args)
+            parameters = process_args.pop("parameters", {})
+            process = Process(**{"user_id": user_id, **process_args})
+
+            for parameter_name, parameter_specs in parameters.items():
+                parameter = Parameter(**{"name":parameter_name, "process_id": process.id, **parameter_specs})
+                self.db.add(parameter)
 
             self.db.add(process)
             self.db.commit()
@@ -72,10 +77,10 @@ class ProcessesService:
         except exc.IntegrityError as exp:
             msg = "Process '{0}' does already exist.".format(
                 process_args["name"])
-            return ServiceException(400, user_id, msg, internal=False,
+            return ServiceException(ProcessesService.name, 400, user_id, msg, internal=False,
                                     links=["#tag/EO-Data-Discovery/paths/~1processes/post"]).to_dict()
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp)).to_dict()
+            return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
 
     @rpc
     def get_processes(self, user_id: str=None):
@@ -93,8 +98,8 @@ class ProcessesService:
                 "data": ProcessSchema(many=True).dump(processes).data
             }
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp)).to_dict()
-
+            return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
+    
     # @rpc
     # def get_processes(self, user_id):
     #     try:
@@ -146,3 +151,67 @@ class ProcessesService:
     #         }
     #     except Exception as exp:
     #         return ServiceException(500, user_id, str(exp)).to_dict()
+
+
+class ProcessesGraphService:
+    """Management of stored process graphs.
+    """
+
+    name = "process_graphs"
+    db = DatabaseSession(Base)
+    process_service = RpcProxy("processes")
+    data_service = RpcProxy("data")
+    validator = Validator()
+    node_parser = NodeParser()
+
+    @rpc
+    def create_process_graph(self, user_id: str=None, **process_graph_args):
+        """The request will ask the back-end to create a new process using the description send in the request body.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user (default: {None})
+        """
+        # TODO: RESPONSE HEADERS -> OpenEO-Costs
+
+        try:
+            process_graph_json = process_graph_args.pop("process_graph", {})
+            processes = self.process_service.get_processes()["data"]
+            products = self.data_service.get_all_products()["data"]
+
+            self.validator.update_datasets(processes, products)
+            self.validator.validate_node(process_graph_json)
+            
+            process_graph = ProcessGraph(**{"user_id": user_id, **process_graph_args})
+
+            nodes = self.node_parser.parse_process_graph(process_graph_json)
+            imagery_id = None
+            for idx, node in enumerate(nodes):
+                process_node = ProcessNode(
+                    user_id=user_id,
+                    seq_num=len(nodes) - idx,
+                    imagery_id=imagery_id,
+                    process_graph_id=process_graph.id,
+                    **node)
+                self.db.add(process_node)
+                imagery_id = process_node.id
+
+            process_graph_id = process_graph.id
+            self.db.add(process_graph)
+            self.db.commit()
+
+            # for node_name, node_specs in process_graph_nodes.items():
+            #     parameter = Parameter(**{"id": uuid4(), "name":parameter_name, "process_id": process.id, **parameter_specs})
+            #     self.db.add(parameter)
+
+            # self.db.add(process)
+            # self.db.commit()
+
+            return {
+                "status": "success",
+                "data": process_graph_id
+            }
+        except ValidationError as exp:
+            return ServiceException(ProcessesService.name, 400, user_id, exp.message, internal=False,
+                                    links=["#tag/EO-Data-Discovery/paths/~1process_graph/post"]).to_dict()
+        except Exception as exp:
+            return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()

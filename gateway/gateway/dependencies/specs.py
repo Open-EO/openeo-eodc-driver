@@ -3,6 +3,7 @@
 from os import path
 from sys import modules
 from flask import request
+from werkzeug.exceptions import BadRequest
 from yaml import load
 from requests import get
 from typing import Callable, Any
@@ -131,18 +132,26 @@ class OpenAPISpecParser:
             return has_specs, params_specs, param_required
         
         def get_parameters():
-            parameters = {}
+            try:
+                parameters = {}
 
-            if len(request.view_args) > 0:
-                parameters = {**parameters, **request.view_args}
+                if len(request.view_args) > 0:
+                    parameters = {**parameters, **request.view_args}
 
-            if len(request.args) > 0:
-                parameters = {**parameters, **request.args.to_dict(flat=True)}
+                if len(request.args) > 0:
+                    parameters = {**parameters, **request.args.to_dict(flat=True)}
+                
+                if request.data:
+                    parameters = {**parameters, **request.get_json()}
+                
+                return parameters
+            except BadRequest as exp:
+                raise APIException(
+                    msg="Error while parsing JSON in payload. Please make sure the JSON is valid.", 
+                    code=400, 
+                    service="gateway", 
+                    internal=False)
             
-            if request.data:
-                parameters = {**parameters, **request.get_json()}
-            
-            return parameters
             
 
         def decorator(user_id=None, **kwargs):

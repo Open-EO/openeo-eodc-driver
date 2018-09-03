@@ -4,11 +4,11 @@ from os import environ
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
 
-from .models import Base, Job, Task
+from .models import Base, Job
 from .schema import JobSchema, JobSchemaFull
-from .exceptions import BadRequest, Forbidden, APIConnectionError
-from .dependencies.task_parser import TaskParser
-from .dependencies.validator import Validator
+# from .exceptions import BadRequest, Forbidden, APIConnectionError
+# from .dependencies.task_parser import TaskParser
+# from .dependencies.validator import Validator
 from .dependencies.api_connector import APIConnector
 from .dependencies.template_controller import TemplateController
 
@@ -54,7 +54,7 @@ class JobService:
 
     name = service_name
     db = DatabaseSession(Base)
-    # process_service = RpcProxy("processes")
+    process_service = RpcProxy("processes")
     # data_service = RpcProxy("data")
     # validator = Validator()
     # taskparser = TaskParser()
@@ -73,32 +73,35 @@ class JobService:
         except Exception as exp:
             return ServiceException(500, user_id, str(exp)).to_dict()
 
-    # @rpc
-    # def create_job(self, user_id, process_graph, output):
-    #     try:
-    #         processes = self.process_service.get_all_processes_full()["data"]
-    #         products = self.data_service.get_records()["data"]
+    @rpc
+    def create_job(self, user_id, process_graph, output):
+        try:
+
+
             
-    #         self.validator.update_datasets(processes, products)
-    #         self.validator.validate_node(process_graph)
+            processes = self.process_service.get_all_processes_full()["data"]
+            products = self.data_service.get_records()["data"]
+            
+            self.validator.update_datasets(processes, products)
+            self.validator.validate_node(process_graph)
 
-    #         job = Job(user_id, process_graph, output)
-    #         self.db.add(job)
-    #         self.db.commit()
+            job = Job(user_id, process_graph, output)
+            self.db.add(job)
+            self.db.commit()
 
-    #         tasks = self.taskparser.parse_process_graph(job.id, process_graph, processes)
-    #         for idx, task in enumerate(tasks):
-    #             self.db.add(task)
-    #             self.db.commit()
+            tasks = self.taskparser.parse_process_graph(job.id, process_graph, processes)
+            for idx, task in enumerate(tasks):
+                self.db.add(task)
+                self.db.commit()
 
-    #         return {
-    #             "status": "success",
-    #             "data": JobSchema().dump(job).data
-    #         }
-    #     except BadRequest as exp:
-    #         return {"status": "error", "service": self.name, "key": "BadRequest", "msg": str(exp)}
-    #     except Exception as exp:
-    #         return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
+            return {
+                "status": "success",
+                "data": JobSchema().dump(job).data
+            }
+        except BadRequest as exp:
+            return {"status": "error", "service": self.name, "key": "BadRequest", "msg": str(exp)}
+        except Exception as exp:
+            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
     
     # @rpc
     # def get_job(self, user_id, job_id):
