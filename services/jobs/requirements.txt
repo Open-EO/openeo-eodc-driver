@@ -9,7 +9,6 @@ certifi==2018.4.16
 cffi==1.11.5
 chardet==3.0.4
 colorama==0.3.9
-cryptography==2.2.1
 enum-compat==0.0.2
 eventlet==0.21.0
 greenlet==0.4.13

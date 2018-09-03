@@ -35,7 +35,6 @@ nameko==2.8.5
 path.py==11.0.1
 pbr==4.0.2
 pycodestyle==2.4.0
-pycrypto==2.6.1
 pylint==1.8.4
 python-dateutil==2.7.2
 pytz==2018.4
