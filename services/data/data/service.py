@@ -73,6 +73,7 @@ class DataService:
 
             return {
                 "status": "success",
+                "code": 200,
                 "data": response.data
             }
         except Exception as exp:
@@ -98,6 +99,7 @@ class DataService:
 
             return {
                 "status": "success",
+                "code": 200,
                 "data": response
             }
         except ValidationError as exp:
@@ -122,6 +124,7 @@ class DataService:
         Returns:
              Union[list, dict] -- The records or a serialized exception
         """
+        # TODO: Filter by license -> see process get_data
 
         try:
             data_id = self.arg_parser.parse_product(data_id)
@@ -151,6 +154,7 @@ class DataService:
 
             return {
                 "status": "success",
+                "code": 200,
                 "data": response
             }
         except ValidationError as exp:

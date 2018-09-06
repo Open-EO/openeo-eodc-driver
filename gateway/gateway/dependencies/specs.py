@@ -74,16 +74,17 @@ class OpenAPISpecParser:
         difference = set(target.keys()).symmetric_difference(status.keys())
 
         if len(difference) > 0:
-            raise OpenAPISpecException("The endpoints in the specification and the current endpoints do not match! Difference: " + str(difference))
+            raise OpenAPISpecException("The gateway or specification is missing the endpoint(s) '{0}'".format(str(difference)))
 
         for status_endpoint, status_methods in status.items():
             target_methods = target[status_endpoint]
 
-            if not status_methods == target_methods:
-                raise OpenAPISpecException("The endpoint '{0}' does not possess the specified HTTP methods".format(status_endpoint))
+            method_diff = set(target_methods).symmetric_difference(status_methods)
+            if len(method_diff) > 0:
+                raise OpenAPISpecException("The gateway or specification is missing the HTTP method(s) '{0}' at endpoint '{1}'".format(str(method_diff), status_endpoint))               
     
     def validate(self, f:Callable) -> Callable:
-        """Creates a validator decorator for the input parameters in teh query and path of HTTP requests 
+        """Creates a validator decorator for the input parameters in the query and path of HTTP requests 
         and the request bodies of e.g. POST requests.
         
         Arguments:

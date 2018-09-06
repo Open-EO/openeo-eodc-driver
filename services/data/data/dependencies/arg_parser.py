@@ -145,8 +145,8 @@ class ArgParser:
                     "Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(spatial_extent))
 
         bbox = BBox.get_bbox(spatial_extent)
-        if "srs" in spatial_extent:
-            bbox.epsg = spatial_extent["srs"]
+        if "crs" in spatial_extent:
+            bbox.epsg = spatial_extent["crs"]
 
         return bbox
 
@@ -164,15 +164,17 @@ class ArgParser:
         """
 
         try:
-            temp_split = temporal_extent.split("/")
+            if isinstance(temporal_extent, str):
+                temp_split = temporal_extent.split("/")
+                temporal_extent = {"from": temp_split[0], "to": temp_split[1]}
 
-            start = datetime.strptime(temp_split[0], '%Y-%m-%d')
-            end = datetime.strptime(temp_split[1], '%Y-%m-%d')
+            start = datetime.strptime(temporal_extent["from"], '%Y-%m-%d')
+            end = datetime.strptime(temporal_extent["to"], '%Y-%m-%d')
 
             if end < start:
                 raise ValidationError("End date is before start date.")
 
-            return temp_split[0] + "T00:00:00Z", temp_split[1] + "T23:59:59Z"
+            return temporal_extent["from"] + "T00:00:00Z", temporal_extent["to"] + "T23:59:59Z"
         except ValueError:
             raise ValidationError(
                 "Format of start date '{0}' is wrong.".format(start))

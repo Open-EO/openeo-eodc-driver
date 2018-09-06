@@ -11,15 +11,15 @@ class TemplateControllerWrapper:
     def create_config(self, api_connector, template_id, args):
         return ConfigMap(template_id, args).create(api_connector)
 
-    def build(self, api_connector, template_id, image_name, tag, git_uri, git_ref, git_dir):
-        log = ""
+    def build(self, api_connector, image_name, tag, git_uri, git_ref, git_dir):
+        log = "Creating Objects...\n"
 
-        obj_image_stream = ImageStream(template_id, image_name, tag)
-        obj_build = Build(template_id, git_uri, git_ref, git_dir, obj_image_stream)
+        obj_image_stream = ImageStream(image_name, tag)
+        obj_build = Build(git_uri, git_ref, git_dir, obj_image_stream) 
         
-        if obj_image_stream.exists(api_connector) :
-            log += "Found existing image...\n"
-            return "Finished Building", log, obj_image_stream
+        # if obj_image_stream.exists(api_connector) :
+        #     log += "Found existing image...\n"
+        #     return "Finished Building", log, obj_image_stream
 
         log += "Building...\n"
         obj_image_stream.create(api_connector, watch=False)

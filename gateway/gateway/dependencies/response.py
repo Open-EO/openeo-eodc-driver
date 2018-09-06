@@ -59,7 +59,7 @@ class ResponseParser:
     def __init__(self, logger):
         self._logger = logger
 
-    def code(self, code: int) -> Response:
+    def _code(self, code: int) -> Response:
         """Returns a HTTP code response without a message.
 
         Arguments:
@@ -71,7 +71,7 @@ class ResponseParser:
 
         return make_response("", code)
 
-    def string(self, code: int, msg: str) -> Response:
+    def _string(self, code: int, msg: str) -> Response:
         """Returns a message response back to the user.
 
         Arguments:
@@ -84,7 +84,7 @@ class ResponseParser:
 
         return make_response(str(msg), code)
 
-    def data(self, code: int, data: dict) -> Response:
+    def _data(self, code: int, data: dict) -> Response:
         """Returns a JSON response back to the user.
 
         Arguments:
@@ -97,7 +97,7 @@ class ResponseParser:
 
         return make_response(jsonify(data), code)
 
-    def html(self, file_name: str) -> Response:
+    def _html(self, file_name: str) -> Response:
         """Returns a HTML page back to the user. The HTML file needs to be in the
         '/html' folder.
 
@@ -109,6 +109,34 @@ class ResponseParser:
         """
 
         return send_file("html/" + file_name)
+    
+    def parse(self, payload: dict) -> Response:
+        """Maps and parses the responses that are returned from the single
+        endpoints.
+
+        Arguments:
+            payload {dict} -- The payload object
+        
+        Returns:
+            Response -- The parsed response
+        """
+
+        if "html" in payload:
+            response = self._html(payload["html"])
+        elif "msg" in payload:
+            response = self._string(payload["code"], payload["msg"])
+        elif "data" in payload:
+            response = self._data(payload["code"], payload["data"])
+        else:
+            response = self._code(payload["code"])
+
+        if "headers" in payload:
+            for h_key, h_val in payload["headers"].items():
+                if h_key == "Location":
+                    h_val = request.host_url + h_val
+                response.headers[h_key] = h_val
+
+        return response
 
     def error(self, exc: Union[dict, Exception]) -> Response:
         """Returns a error response back to the user. The input can be either be a dict response

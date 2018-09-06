@@ -34,9 +34,9 @@ class Process(Base):
 
     def __init__(self, user_id: str, name: str, description: str, returns: dict, summary: str=None,
                  min_parameters: int=None, deprecated: bool=None, exceptions: dict=None, 
-                 examples: dict=None, links: dict=None, p_type :dict=None):
+                 examples: dict=None, links: dict=None, p_type: dict=None):
         
-        self.id = uuid4()
+        self.id = "pc-" + str(uuid4())
         self.user_id = user_id
         self.name = name
         self.description = description
@@ -69,7 +69,7 @@ class Parameter(Base):
     def __init__(self, process_id: str, name: str, description: str, schema: dict,
                  required: bool=None, deprecated: bool=None,mime_type: str=None):
 
-        self.id = uuid4()
+        self.id = "pa-" + str(uuid4())
         self.process_id = process_id
         self.name = name
         self.description = description
@@ -90,14 +90,16 @@ class ProcessGraph(Base):
     user_id = Column(String, nullable=False)
     title = Column(String, nullable=True)
     description = Column(TEXT, nullable=True)
+    process_graph = Column(JSON, default={})
     nodes = relationship('ProcessNode', backref='process_graph')
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    def __init__(self, user_id: str, title: str, description: str):
+    def __init__(self, user_id: str, process_graph: dict, title: str=None, description: str=None):
 
-        self.id = uuid4()
+        self.id = "pg-" + str(uuid4())
         self.user_id = user_id
+        self.process_graph = process_graph
         if title: self.title = title
         if description: self.description = description
 
@@ -121,7 +123,7 @@ class ProcessNode(Base):
     def __init__(self, user_id: str, seq_num: int, process_graph_id: str, process_id: str,
                  imagery_id: str=None, args: dict=None):
 
-        self.id = uuid4()
+        self.id = "pn-" + str(uuid4())
         self.user_id = user_id
         self.seq_num = seq_num
         self.process_graph_id = process_graph_id

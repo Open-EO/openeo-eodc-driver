@@ -109,25 +109,22 @@ class ProcessSchema(Schema):
     p_type = fields.String(required=True)
 
 
-# class ProcessSchemaFull(Schema):
-#     process_id = fields.String(required=True)
-#     user_id = fields.String(required=True)
-#     description = fields.String(required=True)
-#     process_type = fields.String(required=True)
-#     link = fields.String(required=False)
-#     args = fields.Dict(required=False)
-#     git_uri = fields.String(required=False)
-#     git_ref = fields.String(required=False)
-#     git_dir = fields.String(required=False)
-#     created_at = fields.DateTime(required=True)
-#     updated_at = fields.DateTime(required=True)
+class ProcessNodeSchema(Schema):
+    id = fields.String(required=True)
+    seq_num = fields.Integer(required=True)
+    process_id = fields.String(required=True)
+    imagery_id = fields.String(required=True)
+    args =  fields.Dict(required=True)
 
-# class ProcessSchema(Schema):
-#     process_id = fields.String(required=True)
-#     description = fields.String(required=True)
-#     link = fields.String(required=False)
-#     args = fields.Dict(required=False)
 
-# class ProcessSchemaShort(Schema):
-#     process_id = fields.String(required=True)
-#     description = fields.String(required=True)
+class ProcessGraphShortSchema(Schema):
+    process_graph_id = fields.String(attribute="id", required=True)
+    title = fields.String(required=False)
+    description = fields.String(required=False)
+
+
+class ProcessGraphFullSchema(Schema):
+    process_graph_id = fields.String(attribute="id", required=True)
+    title = fields.String(required=False)
+    description = fields.String(required=False)
+    process_graph = fields.Dict(required=True)

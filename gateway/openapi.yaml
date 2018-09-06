@@ -67,11 +67,18 @@ paths:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
         5XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
+  /process_graphs/{process_graph_id}:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1process_graphs~1{process_graph_id}
   /process_graphs:
-    post:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1process_graphs/post
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1process_graphs
   /jobs:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1jobs
+  /jobs/{job_id}:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1jobs~1{job_id}
+  /jobs/{job_id}/results:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1jobs~1{job_id}~1results
+  /validation:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1validation
   /openapi:
     get:
       summary: OpenAPI v3.0.1 specification

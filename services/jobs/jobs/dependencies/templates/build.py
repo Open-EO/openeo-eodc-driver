@@ -1,13 +1,16 @@
 ''' Template for OpenShift BuildConfig '''
 
 from .base import BaseTemplate, TemplateError
+from uuid import uuid4
 
 class Build(BaseTemplate):
     ''' Class for OpenShift Build Object '''
 
-    def __init__(self, template_id, git_uri, git_ref, git_dir, img_stream):
+    def __init__(self, git_uri, git_ref, git_dir, img_stream):
         path = "/oapi/v1/namespaces/{0}/builds"
-        super().__init__(template_id, path, "Build", "v1")
+        build_id = "build-" + uuid4()
+
+        super().__init__(build_id, path, "Build", "v1")
 
         self.git_uri = git_uri
         self.git_ref = git_ref

@@ -4,70 +4,56 @@ from nameko.extensions import DependencyProvider
 class NodesWrapper:
     def __init__(self):
         self.nodes = []
-        # self.filters = {}
+        self.filters = {
+            "data_id": None,
+            "time": None,
+            "bands": None,
+            "extent": None,
+            "derived_from": None,
+            "license": None
+        }
 
-    def parse_process_graph(self, process_graph):
-        # self.processes = processes
-        self.parse_nodes(process_graph)
-
-        # self.nodes = self.nodes[::-1]
-        # self.nodes.append({
-        #     "process_id": "prepare_for_download",
-        #     "seq_num": len(self.nodes)
-        # })
+    def parse_process_graph(self, process_graph: dict, processes: list) -> list:
+        self.parse_nodes(process_graph, processes)
         
-        # self.nodes.append(Task(job_id, "prepare_for_download", len(self.nodes), {"job_id": job_id}))
-
+        self.nodes.append({
+            "process_id": "get_data",
+            "args":  self.filters
+        })
+        
         return self.nodes
+    
+    def parse_filter(self, process_id: str, filter_args: dict):
 
-    # def extract_filter_args(self, filter_graph):
-    #     if "process_id" in filter_graph:
-    #         args = filter_graph["args"]
-    #         imagery = args.pop("imagery")
-    #         self.filters[filter_graph["process_id"]] = args
-    #         self.extract_filter_args(imagery)
-    #     elif "product_id" in filter_graph:
-    #         self.filters["product"] = filter_graph["product_id"]
+        # TODO: Not a good solution: Has to be adapted as soon as 
+        # the processes are better specified
+        # TODO: Bands can be name, band_id, wavelengths as str or list
+        if process_id == "get_data":
+            for key, value in filter_args.items():
+                self.filters[key] = value
+        if process_id == "filter_bands":
+            self.filters["bands"] = filter_args
+        if process_id == "filter_bbox":
+            self.filters["extent"] = filter_args
+        if process_id == "filter_daterange":
+            self.filters["time"] = filter_args
 
-    def parse_nodes(self, node_graph):
+
+    def parse_nodes(self, node_graph: dict, processes: list):
         process_id = node_graph.pop("process_id")
         imagery = node_graph.pop("imagery", None)
 
-        self.nodes.append({
-            "process_id": process_id,
-            "args": node_graph
-        })
+        process_spec = [p for p in processes if p['name'] == process_id]
+        if process_spec[0]["p_type"] == "filter":
+            self.parse_filter(process_id, node_graph)
+        else:
+            self.nodes.append({
+                "process_id": process_id,
+                "args": node_graph
+            })
 
         if imagery:
-            self.parse_nodes(imagery)
-
-
-         # process_spec = [process for process in self.processes if process['name'] == process_id]
-        # process_spec = process_spec[0]
-        # if process_spec["p_type"] == "operation":
-            
-
-        #     self.nodes.append({
-        #         "process_id": process_id,
-        #         "seq_num": len(self.nodes),
-        #         "args": node_graph
-        #     })
-        #     # self.nodes.append(
-        #     #     Task(job_id, process_id, len(self.nodes), args))
-        #     self.parse_nodes(job_id, imagery)
-        # elif process_spec["p_type"] == "filter":
-        #     self.extract_filter_args(node_graph)
-        #     # process_id = self._filter_mapper[self.filters["product"]]
-
-        #     self.nodes.append({
-        #         "process_id": "get_data",
-        #         "seq_num": len(self.nodes),
-        #         "product_id": self.filters.pop("product", None),
-        #         "args": self.filters
-        #     })
-
-            # self.nodes.append(
-            #     Task(job_id, process_id, len(self.nodes), self.filters))
+            self.parse_nodes(imagery, processes)
 
 
 class NodeParser(DependencyProvider):

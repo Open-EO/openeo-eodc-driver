@@ -26,7 +26,7 @@ class ValidatorWrapper:
             raise ValidationError("Node is missing a ProcessID or ProductID.")
 
         process_id = node_payload["process_id"]
-        process_spec = [process for process in self.processes if process['name'] == process_id]
+        process_spec = [p for p in self.processes if p['name'] == process_id]
 
         if len(process_spec) != 1:
             raise ValidationError("Process '{0}' is not available.".format(node_payload["process_id"]))

@@ -54,55 +54,184 @@ class JobService:
 
     name = service_name
     db = DatabaseSession(Base)
-    process_service = RpcProxy("processes")
-    # data_service = RpcProxy("data")
-    # validator = Validator()
-    # taskparser = TaskParser()
-    # api_connector = APIConnector()
-    # template_controller = TemplateController()
+    process_graphs_service = RpcProxy("process_graphs")
+    data_service = RpcProxy("data")
+    api_connector = APIConnector()
+    template_controller = TemplateController()
 
     @rpc
-    def get_jobs(self, user_id):
+    def get(self, user_id: str, job_id: str):
+        try:
+            job = self.db.query(Job).filter_by(id=job_id).first()
+
+            if job is None:
+                return ServiceException(400, user_id, "The job with id '{0}' does not exist.".format(job_id), 
+                    internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
+
+            # TODO: Permission (e.g admin)
+            if job.user_id != user_id:
+                return ServiceException(401, user_id, "You are not allowed to access this ressource.", 
+                    internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
+            
+            response = self.process_graphs_service.get(user_id, job.process_graph_id)
+            if response["status"] == "error":
+               return response
+            
+            job.process_graph = response["data"]["process_graph"]
+
+            return {
+                "status": "success",
+                "code": 200,
+                "data": JobSchemaFull().dump(job).data
+            }
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp),
+                links=["#tag/Job-Management/paths/~1jobs~1{job_id}/get"]).to_dict()
+
+    @rpc
+    def modify(self, user_id: str, job_id: str, process_graph: dict, title: str=None, description: str=None, 
+               output: dict=None, plan: str=None, budget: int=None):
+        try:
+            raise Exception("Not implemented yet!")
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp),
+                links=["#tag/Job-Management/paths/~1jobs~1{job_id}/patch"]).to_dict()
+    
+    @rpc
+    def delete(self, user_id: str, job_id: str):
+        try:
+            raise Exception("Not implemented yet!")
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp),
+                links=["#tag/Job-Management/paths/~1jobs~1{job_id}/delete"]).to_dict()
+
+    @rpc
+    def get_all(self, user_id: str):
         try:
             jobs = self.db.query(Job).filter_by(user_id=user_id).order_by(Job.created_at).all()
 
             return {
                 "status": "success",
-                "data": JobSchemaFull(many=True).dump(jobs).data
+                "code": 200,
+                "data": JobSchema(many=True).dump(jobs).data
             }
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp)).to_dict()
-
+            return ServiceException(500, user_id, str(exp),
+                links=["#tag/Job-Management/paths/~1jobs/get"]).to_dict()
     @rpc
-    def create_job(self, user_id, process_graph, output):
+    def create(self, user_id: str, process_graph: dict, title: str=None, description: str=None, output: dict=None, 
+                   plan: str=None, budget: int=None):
         try:
+            process_response = self.process_graphs_service.create(
+                user_id=user_id, 
+                **{"process_graph": process_graph})
+            if process_response["status"] == "error":
+               return process_response
+            process_graph_id = process_response["service_data"]
 
+            job = Job(user_id, process_graph_id, title, description, output, plan, budget)
 
-            
-            processes = self.process_service.get_all_processes_full()["data"]
-            products = self.data_service.get_records()["data"]
-            
-            self.validator.update_datasets(processes, products)
-            self.validator.validate_node(process_graph)
-
-            job = Job(user_id, process_graph, output)
+            job_id = str(job.id)
             self.db.add(job)
             self.db.commit()
 
-            tasks = self.taskparser.parse_process_graph(job.id, process_graph, processes)
-            for idx, task in enumerate(tasks):
-                self.db.add(task)
-                self.db.commit()
-
             return {
                 "status": "success",
-                "data": JobSchema().dump(job).data
+                "code": 201,
+                "headers": {"Location": "jobs/" + job_id }
             }
-        except BadRequest as exp:
-            return {"status": "error", "service": self.name, "key": "BadRequest", "msg": str(exp)}
         except Exception as exp:
-            return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
+            return ServiceException(500, user_id, str(exp),
+                links=["#tag/Job-Management/paths/~1jobs/post"]).to_dict()
     
+    @rpc
+    def process(self, user_id: str, job_id: str):
+        try:
+            job.status = "running"
+            self.db.commit()
+
+            job = self.db.query(Job).filter_by(id=job_id).first()
+            
+            # Get process nodes
+            response = self.process_graphs_service.get_nodes(
+                user_id=user_id, 
+                process_graph_id= job.process_graph_id)
+            
+            if response["status"] == "error":
+               return response
+            
+            process_nodes = response["data"]
+
+            # Get file_paths
+            filter_node = process_nodes[0]
+            response = self.data_service.get_records(
+                detail="file_path",
+                user_id=user_id, 
+                data_id=filter_node["args"]["data_id"],
+                spatial_extent=filter_node["args"]["extent"],
+                temporal_extent=filter_node["args"]["time"])
+            
+            if response["status"] == "error":
+               return response
+            
+            filter_node["file_paths"] = response["data"]
+
+            # TODO: Calculate storage size and get storage class
+            # TODO: Implement Ressource Management
+            storage_class = "storage-write"
+            storage_size = "5Gi"
+            min_cpu = "500m"
+            max_cpu = "1"
+            min_ram = "256Mi"
+            max_ram = "1Gi"
+
+            # Create OpenShift objects
+            pvc = self.template_controller.create_pvc(self.api_connector, "pvc-" + job.id, storage_class, storage_size)
+            config_map = self.template_controller.create_config(self.api_connector, "cm-" + job.id, process_nodes)
+            
+            # Deploy container
+            status, log, metrics =  self.template_controller.deploy(self.api_connector, self.api_connector, "jb-" + job.id,
+                obj_image_stream, config_map, pvc, min_cpu, max_cpu, min_ram, max_ram)
+
+            pvc.delete(self.api_connector)
+            
+            job.status = "finished"
+            self.db.commit()
+        except Exception as exp:
+            job.status = "error: " + exp.__str__()
+            self.db.commit()
+
+    @rpc
+    def build(self, user_id: str):
+        try:
+            status, log, obj_image_stream = self.template_controller.build(
+                self.api_connector,
+                environ["CONTAINER_NAME"],
+                environ["CONTAINER_TAG"],
+                environ["CONTAINER_GIT_URI"], 
+                environ["CONTAINER_GIT_REF"], 
+                environ["CONTAINER_GIT_DIR"])
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp),
+                links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
+    
+    @rpc
+    def cancel_processing(self, user_id: str, job_id: str):
+        try:
+            raise Exception("Not implemented yet!")
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp),
+                links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
+    
+    @rpc
+    def get_results(self, user_id: str, job_id: str):
+        try:
+            raise Exception("Not implemented yet!")
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp),
+                links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/get"]).to_dict()
+
+
     # @rpc
     # def get_job(self, user_id, job_id):
     #     try:

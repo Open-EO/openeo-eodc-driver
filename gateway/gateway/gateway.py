@@ -1,5 +1,6 @@
 """ Gateway """
 
+from sys import exit
 from os import environ
 from flask import Flask, g
 from flask.ctx import AppContext
@@ -9,7 +10,7 @@ from flask_nameko import FlaskPooledClusterRpcProxy
 from flask_oidc import OpenIDConnect
 from typing import Union, Callable
 
-from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException
+from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException
 
 
 class Gateway:
@@ -106,8 +107,11 @@ class Gateway:
         """Validates the setup of the API with respect to the specification in the
         OpenAPI document. Throws an OpenAPISpecException if the validation fails.
         """
-
-        self._spec.validate_api(self._service.url_map)
+        try:
+            self._spec.validate_api(self._service.url_map)
+        except OpenAPISpecException as exp:
+            print(" -> API setup is not valid: " + str(exp))
+            exit()
 
     def _init_service(self) -> Flask:
         """Initalizes the Flask application
@@ -200,7 +204,7 @@ class Gateway:
                 if rpc_response["status"] == "error":
                     return self._res.error(rpc_response)
 
-                return self._res.data(200, rpc_response["data"])
+                return self._res.parse(rpc_response)
             except Exception as exc:
                 return self._res.error(exc)
         return decorator
@@ -234,7 +238,7 @@ class Gateway:
                 "endpoints": endpoints
             }
 
-            return self._res.data(200, capabilities)
+            return self._res.parse({"code": 200, "data": capabilities})
 
         self.add_endpoint("/", send_index, rpc=False)
     
@@ -264,7 +268,7 @@ class Gateway:
                 Response -- JSON object containing the OpenAPI specification
             """
 
-            return self._res.data(200, self._spec.get())
+            return self._res.parse({"code": 200, "data": self._spec.get()})
 
         self.add_endpoint("/openapi", send_openapi, rpc=False)
 
@@ -279,7 +283,7 @@ class Gateway:
                 Response -- The HTML file containing the ReDoc client setup
             """
 
-            return self._res.html("redoc.html")
+            return self._res.parse({"html": "redoc.html"})
 
         self.add_endpoint("/redoc", send_redoc, rpc=False)
     

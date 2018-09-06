@@ -5,7 +5,7 @@ from .base import BaseTemplate
 class ImageStream(BaseTemplate):
     ''' Class for OpenShift ImageStream Object '''
 
-    def __init__(self, template_id, image_name, tag):
+    def __init__(self, image_name, tag):
         path = "/oapi/v1/namespaces/{0}/imagestreams"
         super().__init__(image_name, path, "ImageStream", "v1")
 

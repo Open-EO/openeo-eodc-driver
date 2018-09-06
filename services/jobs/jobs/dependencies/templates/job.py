@@ -71,6 +71,16 @@ class Job(BaseTemplate):
                     "containers": [{
                         "name": self.template_id,
                         "image": imagestream.selfLinks["dockerImageRepository"] + ":latest",
+                        "env": [
+                            {
+                                "name": "GDAL_VRT_ENABLE_PYTHON",
+                                "value": "TRUSTED_MODULES"
+                            },
+                            {
+                                "name": "GDAL_VRT_PYTHON_TRUSTED_MODULES",
+                                "value": "pixel_functions"
+                            }
+                        ],
                         "volumeMounts": volumeMounts,
                         "resources": {
                             "limits": {

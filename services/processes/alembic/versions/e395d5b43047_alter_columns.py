@@ -23,6 +23,7 @@ def upgrade():
     )
     op.drop_column('process_nodes', 'product_id')
 
+
 def downgrade():
     op.drop_column('process_nodes', 'process_id')
     op.add_column('process_nodes',
