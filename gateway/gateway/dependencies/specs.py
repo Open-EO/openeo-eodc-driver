@@ -321,9 +321,15 @@ class OpenAPISpecParser:
         
         # Find the referenced element and parse it recursively
         for p in path:
-            element = element[p]
+            # Check for array refference e.g. /collections/parameters[0]
+            if match(r"\w*\[\d+\]$", p):
+                p = p.split("[")
+                idx = int(p[1][:-1])
+                element = element[p[0]][idx]
+            else:
+                element = element[p]
+        
         element = self._map_type(type(element))(element, ref)
-
         return element
     
     def _route(self, route:str) -> dict:

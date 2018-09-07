@@ -14,7 +14,7 @@ class Job(BaseTemplate):
         "network/tx_rate"
     ]
 
-    def __init__(self, template_id, imagestream, configmap, out_pvc, cpu_request, cpu_limit, mem_request, mem_limit):
+    def __init__(self, template_id, image_name, configmap, out_pvc, cpu_request, cpu_limit, mem_request, mem_limit):
         path = "/apis/batch/v1/namespaces/{0}/jobs"
         super().__init__(template_id, path, "Job", "batch/v1")
 
@@ -70,7 +70,7 @@ class Job(BaseTemplate):
                     "restartPolicy": "OnFailure",
                     "containers": [{
                         "name": self.template_id,
-                        "image": imagestream.selfLinks["dockerImageRepository"] + ":latest",
+                        "image": image_name + ":latest",
                         "env": [
                             {
                                 "name": "GDAL_VRT_ENABLE_PYTHON",

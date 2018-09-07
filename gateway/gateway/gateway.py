@@ -111,7 +111,7 @@ class Gateway:
             self._spec.validate_api(self._service.url_map)
         except OpenAPISpecException as exp:
             print(" -> API setup is not valid: " + str(exp))
-            exit()
+            exit(1)
 
     def _init_service(self) -> Flask:
         """Initalizes the Flask application

@@ -31,10 +31,10 @@ class TemplateControllerWrapper:
 
         return "Finished Building", log, obj_image_stream
 
-    def deploy(self, api_connector, template_id, obj_image_stream, obj_config_map, obj_pvc, cpu_request, cpu_limit, mem_request, mem_limit):
+    def deploy(self, api_connector, template_id, image_name, obj_config_map, obj_pvc, cpu_request, cpu_limit, mem_request, mem_limit):
         log = ""
 
-        obj_job = Job(template_id, obj_image_stream, obj_config_map, obj_pvc, cpu_request, cpu_limit, mem_request, mem_limit)
+        obj_job = Job(template_id, image_name, obj_config_map, obj_pvc, cpu_request, cpu_limit, mem_request, mem_limit)
         
         log += "Deploying..."
         obj_job.create(api_connector)

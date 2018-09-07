@@ -64,15 +64,10 @@ class JobService:
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
 
-            if job is None:
-                return ServiceException(400, user_id, "The job with id '{0}' does not exist.".format(job_id), 
-                    internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
+            valid, response = self.authorize(user_id, job_id, job)
+            if not valid: 
+                return response
 
-            # TODO: Permission (e.g admin)
-            if job.user_id != user_id:
-                return ServiceException(401, user_id, "You are not allowed to access this ressource.", 
-                    internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
-            
             response = self.process_graphs_service.get(user_id, job.process_graph_id)
             if response["status"] == "error":
                return response
@@ -125,8 +120,10 @@ class JobService:
             process_response = self.process_graphs_service.create(
                 user_id=user_id, 
                 **{"process_graph": process_graph})
+            
             if process_response["status"] == "error":
                return process_response
+            
             process_graph_id = process_response["service_data"]
 
             job = Job(user_id, process_graph_id, title, description, output, plan, budget)
@@ -147,10 +144,14 @@ class JobService:
     @rpc
     def process(self, user_id: str, job_id: str):
         try:
+            job = self.db.query(Job).filter_by(id=job_id).first()
+
+            valid, response = self.authorize(user_id, job_id, job)
+            if not valid: 
+                return response
+
             job.status = "running"
             self.db.commit()
-
-            job = self.db.query(Job).filter_by(id=job_id).first()
             
             # Get process nodes
             response = self.process_graphs_service.get_nodes(
@@ -180,6 +181,7 @@ class JobService:
             # TODO: Implement Ressource Management
             storage_class = "storage-write"
             storage_size = "5Gi"
+            processing_container_name = "openeo-processing"
             min_cpu = "500m"
             max_cpu = "1"
             min_ram = "256Mi"
@@ -190,8 +192,8 @@ class JobService:
             config_map = self.template_controller.create_config(self.api_connector, "cm-" + job.id, process_nodes)
             
             # Deploy container
-            status, log, metrics =  self.template_controller.deploy(self.api_connector, self.api_connector, "jb-" + job.id,
-                obj_image_stream, config_map, pvc, min_cpu, max_cpu, min_ram, max_ram)
+            status, log, metrics =  self.template_controller.deploy(self.api_connector, self.api_connector, job.id,
+                processing_container_name, config_map, pvc, min_cpu, max_cpu, min_ram, max_ram)
 
             pvc.delete(self.api_connector)
             
@@ -201,19 +203,21 @@ class JobService:
             job.status = "error: " + exp.__str__()
             self.db.commit()
 
-    @rpc
-    def build(self, user_id: str):
-        try:
-            status, log, obj_image_stream = self.template_controller.build(
-                self.api_connector,
-                environ["CONTAINER_NAME"],
-                environ["CONTAINER_TAG"],
-                environ["CONTAINER_GIT_URI"], 
-                environ["CONTAINER_GIT_REF"], 
-                environ["CONTAINER_GIT_DIR"])
-        except Exception as exp:
-            return ServiceException(500, user_id, str(exp),
-                links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
+    # TODO: If build should be automated using an endpoint e.g. /build the following can be 
+    # activated and adapted
+    # @rpc
+    # def build(self, user_id: str):
+    #     try:
+    #         status, log, obj_image_stream = self.template_controller.build(
+    #             self.api_connector,
+    #             environ["CONTAINER_NAME"],
+    #             environ["CONTAINER_TAG"],
+    #             environ["CONTAINER_GIT_URI"], 
+    #             environ["CONTAINER_GIT_REF"], 
+    #             environ["CONTAINER_GIT_DIR"])
+    #     except Exception as exp:
+    #         return ServiceException(500, user_id, str(exp),
+    #             links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
     
     @rpc
     def cancel_processing(self, user_id: str, job_id: str):
@@ -230,6 +234,21 @@ class JobService:
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
                 links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/get"]).to_dict()
+
+
+    def authorize(self, user_id, job_id, job):
+        if job is None:
+            return False, ServiceException(400, user_id, "The job with id '{0}' does not exist.".format(job_id), 
+                internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
+
+        # TODO: Permission (e.g admin)
+        if job.user_id != user_id:
+            return False, ServiceException(401, user_id, "You are not allowed to access this ressource.", 
+                internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
+        
+        return True, None
+
+
 
 
     # @rpc
