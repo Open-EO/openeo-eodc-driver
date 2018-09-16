@@ -37,18 +37,35 @@ parameters:
 - name: HOST
   displayName: HOST URL
   value: 
+  required: true
 - name: CONTACT_NAME
   displayName: Name of Organization
   value: 
+  required: true
 - name: CONTACT_URL
   displayName: URL of Organization
   value: 
+  required: true
 - name: CONTACT_EMAIL
   displayName: Email of Organization
   value: 
+  required: true
 - name: GATEWAY_URL
   displayName: GATEWAY URL (Internal OpenShift)
   value: 
+  required: true
+- name: SECRET_KEY
+  displayName: Secret for OIDC Hashing
+  from: "[a-zA-Z0-9]{16}"
+  generate: expression
+  required: true
+- name: OIDC_CLIENT_SECRETS
+  displayName: OIDC CLIENT SECRETS
+  value: 
+  required: true
+- name: OIDC_OPENID_REALM
+  displayName: OIDC OPENID REALM
+  value:  
   required: true
 - name: GIT_URI
   displayName: Git URI
@@ -152,6 +169,20 @@ objects:
             value: "${GATEWAY_SETTINGS}"
           - name: RABBIT_HOST
             value: "${SERVICE_PREFIX}-rabbitmq"
+          - name: CONTACT_NAME
+            value: "${CONTACT_NAME}"
+          - name: CONTACT_URL
+            value: "${CONTACT_URL}"
+          - name: CONTACT_EMAIL
+            value: "${CONTACT_EMAIL}"
+          - name: GATEWAY_URL
+            value: "${GATEWAY_URL}"
+          - name: SECRET_KEY
+            value: "${SECRET_KEY}"
+          - name: OIDC_CLIENT_SECRETS
+            value: "${OIDC_CLIENT_SECRETS}"
+          - name: OIDC_OPENID_REALM
+            value: "${OIDC_OPENID_REALM}"
           - name: RABBIT_USER
             valueFrom:
               secretKeyRef:
