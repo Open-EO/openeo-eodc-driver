@@ -24,3 +24,5 @@ class JobSchemaFull(Schema):
     plan = fields.Str(required=False)
     costs = fields.Int(attribute="current_costs", required=False)
     budget = fields.Int(required=False)
+    logs = fields.Str(required=False)
+    metrics = fields.Dict(many=True, required=False)

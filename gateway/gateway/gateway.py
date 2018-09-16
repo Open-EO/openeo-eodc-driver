@@ -15,7 +15,7 @@ from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandl
 
 class Gateway:
     """Gateway is the central class to instantiate a RPC based API gateway object based on
-    an OpenAPI v3 specification. The dependencies of the gateway are injected into the object.
+    an OpenAPI v3 specification.
     """
 
     def __init__(self):
@@ -71,8 +71,8 @@ class Gateway:
 
         CORS(self._service, resources=resources)
 
-    def add_endpoint(self, route: str, func: Callable, methods: list=["GET"],
-                     auth: bool=False, role: str=None, validate: bool=False, rpc: bool=True):
+    def add_endpoint(self, route: str, func: Callable, methods: list=["GET"], auth: bool=False, 
+        role: str=None, validate: bool=False, rpc: bool=True, is_async: bool=False):
         """Adds an endpoint to the API, pointing to a Remote Procedure Call (RPC) of a microservice or a
         local function. Serval decorators can be added to enable authentication, authorization and input 
         validation.
@@ -83,15 +83,16 @@ class Gateway:
         
         Keyword Arguments:
             methods {list} -- The allowed HTTP methods (default: {["GET"]})
-            auth {bool} -- Activate authentication (default: {False})   TODO
-            admin {bool} -- Activate authorization (default: {False})   TODO
+            auth {bool} -- Activate authentication (default: {False})
+            admin {bool} -- Activate authorization (default: {False})
             validate {bool} -- Activate input validation (default: {False})
             rpc {bool} -- Setting up a RPC or local function (default: {True})
+            is_async {bool} -- Flags if the function should be executed asynchronously (default: {False})
         """
 
         methods = [method.upper() for method in methods]
 
-        if rpc: func = self._rpc_wrapper(func)
+        if rpc: func = self._rpc_wrapper(func, is_async)
         if validate: func = self._validate(func)
         if role: func = self._authorize(func, role)
         if auth: func = self._authenticate(func)
@@ -185,13 +186,14 @@ class Gateway:
 
         return AuthenticationHandler(self._res, self._rpc, oicd)
 
-    def _rpc_wrapper(self, f:Callable) -> Union[Callable, Response]:
+    def _rpc_wrapper(self, f:Callable, is_async) -> Union[Callable, Response]:
         """The RPC decorator function to handle repsonsed and exception when communicating 
         with the services. This method is a single aggregated endpoint to handle the service 
         communications.
         
         Arguments:
             f {Callable} -- The wrapped function
+            is_async {bool} -- Flags if the function should be executed asynchronously
         
         Returns:
             Union[Callable, Response] -- Returns the decorator function or a HTTP error 
@@ -199,7 +201,10 @@ class Gateway:
 
         def decorator(**arguments):
             try:
-                rpc_response = f(**arguments)
+                rpc_response = f.call_async(**arguments) if is_async else f(**arguments)
+
+                if is_async:
+                    return self._res.parse({"code": 202}) # Fixed, since this currently just applies to POST /jobs/{job_id}/results
 
                 if rpc_response["status"] == "error":
                     return self._res.error(rpc_response)

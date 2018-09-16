@@ -42,9 +42,9 @@ class TemplateControllerWrapper:
         log += obj_job.get_logs(api_connector)
         # metrics = obj_job.get_metrics(api_connector) # TODO: Metrics Error Bug Fixing -> Process to fast executed for metrics
 
-        # obj_job.delete(api_connector) # TODO: Deactivated just for showcasing
+        obj_job.delete(api_connector) # Deactivated for showcasing (jobs are staying in OpenShift space)
         
-        return "Finished Deploying", log, []
+        return log, [] # return log, metrics
 
     # def __set_status(self, status, log="", metrics={}, error=False):
     #     self.status = status

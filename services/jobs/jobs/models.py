@@ -19,6 +19,8 @@ class Job(Base):
     budget = Column(Integer, default=0)
     current_costs = Column(Integer, default=0, nullable=False)
     status = Column(String, default="submitted", nullable=False)
+    logs = Column(String, default={})
+    metrics = Column(JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

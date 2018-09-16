@@ -164,24 +164,24 @@ class JobService:
             process_nodes = response["data"]
 
             # Get file_paths
-            filter_node = process_nodes[0]
+            filter_args = process_nodes[0]["args"]
             response = self.data_service.get_records(
                 detail="file_path",
                 user_id=user_id, 
-                data_id=filter_node["args"]["data_id"],
-                spatial_extent=filter_node["args"]["extent"],
-                temporal_extent=filter_node["args"]["time"])
+                data_id=filter_args["data_id"],
+                spatial_extent=filter_args["extent"],
+                temporal_extent=filter_args["time"])
             
             if response["status"] == "error":
                return response
             
-            filter_node["file_paths"] = response["data"]
+            filter_args["file_paths"] = response["data"]
 
             # TODO: Calculate storage size and get storage class
             # TODO: Implement Ressource Management
             storage_class = "storage-write"
             storage_size = "5Gi"
-            processing_container_name = "openeo-processing"
+            processing_container = "docker-registry.default.svc:5000/execution-environment/openeo-processing"
             min_cpu = "500m"
             max_cpu = "1"
             min_ram = "256Mi"
@@ -192,16 +192,20 @@ class JobService:
             config_map = self.template_controller.create_config(self.api_connector, "cm-" + job.id, process_nodes)
             
             # Deploy container
-            status, log, metrics =  self.template_controller.deploy(self.api_connector, self.api_connector, job.id,
-                processing_container_name, config_map, pvc, min_cpu, max_cpu, min_ram, max_ram)
+            logs, metrics =  self.template_controller.deploy(self.api_connector, job.id, processing_container, 
+                config_map, pvc, min_cpu, max_cpu, min_ram, max_ram)
 
             pvc.delete(self.api_connector)
             
+            job.logs = logs
+            job.metrics = metrics
             job.status = "finished"
             self.db.commit()
+            return
         except Exception as exp:
             job.status = "error: " + exp.__str__()
             self.db.commit()
+            return
 
     # TODO: If build should be automated using an endpoint e.g. /build the following can be 
     # activated and adapted

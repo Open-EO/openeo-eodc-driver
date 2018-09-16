@@ -119,7 +119,10 @@ class Job(BaseTemplate):
                 self.selfLinks["pod"] = pod["metadata"]["selfLink"]
 
     def get_logs(self, api_connector):
-        return api_connector.request("openshift", "get", self.selfLinks["pod"] + "/log")
+        logs = ""
+        if "pod" in self.selfLinks:
+            logs = api_connector.request("openshift", "get", self.selfLinks["pod"] + "/log")
+        return logs
 
     def get_metrics(self, api_connector):
         pod = api_connector.request("openshift", "get", self.selfLinks["pod"])
