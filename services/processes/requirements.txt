@@ -7,6 +7,7 @@ enum-compat==0.0.2
 eventlet==0.21.0
 greenlet==0.4.13
 idna==2.7
+jsonschema==2.6.0
 kombu==3.0.37
 Mako==1.0.7
 MarkupSafe==1.0
