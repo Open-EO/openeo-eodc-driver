@@ -24,7 +24,8 @@ class OpenAPISpecParser:
     The specifications can be queried for definitions of routes. 
     """
 
-    _openapi_file = path.dirname(modules['__main__'].__file__) + "\\openapi.yaml"
+    #_openapi_file = path.dirname(modules['__main__'].__file__) + "\\openapi.yaml" #TODO: change!
+    _openapi_file = "/usr/src/app/openapi.yaml"
     _specs = {}
     _specs_cache = {}
 
