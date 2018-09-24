@@ -26,7 +26,7 @@ class OpenAPISpecParser:
     """
 
     root_dir = Path(__file__).parent.parent.parent
-    _openapi_file = str(root_dir) + "\\openapi.yaml"
+    _openapi_file = str(root_dir) + "/openapi.yaml"
     _specs = {}
     _specs_cache = {}
 
