@@ -33,6 +33,7 @@ class Gateway:
 
         # Setup system endpoints
         self._init_index()
+        self._init_health()
         self._init_openid_discovery()
         self._init_openapi()
         self._init_redoc()
@@ -250,6 +251,21 @@ class Gateway:
 
         self.add_endpoint("/", send_index, rpc=False)
     
+    def _init_health(self):
+        """Initializes the '/health' route and returns a endpoint function.
+        """
+
+        def send_health_check() -> Response:
+            """Returns the the sanity check
+            
+            Returns:
+                Response -- 200 HTTP code
+            """
+
+            return self._res.parse({"code": 200})
+
+        self.add_endpoint("/health", send_health_check, rpc=False)
+
     def _init_openid_discovery(self):
         """Initializes the '/credentials/oidc' route and returns a endpoint function.
         """

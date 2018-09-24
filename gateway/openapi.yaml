@@ -146,6 +146,21 @@ paths:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
         5XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
+  /health:
+    get:
+      summary: Gateway Sanity Check
+      description: >-
+        The request will return a 200 HTTP code if the gateway is running.
+        \n\n **Note:** This is an extension of the EODC API!
+      tags: 
+        - OpenAPI
+      responses:
+        '200':
+          description: The gateway is running.
+        4XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
+        5XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
 components:
   schemas:
     process_graph:
