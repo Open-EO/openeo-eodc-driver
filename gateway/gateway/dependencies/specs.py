@@ -1,6 +1,7 @@
 """ OpenAPISpecParser, OpenAPISpecException """
 
 from os import path
+from pathlib import Path
 from sys import modules
 from flask import request
 from werkzeug.exceptions import BadRequest
@@ -24,8 +25,8 @@ class OpenAPISpecParser:
     The specifications can be queried for definitions of routes. 
     """
 
-    _openapi_file = path.dirname(modules['__main__'].__file__) + "\\openapi.yaml" #TODO: change!
-    #_openapi_file = "/usr/src/app/openapi.yaml"
+    root_dir = Path(__file__).parent.parent.parent
+    _openapi_file = str(root_dir) + "\\openapi.yaml"
     _specs = {}
     _specs_cache = {}
 
