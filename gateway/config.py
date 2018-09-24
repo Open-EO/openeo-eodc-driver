@@ -1,7 +1,5 @@
 ''' Configurations for Gateway '''
 
-from os import path
-
 class BaseConfig:
     ''' Base Configuration '''
     DEBUG = False

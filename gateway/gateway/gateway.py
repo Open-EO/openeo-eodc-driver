@@ -9,6 +9,7 @@ from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
 from flask_oidc import OpenIDConnect
 from typing import Union, Callable
+from json import load
 
 from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException
 
@@ -163,6 +164,8 @@ class Gateway:
             OpenAPISpecParser -- The instantiated OpenAPISpecParser object
         """
 
+        #TODO: Load openapi file here?
+
         return OpenAPISpecParser(self._res)
 
     def _init_auth(self) -> AuthenticationHandler:
@@ -176,7 +179,7 @@ class Gateway:
             "SECRET_KEY": environ.get("SECRET_KEY"),
             "OIDC_CLIENT_SECRETS": environ.get("OIDC_CLIENT_SECRETS"),
             "OIDC_OPENID_REALM": environ.get("OIDC_OPENID_REALM"),
-            'OIDC_ID_TOKEN_COOKIE_SECURE': False    # TODO: Just for development
+            'OIDC_ID_TOKEN_COOKIE_SECURE': environ.get("OIDC_ID_TOKEN_COOKIE_SECURE") == "true"
         }
 
         self._service.config.update(oidc_config)

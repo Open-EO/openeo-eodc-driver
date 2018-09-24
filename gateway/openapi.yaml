@@ -56,7 +56,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1processes/get/responses/200/content/application~1json/schema/items
+              $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1processes/get/responses/200/content/application~1json/schema/properties/processes/items
       security:
         - {}
         - Bearer: []

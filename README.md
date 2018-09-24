@@ -1,14 +1,14 @@
 # openEO: OpenShift Driver
 
 ## Information
-- version: 0.0.2
+- version: 0.3
 - Python: 3.6.2
 - Databases: Postgres, Redis
 - Message Broker: RabbitMQ
 - Dependencies: Flask, Nameko
 
 The openEO OpenShift driver provides openEO API functionality on top of RedHat's OpenShift Origin.
-A flask REST client on route /jobs is provided. The job execution can be distributed on multiple workers using Celery.
+A flask REST client on route /jobs is provided.
 
 For more information on OpenShift please visit:
 - [OpenShift Origin website](https://www.openshift.org/)
@@ -17,13 +17,12 @@ For more information on OpenShift please visit:
 
 ## Installation
 ### Template File
-The template file (template.json) is an OpenShift descriptive file that is used to implement an environment and its parameterized objects.
-A template can be processed and the included objects will be created in the project namespace.
+The template file (template.json) is an OpenShift descriptive file that is used to implement an environment and its parameterized objects.A template can be processed and the included objects will be created in the project namespace.
 The openEO Openshift template file uses references to the public git repository to build and deploy the required services (/services).
 For further information please visit: [OpenShift Templates](https://docs.openshift.org/latest/dev_guide/templates.html)
 
 ### Requirements
-- For the installation and running of the openEO instance a OpenShift cluster with accessible OpenShift APi must be setup. (See: [Installing a cluster](https://docs.openshift.com/container-platform/3.7/install_config/install/planning.html)
+- For the installation and running of the openEO instance a OpenShift cluster with accessible OpenShift API must be setup. (See: [Installing a cluster](https://docs.openshift.com/container-platform/3.7/install_config/install/planning.html)
 - The OpenShift cluster needs to have persitant volumes avaiable and a storage class to access the storage (See: [Configure Persistant Storage](https://docs.openshift.com/container-platform/3.7/install_config/persistent_storage/index.html)
 - The OpenShift Client Tools must be installed (See: [OpenShift client tools download](https://www.openshift.org/download.html))
 
