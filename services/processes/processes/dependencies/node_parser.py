@@ -28,7 +28,7 @@ class NodesWrapper:
         # TODO: Not a good solution: Has to be adapted as soon as 
         # the processes are better specified
         # TODO: Bands can be name, band_id, wavelengths as str or list
-        if process_id == "get_data":
+        if process_id == "get_collection":
             for key, value in filter_args.items():
                 self.filters[key] = value
         if process_id == "filter_bands":
