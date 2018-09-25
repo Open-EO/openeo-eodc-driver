@@ -168,7 +168,7 @@ class JobService:
             response = self.data_service.get_records(
                 detail="file_path",
                 user_id=user_id, 
-                data_id=filter_args["data_id"],
+                data_id=filter_args["name"],
                 spatial_extent=filter_args["extent"],
                 temporal_extent=filter_args["time"])
             
