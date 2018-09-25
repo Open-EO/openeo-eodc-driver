@@ -148,7 +148,7 @@ class JobService:
 
             valid, response = self.authorize(user_id, job_id, job)
             if not valid: 
-                return response
+                raise Exception(response)
 
             job.status = "running"
             self.db.commit()
@@ -159,7 +159,7 @@ class JobService:
                 process_graph_id= job.process_graph_id)
             
             if response["status"] == "error":
-               return response
+               raise Exception(response)
             
             process_nodes = response["data"]
 
@@ -173,7 +173,7 @@ class JobService:
                 temporal_extent=filter_args["time"])
             
             if response["status"] == "error":
-               return response
+               raise Exception(response)
             
             filter_args["file_paths"] = response["data"]
 

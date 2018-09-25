@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 from uuid import uuid4
+from json import dumps
 
 Base = declarative_base()
 
@@ -14,13 +15,13 @@ class Job(Base):
     title = Column(String, nullable=True)
     description = Column(String, nullable=True)
     process_graph_id = Column(String, nullable=False)
-    output = Column(JSON, default={"format": "GTiff"})    # Integrate output formats in table at data/volume service
+    output = Column(JSON, default=dumps({"format": "GTiff"}))    # Integrate output formats in table at data/volume service
     plan = Column(String, default="free")   # Implement plans in database/service
     budget = Column(Integer, default=0)
     current_costs = Column(Integer, default=0, nullable=False)
     status = Column(String, default="submitted", nullable=False)
-    logs = Column(String, default={})
-    metrics = Column(JSON, default={})
+    logs = Column(String, default=dumps({}))
+    metrics = Column(JSON, default=dumps({}))
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -31,6 +32,6 @@ class Job(Base):
         self.process_graph_id = process_graph_id
         if title: self.title = title
         if description: self.description = description
-        if output: self.output = output
+        if output: self.output = dumps(output)
         if plan: self.plan = plan
         if budget: self.budget = budget

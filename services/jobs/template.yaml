@@ -43,11 +43,6 @@ parameters:
   displayName: Git Directory
   value: services/jobs
   required: true
-- name: SECRET
-  displayName: Secret for Password Hashing
-  from: "[a-zA-Z0-9]{16}"
-  generate: expression
-  required: true
 - name: MEMORY_LIMIT_SERVICE
   displayName: Memory Limit
   value: 512Mi
@@ -87,6 +82,35 @@ parameters:
   displayName: Volume Capacity
   value: 5Gi
   required: true
+- name: OPENSHIFT_API
+  displayName: Public URL of the OpenShift node
+  value: 
+  required: true
+- name: HAWKULAR_API
+  displayName: Public URL to the Hawkular endpoint
+  value: 
+  required: true
+- name: SSL_VERIFY
+  displayName: SSL verification
+  value: 
+  required: true
+- name: SA_TOKEN
+  displayName: Token of service account
+  value: 
+  required: true
+- name: OPENSHIFT_PROJECT
+  displayName: Execution environment for the job container
+  value: 
+  required: true
+- name: CONTAINER_NAME
+  displayName: Name of processing container
+  value: 
+  required: true
+- name: CONTAINER_TAG
+  displayName: Tag of processing container
+  value: 
+  required: true
+
 
 objects:
 ### SERVICE ####
@@ -161,8 +185,20 @@ objects:
         - name: "${SERVICE_PREFIX}-${SERVICE_NAME}"
           image: "${SERVICE_PREFIX}-${SERVICE_NAME}"
           env:
-          - name: SECRET
-            value: "${SECRET}"
+          - name: OPENSHIFT_API
+            value: "${OPENSHIFT_API}"
+          - name: HAWKULAR_API
+            value: "${HAWKULAR_API}"
+          - name: SSL_VERIFY
+            value: "${SSL_VERIFY}"
+          - name: SA_TOKEN
+            value: "${SA_TOKEN}"
+          - name: OPENSHIFT_PROJECT
+            value: "${OPENSHIFT_PROJECT}"
+          - name: CONTAINER_NAME
+            value: "${CONTAINER_NAME}"
+          - name: CONTAINER_TAG
+            value: "${CONTAINER_TAG}"
           - name: DB_HOST
             value: "${SERVICE_PREFIX}-${SERVICE_NAME}-db"
           - name: DB_USER
