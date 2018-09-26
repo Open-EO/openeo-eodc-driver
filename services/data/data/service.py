@@ -81,12 +81,12 @@ class DataService:
                 links=["#tag/EO-Data-Discovery/paths/~1data/get"]).to_dict()
 
     @rpc
-    def get_product_detail(self, user_id: str=None, data_id: str=None) -> dict:
+    def get_product_detail(self, user_id: str=None, name: str=None) -> dict:
         """The request will ask the back-end for further details about a dataset.
 
         Keyword Arguments:
             user_id {str} -- The user id (default: {None})
-            data_id {str} -- The product identifier (default: {None})
+            name {str} -- The product identifier (default: {None})
 
         Returns:
             dict -- The product or a serialized exception
