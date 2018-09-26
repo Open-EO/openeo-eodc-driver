@@ -93,8 +93,8 @@ class DataService:
         """
 
         try:
-            data_id = self.arg_parser.parse_product(data_id)
-            product_record = self.csw_session.get_product(data_id)
+            name = self.arg_parser.parse_product(name)
+            product_record = self.csw_session.get_product(name)
             response = ProductRecordSchema().dump(product_record).data
 
             return {
@@ -104,12 +104,12 @@ class DataService:
             }
         except ValidationError as exp:
             return ServiceException(400, user_id, str(exp), internal=False,
-                links=["#tag/EO-Data-Discovery/paths/~1data~1{data_id}/get"]).to_dict()
+                links=["#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"]).to_dict()
         except Exception as exp:
             return ServiceException(500, user_id, str(exp)).to_dict()
 
     @rpc
-    def get_records(self, user_id: str=None, data_id: str=None, detail: str="full", 
+    def get_records(self, user_id: str=None, name: str=None, detail: str="full", 
                     spatial_extent: str=None, temporal_extent: str=None) -> Union[list, dict]:
         """The request will ask the back-end for further details about the records of a dataset.
         The records must be filtered by time and space. Different levels of detail can be returned.
@@ -117,7 +117,7 @@ class DataService:
         Keyword Arguments:
             user_id {str} -- The user id (default: {None})
             detail {str} -- The detail level (full, short, file_paths) (default: {"full"})
-            data_id {str} -- The product identifier (default: {None})
+            name {str} -- The product identifier (default: {None})
             spatial_extent {str} -- The spatial extent (default: {None})
             temporal_extent {str} -- The temporal extent (default: {None})
 
@@ -127,7 +127,7 @@ class DataService:
         # TODO: Filter by license -> see process get_data
 
         try:
-            data_id = self.arg_parser.parse_product(data_id)
+            name = self.arg_parser.parse_product(name)
 
             # Parse the argeuments
             if spatial_extent:
@@ -142,14 +142,14 @@ class DataService:
             response = []
             if detail == "full":
                 response = self.csw_session.get_records_full(
-                    data_id, spatial_extent, start, end)
+                    name, spatial_extent, start, end)
             elif detail == "short":
                 records = self.csw_session.get_records_shorts(
-                    data_id, spatial_extent, start, end)
+                    name, spatial_extent, start, end)
                 response = RecordSchema(many=True).dump(records).data
             elif detail == "file_path":
                 file_paths = self.csw_session.get_file_paths(
-                    data_id, spatial_extent, start, end)
+                    name, spatial_extent, start, end)
                 response = FilePathSchema(many=True).dump(file_paths).data
 
             return {
@@ -159,6 +159,6 @@ class DataService:
             }
         except ValidationError as exp:
             return ServiceException(400, user_id, str(exp), internal=False,
-                links=["#tag/EO-Data-Discovery/paths/~1data~1{data_id}~1records/get"]).to_dict()
+                links=["#tag/EO-Data-Discovery/paths/~1data~1{name}~1records/get"]).to_dict()
         except Exception as exp:
             return ServiceException(500, user_id, str(exp)).to_dict()
