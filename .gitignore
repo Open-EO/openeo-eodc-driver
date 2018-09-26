@@ -116,3 +116,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+gateway/openEO_v0.0.3.postman_collection.json
