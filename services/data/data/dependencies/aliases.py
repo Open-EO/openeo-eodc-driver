@@ -12,6 +12,12 @@ product_aliases = [
             "sentinel-2", 
             "sentinel-2a"
         ]
+    },
+    {
+        'product_id': 's2b_prd_msil1c', 
+        'aliases': [
+            "s2b_prd_msil1c"
+        ]
     }, 
     {
         'product_id': 's1a_csar_grdh_iw', 
