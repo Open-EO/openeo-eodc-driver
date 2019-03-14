@@ -42,17 +42,17 @@ class BBox:
         """Returns the parsed Bounding Box object. Input representations can be a lists, dicts or a strings.
 
         Arguments:
-            qgeom {any} -- The input bounding box representation 
+            qgeom {any} -- The input bounding box representation
 
         Raises:
             ValidationError -- If a error occures while parsing the spatial extent
 
         Returns:
-            BBox -- The bounding box object 
+            BBox -- The bounding box object
         """
 
         types = {
-            dict: lambda x: [x["top"], x["right"], x["bottom"], x["left"]],
+            dict: lambda x: [x["north"], x["east"], x["south"], x["west"]],
             list: lambda x: [x[0], x[1], x[2], x[3]],
             str: lambda x: list(geom_from_wkt(
                 "POLYGON" + x).bounds) if x.startswith("((") else literal_eval(x)
@@ -133,7 +133,7 @@ class ArgParser:
 
         Returns:
             list -- The validated and parsed spatial extent
-        """ 
+        """
 
         if isinstance(spatial_extent, list):
             if not len(spatial_extent) == 4:
@@ -185,7 +185,7 @@ class ArgParserProvider(DependencyProvider):
     """
 
     def get_dependency(self, worker_ctx: object) -> ArgParser:
-        """Return the instantiated object that is injected to a 
+        """Return the instantiated object that is injected to a
         service worker
 
         Arguments:
