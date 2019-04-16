@@ -159,7 +159,7 @@ class JobService:
                 process_graph_id= job.process_graph_id)
 
             if response["status"] == "error":
-               raise Exception(response)
+                raise Exception(response)
 
             process_nodes = response["data"]
 
@@ -173,7 +173,7 @@ class JobService:
                 temporal_extent=filter_args["time"])
 
             if response["status"] == "error":
-               raise Exception(response)
+                raise Exception(response)
 
             filter_args["file_paths"] = response["data"]
 
@@ -181,7 +181,11 @@ class JobService:
             # TODO: Implement Ressource Management
             storage_class = "storage-write"
             storage_size = "5Gi"
-            processing_container = "docker-registry.default.svc:5000/execution-environment/openeo-processing"
+            if "local_registry" in environ:
+                image_registry = environ.get("local_registry")
+            else:
+                image_registry = "docker-registry.default.svc:5000"
+            processing_container = image_registry + "/execution-environment/openeo-processing"
             min_cpu = "500m"
             max_cpu = "4"
             min_ram = "256Mi"
@@ -203,7 +207,7 @@ class JobService:
             self.db.commit()
             return
         except Exception as exp:
-            job.status = "error: " + exp.__str__() #+ ' ' + filter_args
+            job.status = job.status + " error: " + exp.__str__() #+ ' ' + filter_args
             self.db.commit()
             return
 
