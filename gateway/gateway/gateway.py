@@ -9,7 +9,6 @@ from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
 from flask_oidc import OpenIDConnect
 from typing import Union, Callable
-from json import load
 
 from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException
 
@@ -25,11 +24,12 @@ class Gateway:
         self._res = self._init_response()
         self._spec = self._init_specs()
         self._auth = self._init_auth()
-        
+
         # Decorators
         self._validate = self._spec.validate
-        self._authenticate = self._auth.oidc
-        self._authorize = self._auth.check_role 
+        #self._authenticate = self._auth.oidc
+        self._authenticate = self._auth.oidc_token
+        self._authorize = self._auth.check_role
 
         # Setup system endpoints
         self._init_index()
@@ -41,10 +41,10 @@ class Gateway:
         # Add custom error handler
         self._service.register_error_handler(404, self._parse_error_to_json)
         self._service.register_error_handler(405, self._parse_error_to_json)
-    
+
     def get_service(self) -> Flask:
         """Returns the Flask service object
-        
+
         Returns:
             Flask -- The Flask object
         """
@@ -53,7 +53,7 @@ class Gateway:
     def get_rpc_context(self) -> Union[AppContext, FlaskPooledClusterRpcProxy]:
         """Returns the application context of the Flask application object and the
         RPC proxy object to create new endpoints.
-        
+
         Returns:
             Union[AppContext, FlaskPooledClusterRpcProxy] -- The app context and RPC proxy
         """
@@ -66,23 +66,23 @@ class Gateway:
     def set_cors(self, resources: dict = {r"/*": {"origins": "*"}}):
         """Initializes the CORS header. The header rules/resources are passed using a dictonary.
         FOr more information visit: https://flask-cors.readthedocs.io/en/latest/
-        
+
         Arguments:
             resources {dict} -- The resource description (default: {{r"/*": {"origins": "*"}}})
         """
 
         CORS(self._service, resources=resources)
 
-    def add_endpoint(self, route: str, func: Callable, methods: list=["GET"], auth: bool=False, 
+    def add_endpoint(self, route: str, func: Callable, methods: list=["GET"], auth: bool=False,
         role: str=None, validate: bool=False, rpc: bool=True, is_async: bool=False):
         """Adds an endpoint to the API, pointing to a Remote Procedure Call (RPC) of a microservice or a
-        local function. Serval decorators can be added to enable authentication, authorization and input 
+        local function. Serval decorators can be added to enable authentication, authorization and input
         validation.
 
         Arguments:
             route {str} -- The endpoint route (e.g. '/')
             func {Callable} -- The RPC or function, to which the route is pointing.
-        
+
         Keyword Arguments:
             methods {list} -- The allowed HTTP methods (default: {["GET"]})
             auth {bool} -- Activate authentication (default: {False})
@@ -118,7 +118,7 @@ class Gateway:
 
     def _init_service(self) -> Flask:
         """Initalizes the Flask application
-        
+
         Returns:
             Flask -- The instantiated Flask object
         """
@@ -130,7 +130,7 @@ class Gateway:
 
     def _init_rpc(self) -> FlaskPooledClusterRpcProxy:
         """Initalizes the RPC proxy
-        
+
         Returns:
             FlaskPooledClusterRpcProxy -- The instantiated FlaskPooledClusterRpcProxy object
         """
@@ -151,7 +151,7 @@ class Gateway:
 
     def _init_response(self) -> ResponseParser:
         """Initalizes the ResponseParser
-        
+
         Returns:
             ResponseParser -- The instantiated ResponseParser object
         """
@@ -160,7 +160,7 @@ class Gateway:
 
     def _init_specs(self) -> OpenAPISpecParser:
         """Initalizes the OpenAPISpecParser
-        
+
         Returns:
             OpenAPISpecParser -- The instantiated OpenAPISpecParser object
         """
@@ -169,7 +169,7 @@ class Gateway:
 
     def _init_auth(self) -> AuthenticationHandler:
         """Initalizes the AuthenticationHandler
-        
+
         Returns:
             AuthenticationHandler -- The instantiated AuthenticationHandler object
         """
@@ -189,16 +189,16 @@ class Gateway:
         return AuthenticationHandler(self._res, self._rpc, oicd)
 
     def _rpc_wrapper(self, f:Callable, is_async) -> Union[Callable, Response]:
-        """The RPC decorator function to handle repsonsed and exception when communicating 
-        with the services. This method is a single aggregated endpoint to handle the service 
+        """The RPC decorator function to handle repsonsed and exception when communicating
+        with the services. This method is a single aggregated endpoint to handle the service
         communications.
-        
+
         Arguments:
             f {Callable} -- The wrapped function
             is_async {bool} -- Flags if the function should be executed asynchronously
-        
+
         Returns:
-            Union[Callable, Response] -- Returns the decorator function or a HTTP error 
+            Union[Callable, Response] -- Returns the decorator function or a HTTP error
         """
 
         def decorator(**arguments):
@@ -225,7 +225,7 @@ class Gateway:
         def send_index() -> Response:
             """The function returns a JSON object containing the available routes and
             HTTP methods as defined in the OpenAPI specification.
-            
+
             Returns:
                 Response -- JSON object contains the API capabilities
             """
@@ -239,7 +239,7 @@ class Gateway:
                     if method_name in ("get", "post", "patch", "put", "delete"):
                         endpoint["methods"].append(method_name.upper())
                 endpoints.append(endpoint)
-            
+
             capabilities = {
                 "version": api_spec["info"]["version"],
                 "endpoints": endpoints
@@ -248,14 +248,14 @@ class Gateway:
             return self._res.parse({"code": 200, "data": capabilities})
 
         self.add_endpoint("/", send_index, rpc=False)
-    
+
     def _init_health(self):
         """Initializes the '/health' route and returns a endpoint function.
         """
 
         def send_health_check() -> Response:
             """Returns the the sanity check
-            
+
             Returns:
                 Response -- 200 HTTP code
             """
@@ -270,7 +270,7 @@ class Gateway:
 
         def send_openid_connect_discovery() -> Response:
             """Redirects to the OpenID Connect discovery document.
-            
+
             Returns:
                 Response -- Redirect to the OpenID Connect discovery document
             """
@@ -285,7 +285,7 @@ class Gateway:
 
         def send_openapi() -> Response:
             """Returns the parsed OpenAPI specification as JSON
-            
+
             Returns:
                 Response -- JSON object containing the OpenAPI specification
             """
@@ -300,7 +300,7 @@ class Gateway:
 
         def send_redoc() -> Response:
             """Returns the ReDoc clients
-            
+
             Returns:
                 Response -- The HTML file containing the ReDoc client setup
             """
@@ -308,7 +308,7 @@ class Gateway:
             return self._res.parse({"html": "redoc.html"})
 
         self.add_endpoint("/redoc", send_redoc, rpc=False)
-    
+
     def _parse_error_to_json(self, exc):
         return self._res.error(
             APIException(
