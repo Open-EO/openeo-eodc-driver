@@ -13,7 +13,7 @@ from jsonschema import ValidationError
 
 
 class ServiceException(Exception):
-    """ServiceException raises if an exception occured while processing the 
+    """ServiceException raises if an exception occured while processing the
     request. The ServiceException is mapping any exception to a serializable
     format for the API gateway.
     """
@@ -87,7 +87,7 @@ class ProcessesService:
     @rpc
     def get_all(self, user_id: str=None):
         """The request asks the back-end for available processes and returns detailed process descriptions.
-        
+
         Keyword Arguments:
             user_id {str} -- The identifier of the user (default: {None})
         """
@@ -102,7 +102,7 @@ class ProcessesService:
             }
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
-    
+
     # @rpc
     # def get_processes(self, user_id):
     #     try:
@@ -169,18 +169,19 @@ class ProcessesGraphService:
 
     @rpc
     def get(self, user_id: str, process_graph_id: str):
+        import pdb; pdb.set_trace()
         try:
             process_graph = self.db.query(ProcessGraph).filter_by(id=process_graph_id).first()
 
             if process_graph is None:
-                return ServiceException(ProcessesService.name, 400, user_id, 
-                    "The process_graph with id '{0}' does not exist.".format(process_graph_id), internal=False, 
+                return ServiceException(ProcessesService.name, 400, user_id,
+                    "The process_graph with id '{0}' does not exist.".format(process_graph_id), internal=False,
                     links=["#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/get"]).to_dict()
 
             # TODO: Permission (e.g admin)
             if process_graph.user_id != user_id:
                 return ServiceException(ProcessesService.name, 401, user_id,
-                    "You are not allowed to access this ressource.", internal=False, 
+                    "You are not allowed to access this resource.", internal=False,
                     links=["#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/get"]).to_dict()
 
             return {
@@ -198,13 +199,13 @@ class ProcessesGraphService:
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp),
                     links=["#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/delete"]).to_dict()
-    
+
     @rpc
     def modify(self, user_id: str, process_graph_id: str, **process_graph_args):
         try:
             raise Exception("Not implemented yet!")
         except Exception as exp:
-            return ServiceException(ProcessesService.name, 500, user_id, str(exp), 
+            return ServiceException(ProcessesService.name, 500, user_id, str(exp),
                     links=["#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/patch"]).to_dict()
 
     @rpc
@@ -220,7 +221,7 @@ class ProcessesGraphService:
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp),
                     links=["#tag/Job-Management/paths/~1process_graphs/get"]).to_dict()
-    
+
     @rpc
     def create(self, user_id: str, **process_graph_args):
         """The request will ask the back-end to create a new process using the description send in the request body.
@@ -241,7 +242,7 @@ class ProcessesGraphService:
             if process_response["status"] == "error":
                return process_response
             processes = process_response["data"]
-            
+
             process_graph = ProcessGraph(**{"user_id": user_id, **process_graph_args})
 
             nodes = self.node_parser.parse_process_graph(process_graph_json, processes)
@@ -268,7 +269,7 @@ class ProcessesGraphService:
             }
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
-    
+
     @rpc
     def validate(self, user_id: str, process_graph: dict):
         """The request will ask the back-end to create a new process using the description send in the request body.
@@ -309,7 +310,7 @@ class ProcessesGraphService:
 
         try:
             process_graph = self.db.query(ProcessGraph).filter_by(id=process_graph_id).first()
-            nodes = sorted(process_graph.nodes, key=lambda n: n.seq_num) 
+            nodes = sorted(process_graph.nodes, key=lambda n: n.seq_num)
 
             return {
                     "status": "success",

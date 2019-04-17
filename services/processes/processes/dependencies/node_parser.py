@@ -15,17 +15,11 @@ class NodesWrapper:
 
     def parse_process_graph(self, process_graph: dict, processes: list) -> list:
         self.parse_nodes(process_graph, processes)
-        
-        self.nodes.append({
-            "process_id": "get_data",
-            "args":  self.filters
-        })
-        
         return self.nodes
-    
+
     def parse_filter(self, process_id: str, filter_args: dict):
 
-        # TODO: Not a good solution: Has to be adapted as soon as 
+        # TODO: Not a good solution: Has to be adapted as soon as
         # the processes are better specified
         # TODO: Bands can be name, band_id, wavelengths as str or list
         if process_id == "get_collection":

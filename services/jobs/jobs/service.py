@@ -17,7 +17,7 @@ service_name = "jobs"
 
 
 class ServiceException(Exception):
-    """ServiceException raises if an exception occured while processing the 
+    """ServiceException raises if an exception occured while processing the
     request. The ServiceException is mapping any exception to a serializable
     format for the API gateway.
     """
@@ -65,13 +65,13 @@ class JobService:
             job = self.db.query(Job).filter_by(id=job_id).first()
 
             valid, response = self.authorize(user_id, job_id, job)
-            if not valid: 
+            if not valid:
                 return response
 
             response = self.process_graphs_service.get(user_id, job.process_graph_id)
             if response["status"] == "error":
                return response
-            
+
             job.process_graph = response["data"]["process_graph"]
 
             return {
@@ -84,14 +84,14 @@ class JobService:
                 links=["#tag/Job-Management/paths/~1jobs~1{job_id}/get"]).to_dict()
 
     @rpc
-    def modify(self, user_id: str, job_id: str, process_graph: dict, title: str=None, description: str=None, 
+    def modify(self, user_id: str, job_id: str, process_graph: dict, title: str=None, description: str=None,
                output: dict=None, plan: str=None, budget: int=None):
         try:
             raise Exception("Not implemented yet!")
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
                 links=["#tag/Job-Management/paths/~1jobs~1{job_id}/patch"]).to_dict()
-    
+
     @rpc
     def delete(self, user_id: str, job_id: str):
         try:
@@ -114,16 +114,16 @@ class JobService:
             return ServiceException(500, user_id, str(exp),
                 links=["#tag/Job-Management/paths/~1jobs/get"]).to_dict()
     @rpc
-    def create(self, user_id: str, process_graph: dict, title: str=None, description: str=None, output: dict=None, 
+    def create(self, user_id: str, process_graph: dict, title: str=None, description: str=None, output: dict=None,
                    plan: str=None, budget: int=None):
         try:
             process_response = self.process_graphs_service.create(
-                user_id=user_id, 
+                user_id=user_id,
                 **{"process_graph": process_graph})
-            
+
             if process_response["status"] == "error":
                return process_response
-            
+
             process_graph_id = process_response["service_data"]
 
             job = Job(user_id, process_graph_id, title, description, output, plan, budget)
@@ -140,74 +140,78 @@ class JobService:
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
                 links=["#tag/Job-Management/paths/~1jobs/post"]).to_dict()
-    
+
     @rpc
     def process(self, user_id: str, job_id: str):
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
 
             valid, response = self.authorize(user_id, job_id, job)
-            if not valid: 
+            if not valid:
                 raise Exception(response)
 
             job.status = "running"
             self.db.commit()
-            
+
             # Get process nodes
             response = self.process_graphs_service.get_nodes(
-                user_id=user_id, 
+                user_id=user_id,
                 process_graph_id= job.process_graph_id)
-            
+
             if response["status"] == "error":
-               raise Exception(response)
-            
+                raise Exception(response)
+
             process_nodes = response["data"]
 
             # Get file_paths
             filter_args = process_nodes[0]["args"]
             response = self.data_service.get_records(
                 detail="file_path",
-                user_id=user_id, 
-                data_id=filter_args["name"],
+                user_id=user_id,
+                name=filter_args["name"],
                 spatial_extent=filter_args["extent"],
                 temporal_extent=filter_args["time"])
-            
+
             if response["status"] == "error":
-               raise Exception(response)
-            
+                raise Exception(response)
+
             filter_args["file_paths"] = response["data"]
 
             # TODO: Calculate storage size and get storage class
             # TODO: Implement Ressource Management
             storage_class = "storage-write"
             storage_size = "5Gi"
-            processing_container = "docker-registry.default.svc:5000/execution-environment/openeo-processing"
+            if "local_registry" in environ:
+                image_registry = environ.get("local_registry")
+            else:
+                image_registry = "docker-registry.default.svc:5000"
+            processing_container = image_registry + "/execution-environment/openeo-processing"
             min_cpu = "500m"
-            max_cpu = "1"
+            max_cpu = "4"
             min_ram = "256Mi"
-            max_ram = "1Gi"
+            max_ram = "5Gi"
 
             # Create OpenShift objects
             pvc = self.template_controller.create_pvc(self.api_connector, "pvc-" + job.id, storage_class, storage_size)
             config_map = self.template_controller.create_config(self.api_connector, "cm-" + job.id, process_nodes)
-            
+
             # Deploy container
-            logs, metrics =  self.template_controller.deploy(self.api_connector, job.id, processing_container, 
+            logs, metrics =  self.template_controller.deploy(self.api_connector, job.id, processing_container,
                 config_map, pvc, min_cpu, max_cpu, min_ram, max_ram)
 
             pvc.delete(self.api_connector)
-            
+
             job.logs = logs
             job.metrics = metrics
             job.status = "finished"
             self.db.commit()
             return
         except Exception as exp:
-            job.status = "error: " + exp.__str__()
+            job.status = job.status + " error: " + exp.__str__() #+ ' ' + filter_args
             self.db.commit()
             return
 
-    # TODO: If build should be automated using an endpoint e.g. /build the following can be 
+    # TODO: If build should be automated using an endpoint e.g. /build the following can be
     # activated and adapted
     # @rpc
     # def build(self, user_id: str):
@@ -216,13 +220,13 @@ class JobService:
     #             self.api_connector,
     #             environ["CONTAINER_NAME"],
     #             environ["CONTAINER_TAG"],
-    #             environ["CONTAINER_GIT_URI"], 
-    #             environ["CONTAINER_GIT_REF"], 
+    #             environ["CONTAINER_GIT_URI"],
+    #             environ["CONTAINER_GIT_REF"],
     #             environ["CONTAINER_GIT_DIR"])
     #     except Exception as exp:
     #         return ServiceException(500, user_id, str(exp),
     #             links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
-    
+
     @rpc
     def cancel_processing(self, user_id: str, job_id: str):
         try:
@@ -230,7 +234,7 @@ class JobService:
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
                 links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
-    
+
     @rpc
     def get_results(self, user_id: str, job_id: str):
         try:
@@ -242,14 +246,14 @@ class JobService:
 
     def authorize(self, user_id, job_id, job):
         if job is None:
-            return False, ServiceException(400, user_id, "The job with id '{0}' does not exist.".format(job_id), 
+            return False, ServiceException(400, user_id, "The job with id '{0}' does not exist.".format(job_id),
                 internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         # TODO: Permission (e.g admin)
         if job.user_id != user_id:
-            return False, ServiceException(401, user_id, "You are not allowed to access this ressource.", 
+            return False, ServiceException(401, user_id, "You are not allowed to access this ressource.",
                 internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
-        
+
         return True, None
 
 
@@ -276,7 +280,7 @@ class JobService:
     #         return {"status": "error", "service": self.name, "key": "Forbidden", "msg": str(exp)}
     #     except Exception as exp:
     #         return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
-    
+
     # @rpc
     # def process_job(self, job_id):
     #     try:
@@ -326,38 +330,38 @@ class JobService:
     #                 for p in processes:
     #                     if p["process_id"] == task.process_id:
     #                         process = p
-                    
+
     #                 config_map = self.template_controller.create_config(
-    #                     self.api_connector, 
-    #                     template_id, 
+    #                     self.api_connector,
+    #                     template_id,
     #                     {
     #                         "template_id": template_id,
     #                         "last": previous_folder,
     #                         "args": task.args
     #                     })
-                    
+
     #                 image_name = process["process_id"].replace("_", "-").lower() # TODO: image name in process spec
 
     #                 status, log, obj_image_stream = self.template_controller.build(
-    #                     self.api_connector, 
-    #                     template_id, 
+    #                     self.api_connector,
+    #                     template_id,
     #                     image_name,
     #                     "latest",   # TODO: Implement tagging in process service
-    #                     process["git_uri"], 
-    #                     process["git_ref"], 
+    #                     process["git_uri"],
+    #                     process["git_ref"],
     #                     process["git_dir"])
 
     #                 status, log, metrics =  self.template_controller.deploy(
-    #                     self.api_connector, 
+    #                     self.api_connector,
     #                     template_id,
-    #                     obj_image_stream, 
+    #                     obj_image_stream,
     #                     config_map,
     #                     pvc,
     #                     "500m",     # TODO: Implement Ressource Management
-    #                     "1", 
-    #                     "256Mi", 
+    #                     "1",
+    #                     "256Mi",
     #                     "1Gi")
-                    
+
     #                 previous_folder = template_id
     #             except APIConnectionError as exp:
     #                 task.status = exp.__str__()

@@ -14,7 +14,7 @@ class APIException(Exception):
     # TODO: links -> Rertrieve own host name
 
     def __init__(self, msg: str=None, code: int=500, service: str=None,
-                 user_id: str=None, internal: bool=True, 
+                 user_id: str=None, internal: bool=True,
                  links: list=[""], **args):
 
         self._id = uuid4()
@@ -27,20 +27,27 @@ class APIException(Exception):
 
     def to_dict(self):
         """Returns a dict representation of the APIException object.
-        If the 
         """
 
-        if self._internal:
-            # TODO: Custom HTTP Code messages?
+        if self._msg:
+            msg = self._msg
+        elif self._internal:
             msg = "The request can't be fulfilled due to an error at the back-end."
         else:
-            msg = self._msg
+            msg = "Something went wrong, but it's not clear what."
+
+        # if self._internal:
+        #     # TODO: Custom HTTP Code messages?
+        #     msg = "The request can't be fulfilled due to an error at the back-end."
+        # else:
+        #     msg = self._msg
 
         return {
             "id": self._id,
             "code": self._code,
             "message": msg,
-            "links": self._links
+            "links": self._links,
+            "service": self._service
         }
 
     def __str__(self):
@@ -53,7 +60,7 @@ class APIException(Exception):
 
 class ResponseParser:
     """The ResponseParser is responsible for generating and sending the response back
-    to the user. Furthermore, it is responsible for aggregated logging. 
+    to the user. Furthermore, it is responsible for aggregated logging.
     """
 
     def __init__(self, logger):
@@ -102,21 +109,21 @@ class ResponseParser:
         '/html' folder.
 
         Arguments:
-            file_name {str} -- The file name of the HTML file 
+            file_name {str} -- The file name of the HTML file
 
         Returns:
             Response -- The Response object
         """
 
         return send_file("html/" + file_name)
-    
+
     def parse(self, payload: dict) -> Response:
         """Maps and parses the responses that are returned from the single
         endpoints.
 
         Arguments:
             payload {dict} -- The payload object
-        
+
         Returns:
             Response -- The parsed response
         """
@@ -140,7 +147,7 @@ class ResponseParser:
 
     def error(self, exc: Union[dict, Exception]) -> Response:
         """Returns a error response back to the user. The input can be either be a dict response
-        of a service, a APIExcption object or a general Exception object. The error is logged 
+        of a service, a APIExcption object or a general Exception object. The error is logged
         using standard Flask logging.
 
         Arguments:
@@ -160,13 +167,13 @@ class ResponseParser:
         error_dict = error.to_dict()
 
         return make_response(jsonify(error_dict), error_dict["code"])
-    
+
     def redirect(self, url:str) -> Response:
         """Redirects to another URL
-        
+
         Arguments:
             url {str} -- The URL to redirect to
-        
+
         Returns:
             Response -- The Response object
         """
