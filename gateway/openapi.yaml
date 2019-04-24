@@ -35,21 +35,27 @@ tags:
     description: Management of batch processing tasks (jobs) and their results.
 paths:
   /:
+    tags:
+      - Capabilities
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1
+  /output_formats:
+    tags:
+      - Capabilities
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1output_formats
   /collections:
+    tags:
+      - EO Data Discovery
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1collections
   /collections/{name}:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1collections~1{name}
   /credentials/oidc:
-    get:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1credentials~1oidc
-      tags:
-        - Account Management
+    tags:
+      - Account Management
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1credentials~1oidc
   /me:
-    get:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1me
-      tags:
-        - Account Management
+    tags:
+      - Account Management
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1me
   /processes:
     get:
       $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1processes/get

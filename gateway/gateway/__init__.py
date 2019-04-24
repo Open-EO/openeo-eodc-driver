@@ -16,7 +16,7 @@ with ctx:
 
     # Capabilities
     gateway.add_endpoint("/", func=gateway.send_index, rpc=False)
-    # /output_formats
+    gateway.add_endpoint("/output_formats", func=gateway.get_output_formats, rpc=False)
     # /service_types
 
     # EO Data Discovery
