@@ -230,6 +230,26 @@ class JobService:
             "headers": {"Location": "jobs/" + job_id }
         }
 
+
+    @rpc
+    def estimate(self, user_id: str, job_id: str):
+        """
+        Basic function to return default information about processng costs on back-end.
+        """
+
+        default_out = {
+            "costs": 0,
+            "duration": "null",
+            "download_included": True,
+            "expires": "null"
+        }
+
+        return {
+            "status": "success",
+            "code": 200,
+            "data": default_out
+        }
+
     # TODO: If build should be automated using an endpoint e.g. /build the following can be
     # activated and adapted
     # @rpc
