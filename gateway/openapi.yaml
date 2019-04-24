@@ -41,14 +41,17 @@ paths:
   /collections/{name}:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1collections~1{name}
   /credentials/oidc:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1credentials~1oidc
+    get:
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1credentials~1oidc
+      tags:
+        - Authentication
   /processes:
     get:
       $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1processes/get
     post:
       summary: Creates a new process.
       description: >-
-        The request will ask the back-end to create a new process using the desciption send in the request body. 
+        The request will ask the back-end to create a new process using the desciption send in the request body.
         \n\n **Note:** This is an extension of the EODC API!
       tags:
         - Process Discovery
@@ -85,7 +88,7 @@ paths:
       description: >-
         The request will return the OpenAPI v3.0.1 specification as JSON document.
         \n\n **Note:** This is an extension of the EODC API!
-      tags: 
+      tags:
         - OpenAPI
       responses:
         '200':
@@ -100,7 +103,7 @@ paths:
       description: >-
         The request will return a ReDoc client that can be used to inspect the OpenAPI v3.0.1 specification.
         \n\n **Note:** This is an extension of the EODC API!
-      tags: 
+      tags:
         - OpenAPI
       responses:
         '200':
@@ -118,7 +121,7 @@ paths:
     get:
       summary: Information the records of a specific EO dataset with the spatial and temporal extents.
       description: >-
-        The request will ask the back-end for further details about the records of a dataset specified by the identifier `data_id`. 
+        The request will ask the back-end for further details about the records of a dataset specified by the identifier `data_id`.
         \n\n **Note:** This is an extension of the EODC API!
       tags:
         - EO Data Discovery
@@ -132,27 +135,27 @@ paths:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
         5XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
-  /oidc_callback:
-    get:
-      summary: Callback for OpenID Connect
-      description: >-
-        URL relative to the web root to indicate where the oidc_callback url is mounted on.
-      tags: 
-        - Authentication
-      responses:
-        '200':
-          description: The verifiction endpoint of OIDC.
-        4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
-        5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
+  # /oidc_callback:
+  #   get:
+  #     summary: Callback for OpenID Connect
+  #     description: >-
+  #       URL relative to the web root to indicate where the oidc_callback url is mounted on.
+  #     tags:
+  #       - Authentication
+  #     responses:
+  #       '200':
+  #         description: The verifiction endpoint of OIDC.
+  #       4XX:
+  #         $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/client_error
+  #       5XX:
+  #         $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/components/responses/server_error
   /health:
     get:
       summary: Gateway Sanity Check
       description: >-
         The request will return a 200 HTTP code if the gateway is running.
         \n\n **Note:** This is an extension of the EODC API!
-      tags: 
+      tags:
         - OpenAPI
       responses:
         '200':
