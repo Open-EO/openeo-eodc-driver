@@ -29,7 +29,7 @@ tags:
     description: Discovery of Earth observation datasets that are available at the back-end.
   - name: Process Discovery
     description: Discovery of processes that are available at the back-end.
-  - name: Authentication
+  - name: Account Management
     description: Authentication of users.
   - name: Job Management
     description: Management of batch processing tasks (jobs) and their results.
@@ -44,7 +44,12 @@ paths:
     get:
       $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1credentials~1oidc
       tags:
-        - Authentication
+        - Account Management
+  /me:
+    get:
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1me
+      tags:
+        - Account Management
   /processes:
     get:
       $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.0/openapi.json#/paths/~1processes/get
@@ -141,7 +146,7 @@ paths:
   #     description: >-
   #       URL relative to the web root to indicate where the oidc_callback url is mounted on.
   #     tags:
-  #       - Authentication
+  #       - Account Management
   #     responses:
   #       '200':
   #         description: The verifiction endpoint of OIDC.

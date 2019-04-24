@@ -31,13 +31,6 @@ class Gateway:
         self._authenticate = self._auth.oidc_token
         self._authorize = self._auth.check_role
 
-        # Setup system endpoints
-        #self._init_index()
-        #self._init_health()
-        #self._init_openid_discovery()
-        #self._init_openapi()
-        #self._init_redoc()
-
         # Add custom error handler
         self._service.register_error_handler(404, self._parse_error_to_json)
         self._service.register_error_handler(405, self._parse_error_to_json)
@@ -185,7 +178,7 @@ class Gateway:
         # oicd = OpenIDConnect()
         # oicd.init_app(self._service)
 
-        return AuthenticationHandler(self._res, self._rpc) #, oicd)
+        return AuthenticationHandler(self._res) #, self._rpc) #, oicd)
 
     def _rpc_wrapper(self, f:Callable, is_async) -> Union[Callable, Response]:
         """The RPC decorator function to handle repsonsed and exception when communicating
@@ -291,3 +284,15 @@ class Gateway:
                 code=exc.code,
                 service="gateway",
                 internal=False))
+
+
+    def get_user_info(self) -> Response:
+        """Returns info about the (logged in) user.
+
+        Returns:
+            Response -- 200 HTTP code
+        """
+
+        user_info = self._auth.user_info()
+
+        return self._res.parse({"code": 200, "data": user_info})

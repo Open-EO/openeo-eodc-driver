@@ -33,7 +33,7 @@ with ctx:
     # Account Management
     gateway.add_endpoint("/credentials/oidc", func=gateway.send_openid_connect_discovery, rpc=False)
     # /credentials/basic
-    # /me
+    gateway.add_endpoint("/me", func=gateway.get_user_info, rpc=False)
 
     # File Management
     # /files/<user_id>
