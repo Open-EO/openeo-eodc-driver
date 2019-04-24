@@ -135,6 +135,7 @@ class JobService:
             return {
                 "status": "success",
                 "code": 201,
+                "data": "jobs/" + job_id,
                 "headers": {"Location": "jobs/" + job_id }
             }
         except Exception as exp:
@@ -210,6 +211,24 @@ class JobService:
             job.status = job.status + " error: " + exp.__str__() #+ ' ' + filter_args
             self.db.commit()
             return
+
+    @rpc
+    def process_sync(self, user_id: str, process_graph: dict, output: dict=None,
+                     plan: str=None, budget: int=None):
+        """
+        Creates a processes a job directly using two other functions of this class.
+        """
+
+        response = self.create(user_id=user_id, process_graph=process_graph, output=output, plan=plan, budget=budget)
+        job_id = response['headers']['Location'].split('jobs/')[-1]
+
+        _ = self.process(user_id=user_id, job_id=job_id)
+
+        return {
+            "status": "success",
+            "code": 201,
+            "headers": {"Location": "jobs/" + job_id }
+        }
 
     # TODO: If build should be automated using an endpoint e.g. /build the following can be
     # activated and adapted
