@@ -7,7 +7,7 @@ from flask.ctx import AppContext
 from flask.wrappers import Response
 from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
-from flask_oidc import OpenIDConnect
+#from flask_oidc import OpenIDConnect
 from typing import Union, Callable
 
 from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException
@@ -32,11 +32,11 @@ class Gateway:
         self._authorize = self._auth.check_role
 
         # Setup system endpoints
-        self._init_index()
-        self._init_health()
-        self._init_openid_discovery()
-        self._init_openapi()
-        self._init_redoc()
+        #self._init_index()
+        #self._init_health()
+        #self._init_openid_discovery()
+        #self._init_openapi()
+        #self._init_redoc()
 
         # Add custom error handler
         self._service.register_error_handler(404, self._parse_error_to_json)
@@ -180,13 +180,12 @@ class Gateway:
             "OIDC_OPENID_REALM": environ.get("OIDC_OPENID_REALM"),
             'OIDC_ID_TOKEN_COOKIE_SECURE': environ.get("OIDC_ID_TOKEN_COOKIE_SECURE") == "true"
         }
-
         self._service.config.update(oidc_config)
 
-        oicd = OpenIDConnect()
-        oicd.init_app(self._service)
+        # oicd = OpenIDConnect()
+        # oicd.init_app(self._service)
 
-        return AuthenticationHandler(self._res, self._rpc, oicd)
+        return AuthenticationHandler(self._res, self._rpc) #, oicd)
 
     def _rpc_wrapper(self, f:Callable, is_async) -> Union[Callable, Response]:
         """The RPC decorator function to handle repsonsed and exception when communicating
@@ -216,98 +215,74 @@ class Gateway:
                 return self._res.error(exc)
         return decorator
 
-    def _init_index(self):
-        """Initializes the '/' index route and returns a endpoint function.
+
+    def send_index(self) -> Response:
+        """The function returns a JSON object containing the available routes and
+        HTTP methods as defined in the OpenAPI specification.
+
+        Returns:
+            Response -- JSON object contains the API capabilities
         """
         # TODO: Index endpoint should be own rpc endpoint to be more generic
         # TODO: Implement billing plans
 
-        def send_index() -> Response:
-            """The function returns a JSON object containing the available routes and
-            HTTP methods as defined in the OpenAPI specification.
+        api_spec = self._spec.get()
 
-            Returns:
-                Response -- JSON object contains the API capabilities
-            """
+        endpoints = []
+        for path_name, methods in api_spec["paths"].items():
+            endpoint = {"path": path_name, "methods": []}
+            for method_name, _ in methods.items():
+                if method_name in ("get", "post", "patch", "put", "delete"):
+                    endpoint["methods"].append(method_name.upper())
+            endpoints.append(endpoint)
 
-            api_spec = self._spec.get()
+        capabilities = {
+            "version": api_spec["info"]["version"],
+            "endpoints": endpoints
+        }
 
-            endpoints = []
-            for path_name, methods in api_spec["paths"].items():
-                endpoint = {"path": path_name, "methods": []}
-                for method_name, _ in methods.items():
-                    if method_name in ("get", "post", "patch", "put", "delete"):
-                        endpoint["methods"].append(method_name.upper())
-                endpoints.append(endpoint)
+        return self._res.parse({"code": 200, "data": capabilities})
 
-            capabilities = {
-                "version": api_spec["info"]["version"],
-                "endpoints": endpoints
-            }
 
-            return self._res.parse({"code": 200, "data": capabilities})
+    def send_health_check(self) -> Response:
+        """Returns the the sanity check
 
-        self.add_endpoint("/", send_index, rpc=False)
-
-    def _init_health(self):
-        """Initializes the '/health' route and returns a endpoint function.
+        Returns:
+            Response -- 200 HTTP code
         """
 
-        def send_health_check() -> Response:
-            """Returns the the sanity check
+        return self._res.parse({"code": 200})
 
-            Returns:
-                Response -- 200 HTTP code
-            """
 
-            return self._res.parse({"code": 200})
+    def send_openid_connect_discovery(self) -> Response:
+        """Redirects to the OpenID Connect discovery document.
 
-        self.add_endpoint("/health", send_health_check, rpc=False)
-
-    def _init_openid_discovery(self):
-        """Initializes the '/credentials/oidc' route and returns a endpoint function.
+        Returns:
+            Response -- Redirect to the OpenID Connect discovery document
         """
 
-        def send_openid_connect_discovery() -> Response:
-            """Redirects to the OpenID Connect discovery document.
+        return self._res.redirect(environ.get("OPENID_DISCOVERY"))
 
-            Returns:
-                Response -- Redirect to the OpenID Connect discovery document
-            """
 
-            return self._res.redirect(environ.get("OPENID_DISCOVERY"))
+    def send_openapi(self) -> Response:
+        """Returns the parsed OpenAPI specification as JSON
 
-        self.add_endpoint("/credentials/oidc", send_openid_connect_discovery, rpc=False)
-
-    def _init_openapi(self):
-        """Initializes the '/openapi' route and returns a endpoint function.
+        Returns:
+            Response -- JSON object containing the OpenAPI specification
         """
 
-        def send_openapi() -> Response:
-            """Returns the parsed OpenAPI specification as JSON
+        return self._res.parse({"code": 200, "data": self._spec.get()})
 
-            Returns:
-                Response -- JSON object containing the OpenAPI specification
-            """
 
-            return self._res.parse({"code": 200, "data": self._spec.get()})
+    def send_redoc(self) -> Response:
+        """Returns the ReDoc clients
 
-        self.add_endpoint("/openapi", send_openapi, rpc=False)
-
-    def _init_redoc(self):
-        """Initializes the '/redoc' route and returns a endpoint function.
+        Returns:
+            Response -- The HTML file containing the ReDoc client setup
         """
 
-        def send_redoc() -> Response:
-            """Returns the ReDoc clients
+        return self._res.parse({"html": "redoc.html"})
 
-            Returns:
-                Response -- The HTML file containing the ReDoc client setup
-            """
-
-            return self._res.parse({"html": "redoc.html"})
-
-        self.add_endpoint("/redoc", send_redoc, rpc=False)
 
     def _parse_error_to_json(self, exc):
         return self._res.error(
