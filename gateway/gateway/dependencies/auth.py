@@ -18,7 +18,7 @@ class AuthenticationHandler:
     send by the user is valid.
     """
 
-    def __init__(self, response_handler: ResponseParser, rpc_proxy: FlaskPooledClusterRpcProxy, oidc: OpenIDConnect):
+    def __init__(self, response_handler: ResponseParser, rpc_proxy: FlaskPooledClusterRpcProxy): #, oidc: OpenIDConnect):
         self._res = response_handler
         self._rpc = rpc_proxy
         # self._oidc = oidc
