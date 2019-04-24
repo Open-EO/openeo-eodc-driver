@@ -66,32 +66,32 @@ class AuthenticationHandler:
                 return self._res.error(exc)
         return decorator
 
-    def oidc(self, f):
-        def decorator(*args, **kwargs):
-            try:
-                if g.oidc_id_token is None:
-                    return self._oidc.redirect_to_auth_server(request.url)
-
-                user_id = self._oidc.user_getfield("sub")
-
-                if not self._oidc.user_getfield("email_verified"):
-                    raise APIException(
-                        msg="The email address of user {0} is not verified."\
-                            .format(user_id),
-                        code=401,
-                        service="gateway",
-                        internal=False)
-
-                return f(user_id=user_id)
-            except exceptions.HTTPError as exc:
-                raise APIException(
-                    msg=str(exc),
-                    code=401,
-                    service="gateway",
-                    internal=False)
-            except Exception as exc:
-                return self._res.error(exc)
-        return decorator
+    # def oidc(self, f):
+    #     def decorator(*args, **kwargs):
+    #         try:
+    #             if g.oidc_id_token is None:
+    #                 return self._oidc.redirect_to_auth_server(request.url)
+    #
+    #             user_id = self._oidc.user_getfield("sub")
+    #
+    #             if not self._oidc.user_getfield("email_verified"):
+    #                 raise APIException(
+    #                     msg="The email address of user {0} is not verified."\
+    #                         .format(user_id),
+    #                     code=401,
+    #                     service="gateway",
+    #                     internal=False)
+    #
+    #             return f(user_id=user_id)
+    #         except exceptions.HTTPError as exc:
+    #             raise APIException(
+    #                 msg=str(exc),
+    #                 code=401,
+    #                 service="gateway",
+    #                 internal=False)
+    #         except Exception as exc:
+    #             return self._res.error(exc)
+    #     return decorator
 
     def check_role(self, f, role):
         def decorator(user_id=None):
