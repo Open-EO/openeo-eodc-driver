@@ -3,7 +3,7 @@
 from os import environ
 from flask import request, g
 from flask.wrappers import Request, Response
-from flask_oidc import OpenIDConnect
+#from flask_oidc import OpenIDConnect
 from flask_nameko import FlaskPooledClusterRpcProxy
 from requests import post, exceptions
 from jwt import decode
@@ -18,33 +18,19 @@ class AuthenticationHandler:
     send by the user is valid.
     """
 
-    def __init__(self, response_handler: ResponseParser, rpc_proxy: FlaskPooledClusterRpcProxy, oidc: OpenIDConnect):
+    def __init__(self, response_handler: ResponseParser):
         self._res = response_handler
-        self._rpc = rpc_proxy
-        # self._oidc = oidc
+
+        # Instantiate keycloak client
+        self.keycloak_openid = start_keycloak()
 
     def oidc_token(self, func):
         def decorator(*args, **kwargs):
             try:
-                token = None
-                if 'Authorization' in request.headers and request.headers['Authorization'].startswith('Bearer '):
-                    token = request.headers['Authorization'].replace('Bearer ', '')
-                if not token:
-                    raise APIException(
-                        msg="Bearer token missing from request.",
-                        code=401,
-                        service="gateway",
-                        internal=False)
-
-                # Instantiate keycloak client
-                keycloak_openid = KeycloakOpenID(
-                    server_url=environ.get('OIDC_URL'),
-                    realm_name=environ.get('OIDC_REALM'),
-                    client_id=environ.get('OIDC_CLIENT_ID'),
-                    client_secret_key=environ.get('OIDC_CLIENT_SECRET'))
+                token = self._parse_auth_header(request)
 
                 # Check validity of token
-                userinfo = keycloak_openid.userinfo(token)
+                userinfo = self.keycloak_openid.userinfo(token)
                 if userinfo['email_verified']:
                     user_id = userinfo['sub']
                     decorated_function = func(user_id=user_id)
@@ -66,32 +52,32 @@ class AuthenticationHandler:
                 return self._res.error(exc)
         return decorator
 
-    def oidc(self, f):
-        def decorator(*args, **kwargs):
-            try:
-                if g.oidc_id_token is None:
-                    return self._oidc.redirect_to_auth_server(request.url)
-
-                user_id = self._oidc.user_getfield("sub")
-
-                if not self._oidc.user_getfield("email_verified"):
-                    raise APIException(
-                        msg="The email address of user {0} is not verified."\
-                            .format(user_id),
-                        code=401,
-                        service="gateway",
-                        internal=False)
-
-                return f(user_id=user_id)
-            except exceptions.HTTPError as exc:
-                raise APIException(
-                    msg=str(exc),
-                    code=401,
-                    service="gateway",
-                    internal=False)
-            except Exception as exc:
-                return self._res.error(exc)
-        return decorator
+    # def oidc(self, f):
+    #     def decorator(*args, **kwargs):
+    #         try:
+    #             if g.oidc_id_token is None:
+    #                 return self._oidc.redirect_to_auth_server(request.url)
+    #
+    #             user_id = self._oidc.user_getfield("sub")
+    #
+    #             if not self._oidc.user_getfield("email_verified"):
+    #                 raise APIException(
+    #                     msg="The email address of user {0} is not verified."\
+    #                         .format(user_id),
+    #                     code=401,
+    #                     service="gateway",
+    #                     internal=False)
+    #
+    #             return f(user_id=user_id)
+    #         except exceptions.HTTPError as exc:
+    #             raise APIException(
+    #                 msg=str(exc),
+    #                 code=401,
+    #                 service="gateway",
+    #                 internal=False)
+    #         except Exception as exc:
+    #             return self._res.error(exc)
+    #     return decorator
 
     def check_role(self, f, role):
         def decorator(user_id=None):
@@ -149,43 +135,30 @@ class AuthenticationHandler:
         return token_split[1]
 
 
-    # !!! INFO: Replaced Bearer Tokens with OIDC
-    # def bearer(self, f: Callable) -> Union[Callable, Response]:
-    #     """Decorator function to authenticate the user, using a bearer token
-    #     that is contained within the response header. Returns a HTTP error if the
-    #     bearer token is not valid.
+    def user_info(self) -> dict:
+        """
+        Get info about loggedin user from token embedded in the request's headers.
+        """
 
-    #     Arguments:
-    #         f {Callable} -- The wrapped function
+        token = self._parse_auth_header(request)
+        userinfo = self.keycloak_openid.userinfo(token)
 
-    #     Returns:
-    #         Union[Callable, Response] -- Returns the decorator function or a HTTP error
-    #     """
-    #     # TODO: Decorator for authorization -> or (admin and not user["admin"])
+        user_info = {}
+        user_info['userid'] = userinfo['sub']
+        user_info['email'] = userinfo['email']
 
-    #     def decorator(*args, **kwargs):
-    #         try:
-    #             rpc_response = self._rpc.auth.identify(token)
+        return user_info
 
-    #             if rpc_response["status"] == "error":
-    #                 raise self._res.error(rpc_response)
+def start_keycloak():
+    """
+    Start Keycloak client according to credentials stored in env variables.
+    """
 
-    #             user = rpc_response["data"]
+    # Instantiate keycloak client
+    keycloak_openid = KeycloakOpenID(
+        server_url=environ.get('OIDC_URL'),
+        realm_name=environ.get('OIDC_REALM'),
+        client_id=environ.get('OIDC_CLIENT_ID'),
+        client_secret_key=environ.get('OIDC_CLIENT_SECRET'))
 
-    #             if not user["active"]:
-    #                 raise APIException(
-    #                     msg="User is not active.",
-    #                     code=response.status_code,
-    #                     servide="gateway",
-    #                     internal=False)
-
-    #             return f(user_id=user["user_id"])
-    #         except exceptions.HTTPError as exc:
-    #             raise APIException(
-    #                 msg=str(exc),
-    #                 code=response.status_code,
-    #                 service="gateway",
-    #                 internal=False)
-    #         except Exception as exc:
-    #             return self._res.error(exc)
-    #     return decorator
+    return keycloak_openid
