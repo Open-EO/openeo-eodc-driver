@@ -194,6 +194,12 @@ class JobService:
 
             # Create OpenShift objects
             pvc = self.template_controller.create_pvc(self.api_connector, "pvc-" + job.id, storage_class, storage_size)
+            # Add user_id and job_id to job data
+            process_nodes = {
+                'user_id': user_id,
+                'job_id': job.id,
+                'process_graph': process_nodes
+            }
             config_map = self.template_controller.create_config(self.api_connector, "cm-" + job.id, process_nodes)
 
             # Deploy container
