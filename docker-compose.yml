@@ -1,0 +1,81 @@
+version: '3.4'
+services:
+  rabbitmq:
+    image: rabbitmq:3.6-management
+    hostname: rabbitmq
+    env_file:
+      - ./envs/rabbitmq.env
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:15672"]
+        interval: 30s
+        timeout: 10s
+        retries: 5
+
+  openeo-gateway:
+    image: openeo-gateway:latest
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    env_file:
+      - ./envs/rabbitmq_service.env
+      - ./envs/gateway.env
+      - ./envs/oidc.env
+    ports:
+      - 3000:3000
+
+  openeo-data:
+    image: openeo-data
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - openeo-gateway
+    env_file:
+      - ./envs/rabbitmq_service.env
+      - ./envs/data.env
+
+  openeo-processes:
+    image: openeo-processes
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - openeo-gateway
+      - processes_db
+
+    env_file:
+      - ./envs/rabbitmq_service.env
+      - ./envs/processes_service.env
+
+  processes_db:
+    image: postgres
+    restart: always
+    hostname: processes_db
+    volumes:
+      - ./processes_db_data:/var/lib/postgresql/data
+    env_file:
+      - ./envs/processes_db.env
+
+  openeo-jobs:
+    image: openeo-jobs
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - openeo-gateway
+      - jobs_db
+
+    env_file:
+      - ./envs/rabbitmq_service.env
+      - ./envs/jobs_service.env
+
+    # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
+
+  jobs_db:
+    image: postgres
+    restart: always
+    hostname: jobs_db
+    volumes:
+      - ./jobs_db_data:/var/lib/postgresql/data
+    env_file:
+      - ./envs/jobs_db.env
