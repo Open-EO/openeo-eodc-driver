@@ -1,8 +1,8 @@
 ''' Argument Parser '''
 
 from nameko.extensions import DependencyProvider
-from shapely.geometry.base import geom_from_wkt, WKTReadingError
-from pyproj import Proj, transform
+#from shapely.geometry.base import geom_from_wkt, WKTReadingError
+#from pyproj import Proj, transform
 from datetime import datetime
 from ast import literal_eval
 
@@ -53,9 +53,9 @@ class BBox:
 
         types = {
             dict: lambda x: [x["north"], x["east"], x["south"], x["west"]],
-            list: lambda x: [x[0], x[1], x[2], x[3]],
-            str: lambda x: list(geom_from_wkt(
-                "POLYGON" + x).bounds) if x.startswith("((") else literal_eval(x)
+            list: lambda x: [x[0], x[1], x[2], x[3]]#,
+            # str: lambda x: list(geom_from_wkt(
+            #     "POLYGON" + x).bounds) if x.startswith("((") else literal_eval(x)
         }
 
         try:
@@ -66,9 +66,11 @@ class BBox:
                     "Type of Polygon/Bbox '{0}' is wrong.".format(qgeom))
 
             return BBox(bounds[0], bounds[1], bounds[2], bounds[3])
-        except WKTReadingError:
-            raise ValidationError(
-                "Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(qgeom))
+        except:
+            print("Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(qgeom))
+        # except WKTReadingError:
+        #     raise ValidationError(
+        #         "Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(qgeom))
 
     def __init__(self, x1: float, y1: float, x2: float, y2: float, epsg: str=None):
         self.x1 = x1
@@ -84,11 +86,13 @@ class BBox:
             out_epsg {str} -- Output projection (default: {"epsg:4326"})
         """
 
-        in_proj = Proj(init=self.epsg)
-        out_proj = Proj(init=out_epsg)
-        self.x1, self.y1 = transform(in_proj, out_proj, self.x1, self.y1)
-        self.x2, self.y2 = transform(in_proj, out_proj, self.x2, self.y2)
-        self.epsg = out_epsg
+        # in_proj = Proj(init=self.epsg)
+        # out_proj = Proj(init=out_epsg)
+        # self.x1, self.y1 = transform(in_proj, out_proj, self.x1, self.y1)
+        # self.x2, self.y2 = transform(in_proj, out_proj, self.x2, self.y2)
+        # self.epsg = out_epsg
+
+        return
 
 
 class ArgParser:
