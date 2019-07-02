@@ -1,7 +1,15 @@
 version: '3.4'
 services:
+  openeo-base:
+    build: ./base
+    image: openeo-base
+    container_name: openeo-base
+    command: echo
+    network_mode: none
+
   rabbitmq:
     image: rabbitmq:3.6-management
+    container_name: openeo-rabbitmq
     hostname: rabbitmq
     env_file:
       - ./envs/rabbitmq.env
@@ -14,8 +22,30 @@ services:
         timeout: 10s
         retries: 5
 
+  jobs_db:
+    image: postgres
+    container_name: openeo-jobs-db
+    restart: always
+    hostname: jobs_db
+    volumes:
+      - /srv/openeo/data/jobs_db_data:/var/lib/postgresql/data
+    env_file:
+      - ./envs/jobs_db.env
+
+  processes_db:
+      image: postgres
+      container_name: openeo-processes-db
+      restart: always
+      hostname: processes_db
+      volumes:
+        - /srv/openeo/data/processes_db_data:/var/lib/postgresql/data
+      env_file:
+        - ./envs/processes_db.env
+
   openeo-gateway:
-    image: openeo-gateway:latest
+    image: openeo-gateway
+    build: ./gateway
+    container_name: openeo-gateway
     restart: on-failure
     depends_on:
       - rabbitmq
@@ -27,7 +57,9 @@ services:
       - 3000:3000
 
   openeo-data:
+    build: ./services/data
     image: openeo-data
+    container_name: openeo-data
     restart: on-failure
     depends_on:
       - rabbitmq
@@ -37,45 +69,29 @@ services:
       - ./envs/data.env
 
   openeo-processes:
+    build: ./services/processes
     image: openeo-processes
+    container_name: openeo-processes
     restart: on-failure
     depends_on:
       - rabbitmq
       - openeo-gateway
       - processes_db
-
     env_file:
       - ./envs/rabbitmq_service.env
       - ./envs/processes_service.env
 
-  processes_db:
-    image: postgres
-    restart: always
-    hostname: processes_db
-    volumes:
-      - ./processes_db_data:/var/lib/postgresql/data
-    env_file:
-      - ./envs/processes_db.env
-
   openeo-jobs:
+    build: ./services/jobs
     image: openeo-jobs
+    container_name: openeo-jobs
     restart: on-failure
     depends_on:
       - rabbitmq
       - openeo-gateway
       - jobs_db
-
     env_file:
       - ./envs/rabbitmq_service.env
       - ./envs/jobs_service.env
-
+      
     # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
-
-  jobs_db:
-    image: postgres
-    restart: always
-    hostname: jobs_db
-    volumes:
-      - ./jobs_db_data:/var/lib/postgresql/data
-    env_file:
-      - ./envs/jobs_db.env
