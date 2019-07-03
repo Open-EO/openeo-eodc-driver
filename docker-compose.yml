@@ -22,7 +22,7 @@ services:
         timeout: 10s
         retries: 5
     networks:
-      - openeo
+      - default
 
   jobs_db:
     image: postgres
@@ -34,7 +34,7 @@ services:
     env_file:
       - ./envs/jobs_db.env
     networks:
-      - openeo
+      - default
 
   processes_db:
       image: postgres
@@ -46,7 +46,7 @@ services:
       env_file:
         - ./envs/processes_db.env
       networks:
-        - openeo
+        - default
 
   openeo-gateway:
     image: openeo-gateway
@@ -63,7 +63,7 @@ services:
     ports:
       - 3000:3000
     networks:
-      - openeo
+      - default
 
   openeo-data:
     build: ./services/data
@@ -78,7 +78,7 @@ services:
       - ./envs/rabbitmq_service.env
       - ./envs/data.env
     networks:
-      - openeo
+      - default
 
   openeo-processes:
     build: ./services/processes
@@ -94,7 +94,7 @@ services:
       - ./envs/rabbitmq_service.env
       - ./envs/processes_service.env
     networks:
-      - openeo
+      - default
 
   openeo-jobs:
     build: ./services/jobs
@@ -110,12 +110,12 @@ services:
       - ./envs/rabbitmq_service.env
       - ./envs/jobs_service.env
     networks:
-      - openeo
+      - default
 
 networks:
-  openeo:
+  default:
     external:
-      name: proxy
+      name: nginx_proxy
 
 
 
