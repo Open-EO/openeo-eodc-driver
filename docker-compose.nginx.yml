@@ -1,8 +1,9 @@
-version: '3'
+version: '3.4'
 
 services:
   nginx:
     image: jwilder/nginx-proxy:alpine
+    build: ./nginx
     container_name: nginx
     restart: always
     labels:
