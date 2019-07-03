@@ -49,6 +49,7 @@ services:
     restart: on-failure
     depends_on:
       - rabbitmq
+      - openeo-base
     env_file:
       - ./envs/rabbitmq_service.env
       - ./envs/gateway.env
@@ -64,6 +65,7 @@ services:
     depends_on:
       - rabbitmq
       - openeo-gateway
+      - openeo-base
     env_file:
       - ./envs/rabbitmq_service.env
       - ./envs/data.env
@@ -77,6 +79,7 @@ services:
       - rabbitmq
       - openeo-gateway
       - processes_db
+      - openeo-base
     env_file:
       - ./envs/rabbitmq_service.env
       - ./envs/processes_service.env
@@ -90,6 +93,8 @@ services:
       - rabbitmq
       - openeo-gateway
       - jobs_db
+      - openeo-base
+
     env_file:
       - ./envs/rabbitmq_service.env
       - ./envs/jobs_service.env
