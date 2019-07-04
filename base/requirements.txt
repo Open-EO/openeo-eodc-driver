@@ -1,6 +1,6 @@
 amqp==1.4.9
 anyjson==0.3.3
-certifi==1.11.5
+certifi==2018.8.24
 chardet==3.0.4
 enum-compat==0.0.2
 eventlet==0.21.0
