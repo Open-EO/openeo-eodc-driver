@@ -104,6 +104,6 @@ services:
 networks:
   default:
     external:
-      name: ${PROJECT_NAME}_proxy
+      name: openeo-openshift-driver_proxy
 
     # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
