@@ -27,15 +27,15 @@ PROJECT_NAME=openeo-openshift-driver # name this after project folder
 
 Each container has its own environment file.
 
-*Copy the `sample-envs` directory to `./envs`
-*Adjust each environment file accordingly
-*Make sure to use secure and unique credentials!
-*Do not add `./envs`to a git repository! (added to `.gitgnore` by default - don't change this!)
+- Copy the `sample-envs` directory to `./envs`
+- Adjust each environment file accordingly
+- Make sure to use secure and unique credentials!
+- Do not add `./envs`to a git repository! (added to `.gitgnore` by default - don't change this!)
 
 ## Persistent data
 
-*NGINX config files and SSL certs are bind mounted to the host at `/srv/nginx/data/`.
-*PostgreSQL databases are bind mounted to `/srv/openeo/data/jobs_db_data`and `/srv/openeo/data/processes_db_data`.
+- NGINX config files and SSL certs are bind mounted to the host at `/srv/nginx/data/`.
+- PostgreSQL databases are bind mounted to `/srv/openeo/data/jobs_db_data`and `/srv/openeo/data/processes_db_data`.
 
 It is a good idea to mount a seperate logical volume to the `/srv` directory of the Docker host.
 
@@ -46,14 +46,14 @@ In this case you have to change the default Docker MTU from 1500 to e.g. 1450
 
 Should you be running docker on OpenStack follow these steps: 
 
-*Use your editor of choice and edit `/etc/docker/daemon.json`
-*If the file does not exist, create it.
+- Use your editor of choice and edit `/etc/docker/daemon.json`
+- If the file does not exist, create it.
 
 ```bash
 sudo vim /etc/docker/daemon.json
 ```
 
-*Paste the following lines.
+- Paste the following lines.
 
 ```json
 {
@@ -61,13 +61,13 @@ sudo vim /etc/docker/daemon.json
 }
 ```
 
-*Restart Docker
+- Restart Docker
 
 ```bash
 sudo systemctl restart docker
 ```
 
-*Edit `docker-compose.nginx.yml` and uncomment the driver options.
+- Edit `docker-compose.nginx.yml` and uncomment the driver options.
 
 ```yml
 networks:
@@ -86,7 +86,7 @@ The script will check if image dependencies are met, build necessary images and 
 After the script completes succesfully it will create an empty `.init` file. This is needed in case
 you want to use the `run.sh` script the image build process is skipped.
 
-*Make the script executable and run it.
+- Make the script executable and run it.
 
 ```bash
 sudo chmod +x run.sh
