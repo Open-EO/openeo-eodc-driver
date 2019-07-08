@@ -30,7 +30,7 @@ services:
     volumes:
       - /srv/openeo/data/jobs_db_data:/var/lib/postgresql/data
     env_file:
-      - ./envs/jobs_db.env
+      - ./envs/jobs.env
 
 
   processes_db:
@@ -41,7 +41,7 @@ services:
       volumes:
         - /srv/openeo/data/processes_db_data:/var/lib/postgresql/data
       env_file:
-        - ./envs/processes_db.env
+        - ./envs/processes.env
 
   openeo-gateway:
     image: openeo-gateway
@@ -52,7 +52,7 @@ services:
       - rabbitmq
       - openeo-base
     env_file:
-      - ./envs/rabbitmq_service.env
+      - ./envs/rabbitmq.env
       - ./envs/gateway.env
       - ./envs/oidc.env
     environment:
@@ -75,7 +75,7 @@ services:
       - openeo-gateway
       - openeo-base
     env_file:
-      - ./envs/rabbitmq_service.env
+      - ./envs/rabbitmq.env
       - ./envs/data.env
 
 
@@ -90,8 +90,8 @@ services:
       - processes_db
       - openeo-base
     env_file:
-      - ./envs/rabbitmq_service.env
-      - ./envs/processes_service.env
+      - ./envs/rabbitmq.env
+      - ./envs/processes.env
 
 
   openeo-jobs:
@@ -105,8 +105,8 @@ services:
       - jobs_db
       - openeo-base
     env_file:
-      - ./envs/rabbitmq_service.env
-      - ./envs/jobs_service.env
+      - ./envs/rabbitmq.env
+      - ./envs/jobs.env
 
 networks:
   default:
