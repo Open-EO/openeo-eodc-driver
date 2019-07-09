@@ -175,34 +175,9 @@ class OpenAPISpecParser:
 
                 parameters = get_parameters()
 
-                parsed_params = {}
-                for p_name, p_specs in specs.items():
-                    if p_name not in parameters.keys():
-                        if p_name in required:
-                            if "default" in p_specs:
-                                parsed_params[p_name] = p_specs["default"]
-                            else:
-                                msg = "Missing parameter {0}.".format(p_name)
-                                raise APIException(msg=msg, code=400, service="gateway", internal=False)
-                    else:
-                        p_value = parameters[p_name]
+                # TODO validation
 
-                        if "type" in p_specs:
-                            p_value = type_map.get(p_specs["type"], lambda x: x)(p_value)
-                        
-                        if "pattern" in p_specs:
-                            if not match(p_specs["pattern"], p_value):
-                                msg = "Parameter {0} does not match pattern {1}.".format(p_name, p_specs["pattern"])
-                                raise APIException(msg=msg, code=400, service="gateway", internal=False)
-
-                        if "enum" in p_specs:
-                            if not p_value in p_specs["enum"]:
-                                msg = "Parameter {0} does not match enum item {1}.".format(p_name, p_specs["enum"])
-                                raise APIException(msg=msg, code=400, service="gateway", internal=False)
-                        
-                        parsed_params[p_name] = p_value
-    
-                return f(user_id=user_id, **parsed_params)
+                return f(user_id=user_id,  **parameters)
             except Exception as exc:
                 return self._res.error(exc)
         return decorator
