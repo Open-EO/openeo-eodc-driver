@@ -83,6 +83,10 @@ services:
     image: openeo-processes
     container_name: openeo-processes
     restart: on-failure
+    volumes:
+      - process-api-data:$PROCESS_API_DIR
+    environment:
+      PROCESS_API_DIR: $PROCESS_API_DIR
     depends_on:
       - rabbitmq
       - openeo-gateway
@@ -111,5 +115,8 @@ networks:
   default:
     external:
       name: ${PROJECT_NAME}_proxy
+
+volumes:
+  process-api-data:
 
     # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)

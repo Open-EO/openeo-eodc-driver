@@ -1,7 +1,6 @@
 """ Models """
 # TODO: Further normalize models
 
-from os import environ
 from sqlalchemy import Column, Integer, String, Boolean, TEXT, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
@@ -9,76 +8,6 @@ from datetime import datetime
 from uuid import uuid4
 
 Base = declarative_base()
-
-class Process(Base):
-    """ Base model for a process description. """
-
-    __tablename__ = 'processes'
-
-    id = Column(String, primary_key=True, autoincrement=True)
-    user_id = Column(String, nullable=False)
-    name = Column(String, nullable=False, unique=True)
-    summary = Column(TEXT, nullable=True)
-    description = Column(TEXT, nullable=False)
-    parameters = relationship('Parameter', backref='process')
-    min_parameters = Column(Integer, nullable=True)
-    returns = Column(JSON, nullable=False)
-    deprecated = Column(Boolean, default=False)
-    exceptions = Column(JSON, nullable=True)
-    examples = Column(JSON, nullable=True)
-    links = Column(JSON, nullable=True)
-    p_type = Column(String, default="operation")
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
-
-    def __init__(self, user_id: str, name: str, description: str, returns: dict, summary: str=None,
-                 min_parameters: int=None, deprecated: bool=None, exceptions: dict=None, 
-                 examples: dict=None, links: dict=None, p_type: dict=None):
-        
-        self.id = "pc-" + str(uuid4())
-        self.user_id = user_id
-        self.name = name
-        self.description = description
-        self.returns = returns
-        if summary: self.summary = summary
-        if min_parameters: self.min_parameters = min_parameters
-        if deprecated: self.deprecated = deprecated
-        if exceptions: self.exceptions = exceptions
-        if examples: self.examples = examples
-        if links: self.links = links
-        if p_type: self.p_type = p_type
-
-
-class Parameter(Base):
-    """ Base model for a process graph parameters. """
-
-    __tablename__ = 'parameters'
-
-    id = Column(String, primary_key=True, autoincrement=True)
-    process_id = Column(String, ForeignKey('processes.id'), nullable=False)
-    name = Column(String, nullable=False)
-    description = Column(TEXT, nullable=False)
-    required = Column(Boolean, default=False)
-    deprecated = Column(Boolean, default=False)
-    mime_type = Column(String, nullable=True)
-    schema = Column(JSON, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
-    def __init__(self, process_id: str, name: str, description: str, schema: dict,
-                 required: bool=None, deprecated: bool=None,mime_type: str=None):
-
-        self.id = "pa-" + str(uuid4())
-        self.process_id = process_id
-        self.name = name
-        self.description = description
-        self.required = required
-        self.deprecated = deprecated
-        self.schema = schema
-        if required: self.required = required
-        if deprecated: self.deprecated = deprecated
-        if mime_type: self.mime_type = mime_type
 
 
 class ProcessGraph(Base):
