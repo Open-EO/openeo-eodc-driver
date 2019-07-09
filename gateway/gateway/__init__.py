@@ -20,14 +20,14 @@ with ctx:
     # /service_types
 
     # EO Data Discovery
-    gateway.add_endpoint("/collections", func=rpc.data.get_all_products, auth=True, validate=True)
-    gateway.add_endpoint("/collections/<name>", func=rpc.data.get_product_detail, auth=True, validate=True)
+    gateway.add_endpoint("/collections", func=rpc.data.get_all_products, auth=False, validate=True)
+    gateway.add_endpoint("/collections/<name>", func=rpc.data.get_product_detail, auth=False, validate=True)
     # NB following route should become a process, and not be available as a route
-    gateway.add_endpoint("/collections/<name>/records", func=rpc.data.get_records, auth=True, validate=True) # NB extension of openEO API
+    gateway.add_endpoint("/collections/<name>/records", func=rpc.data.get_records, auth=False, validate=True) # NB extension of openEO API
     # /subscription
 
     # Process Discovery
-    gateway.add_endpoint("/processes", func=rpc.processes.get_all, auth=True, validate=True)
+    gateway.add_endpoint("/processes", func=rpc.processes.get_all, auth=False, validate=True)
     gateway.add_endpoint("/processes", func=rpc.processes.create, auth=True, validate=True, methods=["POST"], role="admin") # NB extension of openEO API
 
     # Account Management
