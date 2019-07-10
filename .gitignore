@@ -3,3 +3,6 @@
 .vscode
 envs
 .init
+airflow/deploy-key
+airflow/dags/__pycache__
+airflow/plugins/__pycache__
