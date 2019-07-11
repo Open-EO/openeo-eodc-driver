@@ -1,13 +1,16 @@
 """ Process Discovery """
 
+import os
+import requests
+import json
+
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
 from sqlalchemy import exc
-from uuid import uuid4
 from copy import deepcopy
 
-from .models import Base, Process, Parameter, ProcessGraph, ProcessNode
-from .schema import ProcessSchema, ProcessNodeSchema, ProcessGraphShortSchema, ProcessGraphFullSchema
+from .models import Base, ProcessGraph, ProcessNode
+from .schema import ProcessGraphShortSchema, ProcessGraphFullSchema, ProcessNodeSchema
 from .dependencies import NodeParser, Validator
 from jsonschema import ValidationError
 
@@ -50,35 +53,39 @@ class ProcessesService:
     """
 
     name = "processes"
-    db = DatabaseSession(Base)
 
     @rpc
     def create(self, user_id: str=None, **process_args):
-        """The request will ask the back-end to create a new process using the description send in the request body.
+        """The request will ask the back-end to create get process from GitHub using the name send in the request body.
 
         Keyword Arguments:
             user_id {str} -- The identifier of the user (default: {None})
+
+        Example:
+            /processes POST is only reachable for admin users > authentication token needed in header!
+            The POST body needs to be a dict: {'process-name': {'additional_key': 'value'}}
+            Currently process-name has to be proccess defined within OpenEO
+            > see: https://raw.githubusercontent.com/Open-EO/openeo-processes/
+            The additional key-value pairs can also have complex structures. They will be added at the top-level of the
+            json file.
         """
-
+        process_args_str = ', '.join(process_args.keys())
         try:
-            parameters = process_args.pop("parameters", {})
-            process = Process(**{"user_id": user_id, **process_args})
-
-            for parameter_name, parameter_specs in parameters.items():
-                parameter = Parameter(**{"name":parameter_name, "process_id": process.id, **parameter_specs})
-                self.db.add(parameter)
-
-            self.db.add(process)
-            self.db.commit()
+            for process_name, process_extension in process_args.items():
+                process_ext = process_name + '.json'
+                response = requests.get(os.environ.get('PROCESSES_GITHUB_URL') + process_ext)
+                with open(os.path.join(os.environ.get('PROCESS_API_DIR'), process_ext), 'w+') as f:
+                    process_json = json.loads(response.content)
+                    process_json.update(process_extension)
+                    json.dump(process_json, f)
 
             return {
                 "status": "success",
                 "code": 201,
-                "data": "The process {0} has been successfully created.".format(process_args["name"])
+                "data": "The processes {0} have been successfully created.".format(process_args_str)
             }
         except exc.IntegrityError as exp:
-            msg = "Process '{0}' does already exist.".format(
-                process_args["name"])
+            msg = "Process '{0}' does already exist.".format(process_args_str)
             return ServiceException(ProcessesService.name, 400, user_id, msg, internal=False,
                                     links=["#tag/EO-Data-Discovery/paths/~1processes/post"]).to_dict()
         except Exception as exp:
@@ -93,67 +100,25 @@ class ProcessesService:
         """
 
         try:
-            processes = self.db.query(Process).order_by(Process.name).all()
+            process_list = []
+            for filename in os.listdir(os.environ.get('PROCESS_API_DIR')):
+                if os.path.splitext(filename)[-1] == '.json':
+                    process_path = os.path.join(os.environ.get('PROCESS_API_DIR'), filename)
+                    with open(process_path, 'r') as f:
+                        process_list.append(json.load(f))
 
-            return {
-                "status": "success",
-                "code": 200,
-                "data": ProcessSchema(many=True).dump(processes).data
+            return_data = {
+                "processes": process_list,
+                "links": []  # TODO add links
             }
+            return {
+                    "status": "success",
+                    "code": 200,
+                    "data": return_data
+            }
+
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
-
-    # @rpc
-    # def get_processes(self, user_id):
-    #     try:
-    #         processes = self.db.query(Process).filter(Process.process_id.like("%{0}%".format(qname))).all() \
-    #                     if qname else \
-    #                     self.db.query(Process).order_by(Process.process_id).all()
-
-    #         dumped_processes = []
-    #         for process in processes:
-    #             dumped_processes.append(ProcessSchemaShort().dump(process).data)
-
-    #         return {
-    #             "status": "success",
-    #             "data": dumped_processes
-    #         }
-    #     except Exception as exp:
-    #         return ServiceException(500, user_id, str(exp)).to_dict()
-
-    # @rpc
-    # def get_process(self, user_id, process_id):
-    #     try:
-    #         process = self.db.query(Process).filter_by(process_id=process_id).first()
-
-    #         if not process:
-    #             raise NotFound("Process '{0}' does not exist.".format(process_id))
-
-    #         return {
-    #             "status": "success",
-    #             "data": ProcessSchema().dump(process)
-    #         }
-    #     except NotFound as exp:
-    #         return ServiceException(400, user_id, str(exp), internal=False,
-    #             links=["#tag/EO-Data-Discovery/paths/~1data~1{data_id}/get"]).to_dict() # TODO
-    #     except Exception as exp:
-    #         return ServiceException(500, user_id, str(exp)).to_dict()
-
-    # @rpc
-    # def get_all_processes_full(self, user_id):
-    #     try:
-    #         processes = self.db.query(Process).order_by(Process.process_id).all()
-
-    #         dumped_processes = []
-    #         for process in processes:
-    #             dumped_processes.append(ProcessSchemaFull().dump(process).data)
-
-    #         return {
-    #             "status": "success",
-    #             "data": dumped_processes
-    #         }
-    #     except Exception as exp:
-    #         return ServiceException(500, user_id, str(exp)).to_dict()
 
 
 class ProcessesGraphService:
