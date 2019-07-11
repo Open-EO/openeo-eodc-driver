@@ -1,9 +1,11 @@
-FROM python:3.6-slim AS python-build
-RUN python -m venv /opt/venv
-# Make sure we use the virtualenv:
-ENV PATH="/opt/venv/bin:$PATH"
+FROM puckel/docker-airflow:latest 
+USER root
+RUN echo "deb http://http.us.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list && \
+    echo "deb-src http://http.us.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list
 RUN apt-get update -y
-RUN apt-get install -y gdal-bin git && apt-get install -f
+RUN apt-get install -y gdal-bin libgdal-dev git ssh && apt-get install -f
+RUN pip install --upgrade pip
+RUN pip install GDAL==$(gdal-config --version) --global-option=build_ext --global-option="-I/usr/include/gdal"
 RUN mkdir /root/.ssh
 COPY deploy.key /root/.ssh/id_rsa
 RUN touch /root/.ssh/known_hosts
@@ -12,14 +14,9 @@ RUN ssh-keyscan git.eodc.eu >> /root/.ssh/known_hosts
 WORKDIR /tmp
 RUN git clone -b remove-eomDR git+ssh://git@git.eodc.eu/eodc/eoDataReaders.git
 WORKDIR /tmp/eoDataReaders
+#Temporary hack
+RUN git checkout f19a1c66
 RUN /bin/bash -c "python3 setup.py install"
 RUN apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
-
-FROM puckel/docker-airflow:latest
-USER root
-RUN apt-get update -y
-RUN apt-get install -y gdal-bin && apt-get install -f
-COPY --from=python-build /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
 USER airflow
