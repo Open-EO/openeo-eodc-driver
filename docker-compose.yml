@@ -55,6 +55,8 @@ services:
       - ./envs/rabbitmq.env
       - ./envs/gateway.env
       - ./envs/oidc.env
+    volumes:
+      - ./gateway:/usr/src/app
     environment:
       VIRTUAL_HOST: $VIRTUAL_HOST
       VIRTUAL_PORT: $VIRTUAL_PORT
@@ -76,7 +78,8 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/data.env
-
+    volumes:
+      - ./services/data:/usr/src/app
 
   openeo-processes:
     build: ./services/processes
@@ -95,6 +98,8 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/processes.env
+    volumes:
+      - ./services/processes:/usr/src/app
 
 
   openeo-jobs:
@@ -110,6 +115,8 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/jobs.env
+    volumes:
+      - ./services/jobs:/usr/src/app
 
 networks:
   default:

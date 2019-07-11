@@ -3,3 +3,5 @@
 .vscode
 envs
 .init
+airflow/deploy-key
+*__pycache__*
