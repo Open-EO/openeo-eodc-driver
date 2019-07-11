@@ -86,10 +86,6 @@ services:
     image: openeo-processes
     container_name: openeo-processes
     restart: on-failure
-    volumes:
-      - process-api-data:$PROCESS_API_DIR
-    environment:
-      PROCESS_API_DIR: $PROCESS_API_DIR
     depends_on:
       - rabbitmq
       - openeo-gateway
@@ -98,7 +94,10 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/processes.env
+    environment:
+      PROCESS_API_DIR: /usr/src/api
     volumes:
+      - process-api-data:/usr/scr/api
       - ./services/processes:/usr/src/app
 
 
