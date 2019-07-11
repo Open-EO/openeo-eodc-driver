@@ -17,7 +17,7 @@ services:
         #     - ./pgdata:/var/lib/postgresql/data/pgdata
 
     webserver:
-        image: puckel/docker-airflow-eodatareaders_lite:latest
+        image: openeo-airflow-gdal:latest
         restart: always
         depends_on:
             - postgres
@@ -44,7 +44,7 @@ services:
             retries: 3
 
     flower:
-        image: puckel/docker-airflow-eodatareaders_lite:latest
+        image: openeo-airflow-gdal:latest
         restart: always
         depends_on:
             - redis
@@ -57,7 +57,7 @@ services:
         command: flower
 
     scheduler:
-        image: puckel/docker-airflow-eodatareaders_lite:latest
+        image: openeo-airflow-gdal:latest
         restart: always
         depends_on:
             - webserver
@@ -78,7 +78,7 @@ services:
     worker:
         #image: puckel/docker-airflow:latest
         #image: puckel/docker-airflow-eodatareaders:latest
-        image: puckel/docker-airflow-eodatareaders_lite:latest
+        image: openeo-airflow-gdal:latest
         build: .
         restart: always
         depends_on:
