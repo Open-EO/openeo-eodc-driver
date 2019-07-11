@@ -1,4 +1,4 @@
-FROM python:3.7-slim AS python-build
+FROM python:3.6-slim AS python-build
 RUN python -m venv /opt/venv
 # Make sure we use the virtualenv:
 ENV PATH="/opt/venv/bin:$PATH"
@@ -16,6 +16,10 @@ RUN /bin/bash -c "python3 setup.py install"
 RUN apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
 
-FROM puckel/docker-airflow:latest AS airflow-eoDataReaders
+FROM puckel/docker-airflow:latest
+USER root
+RUN apt-get update -y
+RUN apt-get install -y gdal-bin && apt-get install -f
 COPY --from=python-build /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+USER airflow

@@ -1,11 +1,13 @@
 version: '2.1'
 services:
     redis:
+        container_name: airflow_redis
         #image: 'redis:3.2.7'
         image: 'redis:latest'
         # command: redis-server --requirepass redispass
 
     postgres:
+        container_name: airflow_postgres
         image: postgres:9.6
         environment:
             - POSTGRES_USER=airflow
@@ -17,7 +19,8 @@ services:
         #     - ./pgdata:/var/lib/postgresql/data/pgdata
 
     webserver:
-        image: openeo-airflow-gdal:latest
+        container_name: airflow_webserver
+        image: puckel/docker-airflow:latest
         restart: always
         depends_on:
             - postgres
@@ -44,7 +47,8 @@ services:
             retries: 3
 
     flower:
-        image: openeo-airflow-gdal:latest
+        container_name: airflow_flower
+        image: puckel/docker-airflow:latest
         restart: always
         depends_on:
             - redis
@@ -57,6 +61,7 @@ services:
         command: flower
 
     scheduler:
+        container_name: airflow_scheduler
         image: openeo-airflow-gdal:latest
         restart: always
         depends_on:
@@ -76,10 +81,8 @@ services:
         command: scheduler
 
     worker:
-        #image: puckel/docker-airflow:latest
-        #image: puckel/docker-airflow-eodatareaders:latest
+        container_name: airflow_worker
         image: openeo-airflow-gdal:latest
-        build: .
         restart: always
         depends_on:
             - scheduler
