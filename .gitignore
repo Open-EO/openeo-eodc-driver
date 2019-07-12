@@ -5,3 +5,7 @@ envs
 .init
 airflow/deploy-key
 *__pycache__*
+venv/
+.pylintrc
+*.pyc
+debug.py

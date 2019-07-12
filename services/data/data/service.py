@@ -69,12 +69,13 @@ class DataService:
 
         try:
             product_records = self.csw_session.get_all_products()
-            response = ProductRecordSchema(many=True).dump(product_records)
+            # response = ProductRecordSchema(many=True).dump(product_records)
+            response = product_records
 
             return {
                 "status": "success",
                 "code": 200,
-                "data": response.data
+                "data": response
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
@@ -95,8 +96,8 @@ class DataService:
         try:
             name = self.arg_parser.parse_product(name)
             product_record = self.csw_session.get_product(name)
-            response = ProductRecordSchema().dump(product_record).data
-
+            # response = ProductRecordSchema().dump(product_record)
+            response = product_record
             return {
                 "status": "success",
                 "code": 200,
