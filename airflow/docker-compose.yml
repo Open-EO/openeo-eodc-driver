@@ -1,11 +1,13 @@
 version: '2.1'
 services:
     redis:
+        container_name: airflow_redis
         #image: 'redis:3.2.7'
         image: 'redis:latest'
         # command: redis-server --requirepass redispass
 
     postgres:
+        container_name: airflow_postgres
         image: postgres:9.6
         environment:
             - POSTGRES_USER=airflow
@@ -17,7 +19,8 @@ services:
         #     - ./pgdata:/var/lib/postgresql/data/pgdata
 
     webserver:
-        image: puckel/docker-airflow-eodatareaders_lite:latest
+        container_name: airflow_webserver
+        image: openeo-airflow-gdal:latest
         restart: always
         depends_on:
             - postgres
@@ -26,6 +29,7 @@ services:
             - LOAD_EX=n
             - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
             - EXECUTOR=Celery
+            # - PATH=/opt/venv/bin:$PATH
             # - POSTGRES_USER=airflow
             # - POSTGRES_PASSWORD=airflow
             # - POSTGRES_DB=airflow
@@ -44,11 +48,13 @@ services:
             retries: 3
 
     flower:
-        image: puckel/docker-airflow-eodatareaders_lite:latest
+        container_name: airflow_flower
+        image: openeo-airflow-gdal:latest
         restart: always
         depends_on:
             - redis
         environment:
+            #- PATH=/opt/venv/bin:$PATH
             - EXECUTOR=Celery
             - sync_parallelism
             # - REDIS_PASSWORD=redispass
@@ -57,7 +63,8 @@ services:
         command: flower
 
     scheduler:
-        image: puckel/docker-airflow-eodatareaders_lite:latest
+        container_name: airflow_scheduler
+        image: openeo-airflow-gdal:latest
         restart: always
         depends_on:
             - webserver
@@ -66,6 +73,7 @@ services:
             # Uncomment to include custom plugins
             - ./plugins:/usr/local/airflow/plugins
         environment:
+            #- PATH=/opt/venv/bin:$PATH
             - LOAD_EX=n
             - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
             - EXECUTOR=Celery
@@ -76,10 +84,8 @@ services:
         command: scheduler
 
     worker:
-        #image: puckel/docker-airflow:latest
-        #image: puckel/docker-airflow-eodatareaders:latest
-        image: puckel/docker-airflow-eodatareaders_lite:latest
-        build: .
+        container_name: airflow_worker
+        image: openeo-airflow-gdal:latest
         restart: always
         depends_on:
             - scheduler
@@ -90,6 +96,7 @@ services:
             - ./input_data:/data_in
             - ./output_data:/data_out
         environment:
+            #- PATH=/opt/venv/bin:$PATH
             - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
             - EXECUTOR=Celery
             - GDAL_VRT_ENABLE_PYTHON=TRUSTED_MODULES
