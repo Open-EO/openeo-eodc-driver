@@ -10,6 +10,7 @@ from nameko.extensions import DependencyProvider
 from ..models import ProductRecord, Record, FilePath, SpatialExtent, TemporalExtent
 from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin, xml_end, xml_bbox
 from .bands import BandsExtractor
+from .cache import _cache_json, _check_cache, _get_cache_path, _get_json_cache
 
 
 class CWSError(Exception):
@@ -240,15 +241,15 @@ class CSWHandler:
 
         # Create a request and cache the data for a day
         # Caching to increase speed
-        path_to_cache = self._get_cache_path(product, series)
-        if not self._check_cache(path_to_cache):
+        path_to_cache = _get_cache_path(self.cache_path, product, series)
+        if not _check_cache(path_to_cache):
             while int(record_next) > 0:
                 record_next, records=self._get_single_records(
                     record_next, filter_parsed, output_schema)
                 all_records += records
-            self._cache_json(all_records, path_to_cache)
+            _cache_json(all_records, path_to_cache)
         else:
-            all_records = self._get_json_cache(path_to_cache)
+            all_records = _get_json_cache(path_to_cache)
 
         return all_records
 
@@ -308,77 +309,6 @@ class CSWHandler:
             records=[records]
 
         return record_next, records
-
-    def _cache_json(self, records: list, path_to_cache: str):
-        """Stores the output to a json file with the id if single record or
-        to a full collection json file
-
-        Arguments:
-            records {list} -- List of fetched records
-            path_to_cache {str} -- The path to the cached file
-        """
-
-        if not records:
-            return
-
-        json_dump = dumps(records)
-        with open(path_to_cache, 'w') as f:
-            f.write(json_dump)
-
-    def _check_cache(self, path_to_cache: str) -> bool:
-        """Checks whether the cache exists and if it is older than a day from
-        running this function
-
-        Arguments:
-            path_to_cache {str} -- The path to the cached file
-
-        Returns:
-            bool -- False if cache doesn't exist or hasn't refreshed for
-            longer than a day, True otherwise
-        """
-
-        if path.isfile(path_to_cache):
-            now = datetime.now()
-            file_time = datetime.utcfromtimestamp(int(path.getmtime(path_to_cache)))
-            difference = now - file_time
-            if difference < timedelta(1):
-                return True
-
-        return False
-
-    def _get_json_cache(self, path_to_cache: str) -> list:
-        """Fetches the item(s) from the json cache
-
-        Arguments:
-            path_to_cache {str} -- The path to the cached file
-
-        Returns:
-            list -- List of dictionaries containing cached data
-        """
-        with open(path_to_cache, 'r') as f:
-            data = loads(f.read())
-
-        return data
-
-    def _get_cache_path(self, product: str, series: bool) -> str:
-        """Get the path of the cache depending on whether series or
-        product were passed
-
-        Arguments:
-            product {str} -- The identifier of the product (default: {None})
-            series {bool} -- Specifier if series (products) or records are queried (default: {False})
-
-
-        Returns:
-            str -- The path to the cached file
-        """
-
-        if series and not product:
-            path_to_cache = path.join(self.cache_path, 'collections.json')
-        else:
-            path_to_cache = path.join(self.cache_path, product + '.json')
-
-        return path_to_cache
 
 
 class CSWSession(DependencyProvider):
