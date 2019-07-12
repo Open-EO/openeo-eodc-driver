@@ -2,3 +2,7 @@
 *.swp
 .vscode
 envs
+venv/
+.pylintrc
+*.pyc
+debug.py

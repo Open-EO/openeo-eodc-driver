@@ -1,9 +1,9 @@
 """ CSW Session """
 
-from os import environ
+from os import environ, path
 from requests import post
 from json import loads, dumps
-from datetime import datetime
+from datetime import datetime, timedelta
 from xml.dom.minidom import parseString
 from nameko.extensions import DependencyProvider
 
@@ -25,8 +25,9 @@ class CSWHandler:
     required output format.
     """
 
-    def __init__(self, csw_server_uri: str):
+    def __init__(self, csw_server_uri: str, cache_path: str):
         self.csw_server_uri = csw_server_uri
+        self.cache_path = cache_path
         self.bands_extractor = BandsExtractor()
 
     def get_all_products(self) -> list:
@@ -38,16 +39,17 @@ class CSWHandler:
 
         data = self._get_records(series=True)
 
-        product_records = []
-        for product_record in data:
-            product_records.append(
-                ProductRecord(
-                    data_id=product_record["dc:identifier"],
-                    description=product_record["dct:abstract"],
-                    source=product_record["dc:creator"])
-                )
+        # product_records = []
+        # for product_record in data:
+        #     product_records.append(
+        #         ProductRecord(
+        #             data_id=product_record["dc:identifier"],
+        #             description=product_record["dct:abstract"],
+        #             source=product_record["dc:creator"])
+        #         )
 
-        return product_records
+        # return product_records
+        return data
 
     def get_product(self, data_id: str) -> dict:
         """Returns information about a specific product.
@@ -61,26 +63,26 @@ class CSWHandler:
 
         data = self._get_records(data_id, series=True)[0]
 
-        upper = data["ows:BoundingBox"]["ows:UpperCorner"].split(" ")
-        lower = data["ows:BoundingBox"]["ows:LowerCorner"].split(" ")
+        # upper = data["ows:BoundingBox"]["ows:UpperCorner"].split(" ")
+        # lower = data["ows:BoundingBox"]["ows:LowerCorner"].split(" ")
 
-        product_record = ProductRecord(
-            data_id=data["dc:identifier"],
-            description=data["dct:abstract"],
-            source=data["dc:creator"],
-            spatial_extent=SpatialExtent(
-                top=upper[1],
-                bottom=lower[1],
-                left=lower[0],
-                right=upper[0],
-                crs="EPSG:4326"
-            ),
-            temporal_extent="{0}/{1}".format(data["dc:date"], 
-                                             datetime.now().strftime('%Y-%m-%d')),
-            bands=self.bands_extractor.get_bands(data_id)
-        )
-
-        return product_record
+        # product_record = ProductRecord(
+        #     data_id=data["dc:identifier"],
+        #     description=data["dct:abstract"],
+        #     source=data["dc:creator"],
+        #     spatial_extent=SpatialExtent(
+        #         top=upper[1],
+        #         bottom=lower[1],
+        #         left=lower[0],
+        #         right=upper[0],
+        #         crs="EPSG:4326"
+        #     ),
+        #     temporal_extent="{0}/{1}".format(data["dc:date"], 
+        #                                      datetime.now().strftime('%Y-%m-%d')),
+        #     bands=self.bands_extractor.get_bands(data_id)
+        # )
+        # return product_record
+        return data
 
     def get_records_full(self, product: str, bbox: list, start: str, end: str) -> list:
         """Returns the full information of the records of the specified products
@@ -196,7 +198,7 @@ class CSWHandler:
         """
 
         # Parse the XML request by injecting the query data into the XML templates
-        output_schema="http://www.opengis.net/cat/csw/2.0.2" if series is True else "http://www.isotc211.org/2005/gmd"
+        output_schema='https://github.com/radiantearth/stac-spec'
 
         xml_filters=[]
 
@@ -235,10 +237,18 @@ class CSWHandler:
         # While still data is available send requests to the CSW server (-1 if not more data is available)
         all_records=[]
         record_next=1
-        while int(record_next) > 0:
-            record_next, records=self._get_single_records(
-                record_next, filter_parsed, output_schema)
-            all_records += records
+
+        # Create a request and cache the data for a day
+        # Caching to increase speed
+        path_to_cache = self._get_cache_path(product, series)
+        if not self._check_cache(path_to_cache):
+            while int(record_next) > 0:
+                record_next, records=self._get_single_records(
+                    record_next, filter_parsed, output_schema)
+                all_records += records
+            self._cache_json(all_records, path_to_cache)
+        else:
+            all_records = self._get_json_cache(path_to_cache)
 
         return all_records
 
@@ -288,6 +298,8 @@ class CSWHandler:
             records=search_result["gmd:MD_Metadata"]
         elif "csw:Record" in search_result:
             records=search_result["csw:Record"]
+        elif "collection" in search_result:
+            records=search_result["collection"]
         else:
             record_next=0
             records=[]
@@ -296,6 +308,77 @@ class CSWHandler:
             records=[records]
 
         return record_next, records
+
+    def _cache_json(self, records: list, path_to_cache: str):
+        """Stores the output to a json file with the id if single record or
+        to a full collection json file
+
+        Arguments:
+            records {list} -- List of fetched records
+            path_to_cache {str} -- The path to the cached file
+        """
+
+        if not records:
+            return
+
+        json_dump = dumps(records)
+        with open(path_to_cache, 'w') as f:
+            f.write(json_dump)
+
+    def _check_cache(self, path_to_cache: str) -> bool:
+        """Checks whether the cache exists and if it is older than a day from
+        running this function
+
+        Arguments:
+            path_to_cache {str} -- The path to the cached file
+
+        Returns:
+            bool -- False if cache doesn't exist or hasn't refreshed for
+            longer than a day, True otherwise
+        """
+
+        if path.isfile(path_to_cache):
+            now = datetime.now()
+            file_time = datetime.utcfromtimestamp(int(path.getmtime(path_to_cache)))
+            difference = now - file_time
+            if difference < timedelta(1):
+                return True
+
+        return False
+
+    def _get_json_cache(self, path_to_cache: str) -> list:
+        """Fetches the item(s) from the json cache
+
+        Arguments:
+            path_to_cache {str} -- The path to the cached file
+
+        Returns:
+            list -- List of dictionaries containing cached data
+        """
+        with open(path_to_cache, 'r') as f:
+            data = loads(f.read())
+
+        return data
+
+    def _get_cache_path(self, product: str, series: bool) -> str:
+        """Get the path of the cache depending on whether series or
+        product were passed
+
+        Arguments:
+            product {str} -- The identifier of the product (default: {None})
+            series {bool} -- Specifier if series (products) or records are queried (default: {False})
+
+
+        Returns:
+            str -- The path to the cached file
+        """
+
+        if series and not product:
+            path_to_cache = path.join(self.cache_path, 'collections.json')
+        else:
+            path_to_cache = path.join(self.cache_path, product + '.json')
+
+        return path_to_cache
 
 
 class CSWSession(DependencyProvider):
@@ -313,4 +396,4 @@ class CSWSession(DependencyProvider):
             CSWHandler -- The instantiated CSWHandler object
         """
 
-        return CSWHandler(environ.get("CSW_SERVER"))
+        return CSWHandler(environ.get("CSW_SERVER"), environ.get("CACHE_PATH"))
