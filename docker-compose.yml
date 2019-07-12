@@ -79,7 +79,7 @@ services:
       - ./envs/rabbitmq.env
       - ./envs/data.env
     volumes:
-      - ./services/data:/usr/src/app
+      - ${CACHE_PATH}:${CACHE_PATH}
 
   openeo-processes:
     build: ./services/processes
