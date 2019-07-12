@@ -2,6 +2,7 @@
 *.swp
 .vscode
 envs
+<<<<<<< HEAD
 .init
 airflow/deploy-key
 *__pycache__*
@@ -9,3 +10,9 @@ venv/
 .pylintrc
 *.pyc
 debug.py
+=======
+venv/
+.pylintrc
+*.pyc
+debug.py
+>>>>>>> 4e27b1d64d34086412ae9837042340b585182a60
