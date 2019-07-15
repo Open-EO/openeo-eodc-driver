@@ -11,6 +11,7 @@ from ..models import ProductRecord, Record, FilePath, SpatialExtent, TemporalExt
 from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin, xml_end, xml_bbox
 from .bands import BandsExtractor
 from .cache import _cache_json, _check_cache, _get_cache_path, _get_json_cache
+from .links import LinkHandler
 
 
 class CWSError(Exception):
@@ -26,10 +27,12 @@ class CSWHandler:
     required output format.
     """
 
-    def __init__(self, csw_server_uri: str, cache_path: str):
+    def __init__(self, csw_server_uri: str, cache_path: str, service_uri: str):
         self.csw_server_uri = csw_server_uri
         self.cache_path = cache_path
+        self.service_uri = service_uri
         self.bands_extractor = BandsExtractor()
+        self.link_handler = LinkHandler(service_uri)
 
     def get_all_products(self) -> list:
         """Returns all products available at the back-end.
@@ -247,6 +250,7 @@ class CSWHandler:
                 record_next, records=self._get_single_records(
                     record_next, filter_parsed, output_schema)
                 all_records += records
+            all_records = self.link_handler.get_links(all_records)
             _cache_json(all_records, path_to_cache)
         else:
             all_records = _get_json_cache(path_to_cache)
@@ -326,4 +330,4 @@ class CSWSession(DependencyProvider):
             CSWHandler -- The instantiated CSWHandler object
         """
 
-        return CSWHandler(environ.get("CSW_SERVER"), environ.get("CACHE_PATH"))
+        return CSWHandler(environ.get("CSW_SERVER"), environ.get("CACHE_PATH"), environ.get("SERVICE_URI"))
