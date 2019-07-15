@@ -9,8 +9,8 @@ from nameko_sqlalchemy import DatabaseSession
 from sqlalchemy import exc
 from copy import deepcopy
 
-from .models import Base, ProcessGraph, ProcessNode
-from .schema import ProcessGraphShortSchema, ProcessGraphFullSchema, ProcessNodeSchema
+from .models import Base, ProcessGraph
+from .schema import ProcessGraphShortSchema, ProcessGraphFullSchema
 from .dependencies import NodeParser, Validator
 from jsonschema import ValidationError
 
@@ -21,8 +21,9 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, service:str, code: int, user_id: str, msg: str,
-                 internal: bool=True, links: list=[]):
+    def __init__(self, service: str, code: int, user_id: str, msg: str, internal: bool=True, links: list=None):
+        if not links:
+            links = []
         self._service = service
         self._code = code
         self._user_id = user_id
@@ -134,65 +135,102 @@ class ProcessesGraphService:
 
     @rpc
     def get(self, user_id: str, process_graph_id: str):
-        import pdb; pdb.set_trace()
+        """The request will ask the back-end to get the process graph using the process_graph_id.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user
+            process_graph_id {str} -- The id of the process graph
+        """
         try:
             process_graph = self.db.query(ProcessGraph).filter_by(id=process_graph_id).first()
-
-            if process_graph is None:
-                return ServiceException(ProcessesService.name, 400, user_id,
-                    "The process_graph with id '{0}' does not exist.".format(process_graph_id), internal=False,
-                    links=["#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/get"]).to_dict()
-
-            # TODO: Permission (e.g admin)
-            if process_graph.user_id != user_id:
-                return ServiceException(ProcessesService.name, 401, user_id,
-                    "You are not allowed to access this resource.", internal=False,
-                    links=["#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/get"]).to_dict()
+            exp = self.__check_existence(user_id, process_graph_id, process_graph)
+            if exp: return exp
 
             return {
-                    "status": "success",
-                    "code": 200,
-                    "data": ProcessGraphFullSchema().dump(process_graph).data
+                "status": "success",
+                "code": 200,
+                "data": ProcessGraphFullSchema().dump(process_graph).data
             }
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
 
     @rpc
     def delete(self, user_id: str, process_graph_id: str):
+        """The request will ask the back-end to delete the process graph with the given process_graph_id.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user
+            process_graph_id {str} -- The id of the process graph
+        """
         try:
-            raise Exception("Not implemented yet!")
+            # Check process graph exists and user is allowed to access / delete it
+            process_graph = self.db.query(ProcessGraph).filter_by(id=process_graph_id).first()
+            exp = self.__check_existence(user_id, process_graph_id, process_graph)
+            if exp: return exp
+
+            self.db.delete(process_graph)
+            self.db.commit()
+            return {
+                "status": "success",
+                "code": 204
+            }
+
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp),
-                    links=["#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/delete"]).to_dict()
+                                    links=["#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/delete"]).to_dict()
 
     @rpc
     def modify(self, user_id: str, process_graph_id: str, **process_graph_args):
-        try:
-            raise Exception("Not implemented yet!")
-        except Exception as exp:
-            return ServiceException(ProcessesService.name, 500, user_id, str(exp),
-                    links=["#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/patch"]).to_dict()
+        """The request will ask the back-end to the process graph with the given process_graph_id.
 
-    @rpc
-    def get_all(self, user_id: str):
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user
+            process_graph_id {str} -- The id of the process graph
+        """
         try:
-            process_graphs = self.db.query(ProcessGraph).order_by(ProcessGraph.created_at).all()
+            process_graph = self.db.query(ProcessGraph).filter_by(id=process_graph_id).first()
+            exp = self.__check_existence_and_user_id(user_id, process_graph_id, process_graph)
+            if exp: return exp
+
+            process_graph.update(**process_graph_args)
+            self.db.merge(process_graph)
+            self.db.commit()
 
             return {
                 "status": "success",
+                "code": 204
+            }
+
+        except Exception as exp:
+            return ServiceException(ProcessesService.name, 500, user_id, str(exp),
+                                    links=["#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/patch"]).to_dict()
+
+    @rpc
+    def get_all(self, user_id: str):
+        """The request will ask the back-end to get all available process graphs.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user (default: {None})
+        """
+        try:
+            process_graphs = self.db.query(ProcessGraph).order_by(ProcessGraph.created_at).all()
+            return {
+                "status": "success",
                 "code": 200,
-                "data": ProcessGraphShortSchema(many=True).dump(process_graphs).data
+                "data": {
+                    "process_graphs": ProcessGraphShortSchema(many=True).dump(process_graphs).data,
+                    "links": []}
             }
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp),
-                    links=["#tag/Job-Management/paths/~1process_graphs/get"]).to_dict()
+                                    links=["#tag/Job-Management/paths/~1process_graphs/get"]).to_dict()
 
     @rpc
     def create(self, user_id: str, **process_graph_args):
         """The request will ask the back-end to create a new process using the description send in the request body.
 
         Keyword Arguments:
-            user_id {str} -- The identifier of the user (default: {None})
+            user_id {str} -- The identifier of the user
         """
 
         try:
@@ -200,28 +238,9 @@ class ProcessesGraphService:
 
             validate = self.validate(user_id, process_graph_json)
             if validate["status"] == "error":
-               return validate
-
-            # Get all processes
-            process_response = self.process_service.get_all()
-            if process_response["status"] == "error":
-               return process_response
-            processes = process_response["data"]
+                return validate
 
             process_graph = ProcessGraph(**{"user_id": user_id, **process_graph_args})
-
-            nodes = self.node_parser.parse_process_graph(process_graph_json, processes)
-            imagery_id = None
-            for idx, node in enumerate(nodes):
-                process_node = ProcessNode(
-                    user_id=user_id,
-                    seq_num=len(nodes) - (idx + 1),
-                    imagery_id=imagery_id,
-                    process_graph_id=process_graph.id,
-                    **node)
-                self.db.add(process_node)
-                imagery_id = process_node.id
-
             process_graph_id = str(process_graph.id)
             self.db.add(process_graph)
             self.db.commit()
@@ -270,16 +289,36 @@ class ProcessesGraphService:
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
 
-    @rpc
-    def get_nodes(self, user_id: str, process_graph_id: str):
+    @staticmethod
+    def __check_existence(user_id, process_graph_id, process_graph):
+        """Return Exception if given ProcessGraph does not exist.
 
-        try:
-            process_graph = self.db.query(ProcessGraph).filter_by(id=process_graph_id).first()
-            nodes = sorted(process_graph.nodes, key=lambda n: n.seq_num)
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user
+            process_graph_id {str} -- The id of the process graph
+            process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
+        """
+        if process_graph is None:
+            return ServiceException(ProcessesService.name, 400, user_id,
+                                    "The process_graph with id '{0}' does not exist.".format(process_graph_id),
+                                    internal=False,
+                                    links=[
+                                        "#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/get"]).to_dict()
 
-            return {
-                    "status": "success",
-                    "data": ProcessNodeSchema(many=True).dump(nodes).data
-            }
-        except Exception as exp:
-            return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
+    def __check_existence_and_user_id(self, user_id, process_graph_id, process_graph):
+        """Return Exception if given ProcessGraph does not exist or User is not allowed to access this ProcessGraph.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user
+            process_graph_id {str} -- The id of the process graph
+            process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
+        """
+        exp = self.__check_existence(user_id, process_graph_id, process_graph)
+        if exp: return exp
+
+        # TODO: Permission (e.g admin)
+        if process_graph.user_id != user_id:
+            return ServiceException(ProcessesService.name, 401, user_id,
+                                    "You are not allowed to access this resource.", internal=False,
+                                    links=[
+                                        "#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/get"]).to_dict()
