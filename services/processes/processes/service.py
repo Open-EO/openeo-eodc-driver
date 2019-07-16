@@ -113,9 +113,9 @@ class ProcessesService:
                 "links": []  # TODO add links
             }
             return {
-                    "status": "success",
-                    "code": 200,
-                    "data": return_data
+                "status": "success",
+                "code": 200,
+                "data": return_data
             }
 
         except Exception as exp:
@@ -143,7 +143,7 @@ class ProcessesGraphService:
         """
         try:
             process_graph = self.db.query(ProcessGraph).filter_by(id=process_graph_id).first()
-            exp = self.__check_existence(user_id, process_graph_id, process_graph)
+            exp = self.__check_existence_and_user_id(user_id, process_graph_id, process_graph)
             if exp: return exp
 
             return {
@@ -165,7 +165,7 @@ class ProcessesGraphService:
         try:
             # Check process graph exists and user is allowed to access / delete it
             process_graph = self.db.query(ProcessGraph).filter_by(id=process_graph_id).first()
-            exp = self.__check_existence(user_id, process_graph_id, process_graph)
+            exp = self.__check_existence_and_user_id(user_id, process_graph_id, process_graph)
             if exp: return exp
 
             self.db.delete(process_graph)
@@ -213,7 +213,7 @@ class ProcessesGraphService:
             user_id {str} -- The identifier of the user (default: {None})
         """
         try:
-            process_graphs = self.db.query(ProcessGraph).order_by(ProcessGraph.created_at).all()
+            process_graphs = self.db.query(ProcessGraph).filter_by(user_id=user_id).order_by(ProcessGraph.created_at).all()
             return {
                 "status": "success",
                 "code": 200,
@@ -267,13 +267,13 @@ class ProcessesGraphService:
             # Get all processes
             process_response = self.process_service.get_all()
             if process_response["status"] == "error":
-               return process_response
+                return process_response
             processes = process_response["data"]
 
             # Get all products
             product_response = self.data_service.get_all_products()
             if product_response["status"] == "error":
-               return product_response
+                return product_response
             products = product_response["data"]
 
             self.validator.update_datasets(processes, products)
@@ -290,8 +290,8 @@ class ProcessesGraphService:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
 
     @staticmethod
-    def __check_existence(user_id, process_graph_id, process_graph):
-        """Return Exception if given ProcessGraph does not exist.
+    def __check_existence_and_user_id(user_id, process_graph_id, process_graph):
+        """Return Exception if given ProcessGraph does not exist or User is not allowed to access this ProcessGraph.
 
         Keyword Arguments:
             user_id {str} -- The identifier of the user
@@ -304,17 +304,6 @@ class ProcessesGraphService:
                                     internal=False,
                                     links=[
                                         "#tag/Job-Management/paths/~1process_graphs~1{process_graph_id}/get"]).to_dict()
-
-    def __check_existence_and_user_id(self, user_id, process_graph_id, process_graph):
-        """Return Exception if given ProcessGraph does not exist or User is not allowed to access this ProcessGraph.
-
-        Keyword Arguments:
-            user_id {str} -- The identifier of the user
-            process_graph_id {str} -- The id of the process graph
-            process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
-        """
-        exp = self.__check_existence(user_id, process_graph_id, process_graph)
-        if exp: return exp
 
         # TODO: Permission (e.g admin)
         if process_graph.user_id != user_id:
