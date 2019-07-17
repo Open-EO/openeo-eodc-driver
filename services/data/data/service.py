@@ -18,11 +18,10 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, code: int, user_id: str, msg: str,
+    def __init__(self, code: int, msg: str,
                  internal: bool=True, links: list=[]):
         self._service = service_name
         self._code = code
-        self._user_id = user_id
         self._msg = msg
         self._internal = internal
         self._links = links
@@ -38,7 +37,6 @@ class ServiceException(Exception):
             "status": "error",
             "service": self._service,
             "code": self._code,
-            "user_id": self._user_id,
             "msg": self._msg,
             "internal": self._internal,
             "links": self._links
@@ -55,7 +53,7 @@ class DataService:
     csw_session = CSWSession()
 
     @rpc
-    def get_all_products(self, user_id: str=None) -> Union[list, dict]:
+    def get_all_products(self) -> Union[list, dict]:
         """Requests will ask the back-end for available data and will return an array of 
         available datasets with very basic information such as their unique identifiers.
 
@@ -76,7 +74,7 @@ class DataService:
                 "data": response
             }
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp),
+            return ServiceException(500, str(exp),
                 links=["#tag/EO-Data-Discovery/paths/~1data/get"]).to_dict()
 
     @rpc
@@ -107,57 +105,3 @@ class DataService:
         except Exception as exp:
             return ServiceException(500, user_id, str(exp)).to_dict()
 
-    @rpc
-    def get_records(self, user_id: str=None, name: str=None, detail: str="full", 
-                    spatial_extent: str=None, temporal_extent: str=None) -> Union[list, dict]:
-        """The request will ask the back-end for further details about the records of a dataset.
-        The records must be filtered by time and space. Different levels of detail can be returned.
-
-        Keyword Arguments:
-            user_id {str} -- The user id (default: {None})
-            detail {str} -- The detail level (full, short, file_paths) (default: {"full"})
-            name {str} -- The product identifier (default: {None})
-            spatial_extent {str} -- The spatial extent (default: {None})
-            temporal_extent {str} -- The temporal extent (default: {None})
-
-        Returns:
-             Union[list, dict] -- The records or a serialized exception
-        """
-        # TODO: Filter by license -> see process get_data
-
-        try:
-            name = self.arg_parser.parse_product(name)
-
-            # Parse the argeuments
-            if spatial_extent:
-                spatial_extent = self.arg_parser.parse_spatial_extent(spatial_extent)
-            if temporal_extent:
-                start, end = self.arg_parser.parse_temporal_extent(temporal_extent)
-            else:
-                start = None
-                end = None
-
-            # Retrieve records, based on detail level, and serialize
-            response = []
-            if detail == "full":
-                response = self.csw_session.get_records_full(
-                    name, spatial_extent, start, end)
-            elif detail == "short":
-                records = self.csw_session.get_records_shorts(
-                    name, spatial_extent, start, end)
-                response = RecordSchema(many=True).dump(records).data
-            elif detail == "file_path":
-                file_paths = self.csw_session.get_file_paths(
-                    name, spatial_extent, start, end)
-                response = FilePathSchema(many=True).dump(file_paths).data
-
-            return {
-                "status": "success",
-                "code": 200,
-                "data": response
-            }
-        except ValidationError as exp:
-            return ServiceException(400, user_id, str(exp), internal=False,
-                links=["#tag/EO-Data-Discovery/paths/~1data~1{name}~1records/get"]).to_dict()
-        except Exception as exp:
-            return ServiceException(500, user_id, str(exp)).to_dict()

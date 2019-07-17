@@ -127,29 +127,6 @@ paths:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.1/openapi.json#/components/responses/client_error
         5XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.1/openapi.json#/components/responses/server_error
-  /collections/{name}/records:
-    parameters:
-      - $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.1/openapi.json#/paths/~1collections~1{name}/parameters[0]
-      - $ref: "#/components/parameters/detail"
-      - $ref: "#/components/parameters/spatial_extent"
-      - $ref: "#/components/parameters/temporal_extent"
-    get:
-      summary: Information the records of a specific EO dataset with the spatial and temporal extents.
-      description: >-
-        The request will ask the back-end for further details about the records of a dataset specified by the identifier `data_id`.
-        \n\n **Note:** This is an extension of the EODC API!
-      tags:
-        - EO Data Discovery
-      security:
-        - {}
-        - Bearer: []
-      responses:
-        '200':
-          description: The dataset records that are matching the the spatial and temporal extents.
-        4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.1/openapi.json#/components/responses/client_error
-        5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.1/openapi.json#/components/responses/server_error
   # /oidc_callback:
   #   get:
   #     summary: Callback for OpenID Connect
