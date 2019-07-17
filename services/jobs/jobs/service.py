@@ -9,8 +9,9 @@ from .schema import JobSchema, JobSchemaFull
 # from .exceptions import BadRequest, Forbidden, APIConnectionError
 # from .dependencies.task_parser import TaskParser
 # from .dependencies.validator import Validator
-from .dependencies.api_connector import APIConnector
+# from .dependencies.api_connector import APIConnector
 from .dependencies.template_controller import TemplateController
+from .models import JobStatus
 
 
 service_name = "jobs"
@@ -22,8 +23,10 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, code: int, user_id: str, msg: str,
-                 internal: bool=True, links: list=[]):
+    def __init__(self, code: int, user_id: str, msg: str, internal: bool=True, links: list=None):
+        if not links:
+            links = []
+
         self._service = service_name
         self._code = code
         self._user_id = user_id
@@ -48,6 +51,13 @@ class ServiceException(Exception):
             "links": self._links
         }
 
+
+class JobLocked(ServiceException):
+    """ JobLocked raised if job is queued / running when trying to modify it. """
+    def __init__(self, code: int, user_id: str, msg: str, internal: bool=True, links: list=None):
+        super(JobLocked, self).__init__(code, user_id, msg, internal, links)
+
+
 class JobService:
     """Management of batch processing tasks (jobs) and their results.
     """
@@ -56,11 +66,17 @@ class JobService:
     db = DatabaseSession(Base)
     process_graphs_service = RpcProxy("process_graphs")
     data_service = RpcProxy("data")
-    api_connector = APIConnector()
+    # api_connector = APIConnector()
     template_controller = TemplateController()
 
     @rpc
     def get(self, user_id: str, job_id: str):
+        """The request will ask the back-end to get the job using the job_id.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user
+            job_id {str} -- The id of the job
+        """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
 
@@ -70,10 +86,9 @@ class JobService:
 
             response = self.process_graphs_service.get(user_id, job.process_graph_id)
             if response["status"] == "error":
-               return response
+                return response
 
             job.process_graph = response["data"]["process_graph"]
-
             return {
                 "status": "success",
                 "code": 200,
@@ -81,53 +96,124 @@ class JobService:
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
-                links=["#tag/Job-Management/paths/~1jobs~1{job_id}/get"]).to_dict()
+                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}/get"]).to_dict()
 
     @rpc
-    def modify(self, user_id: str, job_id: str, process_graph: dict, title: str=None, description: str=None,
-               output: dict=None, plan: str=None, budget: int=None):
+    def modify(self, user_id: str, job_id: str, **job_args):
+        """The request will ask the back-end to modify the job with the given job_id.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user
+            job_id {str} -- The id of the job
+        """
         try:
-            raise Exception("Not implemented yet!")
+            job = self.db.query(Job).filter_by(id=job_id).first()
+            valid, response = self.authorize(user_id, job_id, job)
+            if not valid:
+                return response
+
+            if job.status in [JobStatus.queued, JobStatus.running]:
+                msg = "Job {0} is currently {1} and cannot be modified".format(job_id, job.status)
+                return JobLocked(400, user_id, msg, links=["jobs/" + job_id])
+
+            process_graph_id = None
+            if job_args.get("process_graph", None):
+                process_response = self.process_graphs_service.create(
+                    user_id=user_id,
+                    **{"process_graph": job_args.pop('process_graph')})
+
+                if process_response["status"] == "error":
+                    return process_response
+                process_graph_id = process_response["service_data"]
+
+            job.update(process_graph_id, **job_args)
+            self.db.merge(job)
+            self.db.commit()
+
+            return {
+                    "status": "success",
+                    "code": 204
+                }
+
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
-                links=["#tag/Job-Management/paths/~1jobs~1{job_id}/patch"]).to_dict()
+                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}/patch"]).to_dict()
 
     @rpc
     def delete(self, user_id: str, job_id: str):
+        """The request will ask the back-end to delete the job with the given job_id.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user
+            job_id {str} -- The id of the process graph
+        """
         try:
-            raise Exception("Not implemented yet!")
+            job = self.db.query(Job).filter_by(id=job_id).first()
+            valid, response = self.authorize(user_id, job_id, job)
+            if not valid:
+                return response
+
+            # TODO: stop computation, delete computed results, stop creating costs > delete everything related to job!
+            if job.status == JobStatus.queued:
+                # TODO: remove job from queue
+                pass
+            elif job.status == JobStatus.running:
+                # TODO: stop computation, stop creating costs
+                pass
+            # TODO: check if results were computed and if delete them
+
+            self.db.delete(job)
+            self.db.commit()
+
+            return {
+                "status": "success",
+                "code": 204
+            }
+
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
-                links=["#tag/Job-Management/paths/~1jobs~1{job_id}/delete"]).to_dict()
+                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}/delete"]).to_dict()
 
     @rpc
     def get_all(self, user_id: str):
+        """The request will ask the back-end to get all available jobs for the given user.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user
+        """
         try:
             jobs = self.db.query(Job).filter_by(user_id=user_id).order_by(Job.created_at).all()
 
             return {
                 "status": "success",
                 "code": 200,
-                "data": JobSchema(many=True).dump(jobs).data
+                "data": {
+                    "jobs": JobSchema(many=True).dump(jobs).data,
+                    "links": []
+                }
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
-                links=["#tag/Job-Management/paths/~1jobs/get"]).to_dict()
+                                    links=["#tag/Job-Management/paths/~1jobs/get"]).to_dict()
+
     @rpc
-    def create(self, user_id: str, process_graph: dict, title: str=None, description: str=None, output: dict=None,
-                   plan: str=None, budget: int=None):
+    def create(self, user_id: str, **job_args):
+        """The request will ask the back-end to create a new job using the description send in the request body.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user
+            job_args {dict} -- The information needed to create a job
+        """
         try:
             process_response = self.process_graphs_service.create(
                 user_id=user_id,
-                **{"process_graph": process_graph})
+                **{"process_graph": job_args.pop('process_graph')})
 
             if process_response["status"] == "error":
-               return process_response
-
+                return process_response
             process_graph_id = process_response["service_data"]
 
-            job = Job(user_id, process_graph_id, title, description, output, plan, budget)
-
+            job = Job(user_id, process_graph_id, **job_args)
             job_id = str(job.id)
             self.db.add(job)
             self.db.commit()
@@ -135,12 +221,15 @@ class JobService:
             return {
                 "status": "success",
                 "code": 201,
-                "data": "jobs/" + job_id,
-                "headers": {"Location": "jobs/" + job_id }
+                "headers": {
+                    "Location": "jobs/" + job_id,
+                    "OpenEO-Identifier": job_id
+                },
+                "service_data": job_id
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
-                links=["#tag/Job-Management/paths/~1jobs/post"]).to_dict()
+                                    links=["#tag/Job-Management/paths/~1jobs/post"]).to_dict()
 
     @rpc
     def process(self, user_id: str, job_id: str):
@@ -204,7 +293,7 @@ class JobService:
 
             # Deploy container
             logs, metrics =  self.template_controller.deploy(self.api_connector, job.id, processing_container,
-                config_map, pvc, min_cpu, max_cpu, min_ram, max_ram)
+                                                             config_map, pvc, min_cpu, max_cpu, min_ram, max_ram)
 
             pvc.delete(self.api_connector)
 
@@ -278,7 +367,7 @@ class JobService:
             raise Exception("Not implemented yet!")
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
-                links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
+                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
 
     @rpc
     def get_results(self, user_id: str, job_id: str):
@@ -286,23 +375,27 @@ class JobService:
             raise Exception("Not implemented yet!")
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
-                links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/get"]).to_dict()
+                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/get"]).to_dict()
 
+    @staticmethod
+    def authorize(user_id: str, job_id: str, job: Job):
+        """Return Exception if given Job does not exist or User is not allowed to access this Job.
 
-    def authorize(self, user_id, job_id, job):
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user
+            job_id {str} -- The id of the job
+            job {ProcessGraph} -- The Job object for the given job_id
+        """
         if job is None:
             return False, ServiceException(400, user_id, "The job with id '{0}' does not exist.".format(job_id),
-                internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
+                                           internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         # TODO: Permission (e.g admin)
         if job.user_id != user_id:
             return False, ServiceException(401, user_id, "You are not allowed to access this ressource.",
-                internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
+                                           internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         return True, None
-
-
-
 
     # @rpc
     # def get_job(self, user_id, job_id):
