@@ -1,12 +1,11 @@
 """ EO Data Discovery """
 # TODO: Adding paging with start= maxRecords= parameter for record requesting 
 
-from nameko.rpc import rpc
-from datetime import datetime
 from typing import Union
+from nameko.rpc import rpc
 
-from .schemas import ProductRecordSchema, RecordSchema, FilePathSchema
-from .dependencies.csw import CSWSession, CWSError
+from .schemas import ProductRecordSchema
+from .dependencies.csw import CSWSession
 from .dependencies.arg_parser import ArgParserProvider, ValidationError
 
 
@@ -69,8 +68,7 @@ class DataService:
 
         try:
             product_records = self.csw_session.get_all_products()
-            # response = ProductRecordSchema(many=True).dump(product_records)
-            response = product_records
+            response = ProductRecordSchema(many=True).dump(product_records).data
 
             return {
                 "status": "success",

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from xml.dom.minidom import parseString
 from nameko.extensions import DependencyProvider
 
-from ..models import ProductRecord, Record, FilePath, SpatialExtent, TemporalExtent
+from ..models import ProductRecord
 from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin, xml_end, xml_bbox
 from .bands import BandsExtractor
 from .cache import _cache_json, _check_cache, _get_cache_path, _get_json_cache
@@ -43,17 +43,20 @@ class CSWHandler:
 
         data = self._get_records(series=True)
 
-        # product_records = []
-        # for product_record in data:
-        #     product_records.append(
-        #         ProductRecord(
-        #             data_id=product_record["dc:identifier"],
-        #             description=product_record["dct:abstract"],
-        #             source=product_record["dc:creator"])
-        #         )
+        product_records = []
+        for product_record in data:
+            product_records.append(
+                ProductRecord(
+                    stac_version=product_record["stac_version"],
+                    b_id=product_record["id"],
+                    description=product_record["description"],
+                    b_license=product_record["license"],
+                    extent=product_record["extent"],
+                    links=product_record["links"],
+                )
+            )
 
-        # return product_records
-        return data
+        return product_records
 
     def get_product(self, data_id: str) -> dict:
         """Returns information about a specific product.
@@ -87,101 +90,6 @@ class CSWHandler:
         # )
         # return product_record
         return data
-
-    def get_records_full(self, product: str, bbox: list, start: str, end: str) -> list:
-        """Returns the full information of the records of the specified products
-        in the temporal and spatial extents.
-
-        Arguments:
-            product {str} -- The identifier of the product
-            bbox {list} -- The spatial extent of the records
-            start {str} -- The start date of the temporal extent
-            end {str} -- The end date of the temporal extent
-
-        Returns:
-            list -- The records data
-        """
-
-        return self._get_records(product, bbox, start, end)
-
-    def get_records_shorts(self, product: str, bbox: list, start: str, end: str) -> list:
-        """Returns the short information of the records of the specified products
-        in the temporal and spatial extents.
-
-        Arguments:
-            product {str} -- The identifier of the product
-            bbox {list} -- The spatial extent of the records
-            start {str} -- The start date of the temporal extent
-            end {str} -- The end date of the temporal extent
-
-        Returns:
-            list -- The records data
-        """
-
-        data = self._get_records(product, bbox, start, end)
-
-        response = []
-        for item in data:
-            path = item["gmd:distributionInfo"]["gmd:MD_Distribution"]["gmd:transferOptions"][
-                "gmd:MD_DigitalTransferOptions"]["gmd:onLine"][0]["gmd:CI_OnlineResource"]["gmd:linkage"]["gmd:URL"]
-            name = item["gmd:fileIdentifier"]["gco:CharacterString"]
-            name = name.split("/")[-1].split(".")[0]
-            extend = item["gmd:identificationInfo"]["gmd:MD_DataIdentification"]["gmd:extent"]["gmd:EX_Extent"]
-            spatial_extend = extend["gmd:geographicElement"]["gmd:EX_GeographicBoundingBox"]
-            temporal_extend = extend["gmd:temporalElement"]["gmd:EX_TemporalExtent"]["gmd:extent"]["gml:TimePeriod"]
-
-            response.append(
-                Record(
-                    name=name,
-                    path=path,
-                    spatial_extent=SpatialExtent(
-                        top=spatial_extend["gmd:northBoundLatitude"]["gco:Decimal"],
-                        bottom=spatial_extend["gmd:southBoundLatitude"]["gco:Decimal"],
-                        left=spatial_extend["gmd:eastBoundLongitude"]["gco:Decimal"],
-                        right=spatial_extend["gmd:westBoundLongitude"]["gco:Decimal"],
-                        crs="EPSG:4326" 
-                    ),
-                    temporal_extent="{0}/{1}".format(temporal_extend["gml:beginPosition"], 
-                                                     temporal_extend["gml:endPosition"])
-                )
-            )
-
-        return response
-
-    def get_file_paths(self, product: str, bbox: list, start: str, end: str) -> list:
-        """Returns the file paths of the records of the specified products
-        in the temporal and spatial extents.
-
-        Arguments:
-            product {str} -- The identifier of the product
-            bbox {list} -- The spatial extent of the records
-            start {str} -- The start date of the temporal extent
-            end {str} -- The end date of the temporal extent
-
-        Returns:
-            list -- The records data
-        """
-
-        records=self._get_records(product, bbox, start, end)
-
-        # TODO: Better solution than this bulls** xml paths
-        response=[]
-        for item in records:
-            path=item["gmd:distributionInfo"]["gmd:MD_Distribution"]["gmd:transferOptions"][
-                "gmd:MD_DigitalTransferOptions"]["gmd:onLine"][0]["gmd:CI_OnlineResource"]["gmd:linkage"]["gmd:URL"]
-            name=path.split("/")[-1].split(".")[0]
-            date=item["gmd:identificationInfo"]["gmd:MD_DataIdentification"]["gmd:extent"]["gmd:EX_Extent"][
-                "gmd:temporalElement"]["gmd:EX_TemporalExtent"]["gmd:extent"]["gml:TimePeriod"]["gml:beginPosition"][0:10]
-
-            response.append(
-                FilePath(
-                    date=date,
-                    name=name,
-                    path=path
-                )
-            )
-
-        return response
 
     def _get_records(self, product: str=None, bbox: list=None, start: str=None, end: str=None, series: bool=False) -> list:
         """Parses the XML request for the CSW server and collects the responsed by the
@@ -250,6 +158,7 @@ class CSWHandler:
                 record_next, records=self._get_single_records(
                     record_next, filter_parsed, output_schema)
                 all_records += records
+            # additionally add the links to each record
             all_records = self.link_handler.get_links(all_records)
             _cache_json(all_records, path_to_cache)
         else:
