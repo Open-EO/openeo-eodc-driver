@@ -18,10 +18,11 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, code: int, msg: str,
+    def __init__(self, code: int, user_id: str, msg: str,
                  internal: bool=True, links: list=[]):
         self._service = service_name
         self._code = code
+        self._user_id = user_id
         self._msg = msg
         self._internal = internal
         self._links = links
@@ -37,6 +38,7 @@ class ServiceException(Exception):
             "status": "error",
             "service": self._service,
             "code": self._code,
+            "user_id": self._user_id,
             "msg": self._msg,
             "internal": self._internal,
             "links": self._links
@@ -53,7 +55,7 @@ class DataService:
     csw_session = CSWSession()
 
     @rpc
-    def get_all_products(self) -> Union[list, dict]:
+    def get_all_products(self, user_id: str=None) -> Union[list, dict]:
         """Requests will ask the back-end for available data and will return an array of 
         available datasets with very basic information such as their unique identifiers.
 
@@ -74,7 +76,7 @@ class DataService:
                 "data": response
             }
         except Exception as exp:
-            return ServiceException(500, str(exp),
+            return ServiceException(500, user_id, str(exp),
                 links=["#tag/EO-Data-Discovery/paths/~1data/get"]).to_dict()
 
     @rpc
