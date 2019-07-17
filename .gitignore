@@ -9,3 +9,4 @@ venv/
 .pylintrc
 *.pyc
 debug.py
+.gateway/

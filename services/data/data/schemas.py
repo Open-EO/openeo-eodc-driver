@@ -2,16 +2,27 @@
 
 from marshmallow import Schema, fields
 
+class ExtentSchema(Schema):
+    """ Schema for Extent """
+    spatial = fields.List(fields.Float(), required=True)
+    # temporal = fields.List(fields.String(), allow_none=True)
+    temporal = fields.List(fields.String(), required=True, missing=None)
+    # temporal = fields.List(fields.DateTime(format='%Y-%m-%dT%H:%M:%S.%f'), required=True, missing='null')
 
-class SpatialExtentSchema(Schema):
-    """ Schema for SpatialExtent """
+class ProvidersSchema(Schema):
+    """ Schema for Provider """
+    # Missing items in DB
 
-    top = fields.Float(required=True)
-    bottom = fields.Float(required=True)
-    left = fields.Float(required=True)
-    right = fields.Float(required=True)
-    crs = fields.String(required=True)
+class PropertiesSchema(Schema):
+    """ Schema for Properties """
+    # Missing items in DB, should somehow relate to BandSchema
 
+class LinkSchema(Schema):
+    """ Schema for Links """
+    href = fields.String(required=True)
+    rel = fields.String(required=True)
+    type = fields.String()
+    title = fields.String()
 
 class BandSchema(Schema):
     """ Schema for Band """
@@ -28,24 +39,30 @@ class BandSchema(Schema):
 class ProductRecordSchema(Schema):
     """ Schema for ProductRecord """
 
+    stac_version = fields.String(required=True)
+    id = fields.String(required=True)
     description = fields.String(required=True)
-    data_id = fields.String(required=True)
-    source = fields.String(required=True)
-    spatial_extent = fields.Nested(SpatialExtentSchema)
-    temporal_extent = fields.String()
-    bands = fields.Nested(BandSchema, many=True)
+    license = fields.String(required=True)
+    extent = fields.Nested(ExtentSchema, required=True)
+    links = fields.List(fields.Nested(LinkSchema), required=True)
+    title = fields.String()
+    keywords = fields.List(fields.String())
+    providers = fields.Nested(ProvidersSchema)
+    version = fields.String() # Missing in DB
+    properties = fields.Nested(PropertiesSchema)
 
-class RecordSchema(Schema):
-    """ Schema for ProductRecord """
+# class RecordSchema(Schema):
+#     """ Schema for Record """
 
-    name = fields.String(required=True)
-    path = fields.String(required=True)
-    spatial_extent = fields.Nested(SpatialExtentSchema, required=True)
-    temporal_extent = fields.String()
+#     name = fields.String(required=True)
+#     path = fields.String(required=True)
+#     spatial_extent = fields.Nested(SpatialExtentSchema, required=True)
+#     temporal_extent = fields.String()
 
-class FilePathSchema(Schema):
-    """ Schema for FilePath """
+# class FilePathSchema(Schema):
+#     """ Schema for FilePath """
 
-    date = fields.String(required=True)
-    name = fields.String(required=True)
-    path = fields.String(required=True)
+#     date = fields.String(required=True)
+#     name = fields.String(required=True)
+#     path = fields.String(required=True)
+
