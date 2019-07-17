@@ -9,8 +9,7 @@ an GDAL environment.
 
 Optionally modify Airflow settings in `./build/airflow.cfg`. This has to be done before building the image.
 
-* *Currenty the `eoDataReaders` package is on a private repository meaning the git pull while building the image will fail. 
-This will change as soon as `eoDataReaders` will be publicly available.* *
+* *Currenty the `eoDataReaders` package is on a private repository needing a deploy key- the git pull while building the image will fail. This will change as soon as `eoDataReaders` will be publicly available.* *
 
 To build the image run the `build.sh`script. You will have to make the script executable by using following command.
 
