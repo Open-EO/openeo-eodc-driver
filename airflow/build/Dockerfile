@@ -1,5 +1,7 @@
 FROM puckel/docker-airflow:latest 
+ENV FLASK_ENV='production'
 USER root
+COPY airflow.cfg /usr/local/airflow/airflow.cfg
 RUN echo "deb http://http.us.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list && \
     echo "deb-src http://http.us.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list
 RUN apt-get update -y
@@ -19,4 +21,6 @@ RUN git checkout f19a1c66
 RUN /bin/bash -c "python3 setup.py install"
 RUN apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
+RUN chown -R airflow: /usr/local/airflow
 USER airflow
+WORKDIR /usr/local/airflow
