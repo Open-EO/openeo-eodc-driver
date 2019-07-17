@@ -13,6 +13,7 @@ from .models import Base, ProcessGraph
 from .schema import ProcessGraphShortSchema, ProcessGraphFullSchema
 from .dependencies import NodeParser, Validator
 from jsonschema import ValidationError
+from openeo_pg_parser_python.validate_process_graph import validate_graph 
 
 
 class ServiceException(Exception):
@@ -273,20 +274,32 @@ class ProcessesGraphService:
             process_response = self.process_service.get_all()
             if process_response["status"] == "error":
                 return process_response
-            processes = process_response["data"]
+            processes = process_response["data"]["processes"]
 
-            # Get all products
-            product_response = self.data_service.get_all_products()
-            if product_response["status"] == "error":
-                return product_response
-            products = product_response["data"]
+            # # Get all products
+            # product_response = self.data_service.get_all_products()
+            # if product_response["status"] == "error":
+            #     return product_response
+            # products = product_response["data"]
+            
+            valid = validate_graph(process_graph, processes_list=processes)
+            if valid:
+                output_errors = []
+            else:
+                # TODO clarify errors -> use again json schemas for validation
+                output_errors = [
+                    {
+                        "message": "error."
+                    }
+                ]
 
-            self.validator.update_datasets(processes, products)
-            self.validator.validate_node(process_graph)
+            # self.validator.update_datasets(processes, products)
+            # self.validator.validate_node(process_graph)
 
             return {
                 "status": "success",
-                "code": 204
+                "code": 200,
+                "data": output_errors
             }
         except ValidationError as exp:
             return ServiceException(ProcessesService.name, 400, user_id, exp.message, internal=False,
