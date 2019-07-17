@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from xml.dom.minidom import parseString
 from nameko.extensions import DependencyProvider
 
-from ..models import ProductRecord
+from ..models import Collection, Collections
 from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin, xml_end, xml_bbox
 from .bands import BandsExtractor
 from .cache import _cache_json, _check_cache, _get_cache_path, _get_json_cache
@@ -43,20 +43,22 @@ class CSWHandler:
 
         data = self._get_records(series=True)
 
-        product_records = []
-        for product_record in data:
-            product_records.append(
-                ProductRecord(
-                    stac_version=product_record["stac_version"],
-                    b_id=product_record["id"],
-                    description=product_record["description"],
-                    b_license=product_record["license"],
-                    extent=product_record["extent"],
-                    links=product_record["links"],
+        collections = []
+        for collection in data:
+            collections.append(
+                Collection(
+                    stac_version=collection["stac_version"],
+                    b_id=collection["id"],
+                    description=collection["description"],
+                    b_license=collection["license"],
+                    extent=collection["extent"],
+                    links=collection["links"],
                 )
             )
+        links = self.link_handler.get_links(collection=True)
+        collections = Collections(collections, links)
 
-        return product_records
+        return collections
 
     def get_product(self, data_id: str) -> dict:
         """Returns information about a specific product.
@@ -70,26 +72,19 @@ class CSWHandler:
 
         data = self._get_records(data_id, series=True)[0]
 
-        # upper = data["ows:BoundingBox"]["ows:UpperCorner"].split(" ")
-        # lower = data["ows:BoundingBox"]["ows:LowerCorner"].split(" ")
+        collection = Collection(
+            stac_version=data["stac_version"],
+            b_id=data["id"],
+            description=data["description"],
+            b_license=data["license"],
+            extent=data["extent"],
+            links=data["links"],
+            title=data["title"],
+            keywords=data["keywords"]
+        )
 
-        # product_record = ProductRecord(
-        #     data_id=data["dc:identifier"],
-        #     description=data["dct:abstract"],
-        #     source=data["dc:creator"],
-        #     spatial_extent=SpatialExtent(
-        #         top=upper[1],
-        #         bottom=lower[1],
-        #         left=lower[0],
-        #         right=upper[0],
-        #         crs="EPSG:4326"
-        #     ),
-        #     temporal_extent="{0}/{1}".format(data["dc:date"], 
-        #                                      datetime.now().strftime('%Y-%m-%d')),
-        #     bands=self.bands_extractor.get_bands(data_id)
-        # )
-        # return product_record
-        return data
+
+        return collection
 
     def _get_records(self, product: str=None, bbox: list=None, start: str=None, end: str=None, series: bool=False) -> list:
         """Parses the XML request for the CSW server and collects the responsed by the
@@ -158,7 +153,7 @@ class CSWHandler:
                 record_next, records=self._get_single_records(
                     record_next, filter_parsed, output_schema)
                 all_records += records
-            # additionally add the links to each record
+            # additionally add the links to each record and collection
             all_records = self.link_handler.get_links(all_records)
             _cache_json(all_records, path_to_cache)
         else:

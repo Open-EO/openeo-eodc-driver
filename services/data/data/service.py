@@ -4,7 +4,7 @@
 from typing import Union
 from nameko.rpc import rpc
 
-from .schemas import ProductRecordSchema
+from .schemas import CollectionSchema, CollectionsSchema
 from .dependencies.csw import CSWSession
 from .dependencies.arg_parser import ArgParserProvider, ValidationError
 
@@ -68,7 +68,7 @@ class DataService:
 
         try:
             product_records = self.csw_session.get_all_products()
-            response = ProductRecordSchema(many=True).dump(product_records).data
+            response = CollectionsSchema().dump(product_records)
 
             return {
                 "status": "success",
@@ -94,8 +94,8 @@ class DataService:
         try:
             name = self.arg_parser.parse_product(name)
             product_record = self.csw_session.get_product(name)
-            # response = ProductRecordSchema().dump(product_record)
-            response = product_record
+            response = CollectionSchema().dump(product_record)
+
             return {
                 "status": "success",
                 "code": 200,

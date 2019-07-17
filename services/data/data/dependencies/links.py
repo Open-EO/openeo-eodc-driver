@@ -7,30 +7,40 @@ class LinkHandler:
         self.service_url = service_url
         self.api_endpoint = 'collections'
 
-    def _get_root(self):
+    def _get_root_record(self):
         rel = 'root'
         href = self.service_url + self.api_endpoint
-        root_link = {'href': href, 'rel': rel}
-        return root_link
+        link = {'href': href, 'rel': rel}
+        return link
 
-    def _get_parent(self):
+    def _get_parent_record(self):
         rel = 'parent'
         href = self.service_url + self.api_endpoint
-        root_link = {'href': href, 'rel': rel}
-        return root_link
+        link = {'href': href, 'rel': rel}
+        return link
 
-    def _get_self(self, record):
+    def _get_self_record(self, record):
         rel = 'self'
         href = self.service_url + self.api_endpoint + '/' + record['id']
-        root_link = {'href': href, 'rel': rel}
-        return root_link
+        link = {'href': href, 'rel': rel}
+        return link
 
+    def _get_self_collection(self):
+        rel = 'self'
+        href = self.service_url + self.api_endpoint
+        link = {'href': href, 'rel': rel}
+        return link
+    
     def _get_source(self):
         pass
 
-    def get_links(self, records: list) -> list:
-        for record in records:
-            links = [self._get_self(record), self._get_parent(), self._get_root()]
-            record.update({'links': links})
-            
-        return records
+    def get_links(self, records: list=[], collection: bool=False) -> list:
+        if not collection:
+            for record in records:
+                links = [self._get_self_record(record), self._get_parent_record(), self._get_root_record()]
+                record.update({'links': links})
+            return records
+        else:
+            links = [self._get_self_collection()]
+            return links
+

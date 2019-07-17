@@ -11,11 +11,11 @@ class ExtentSchema(Schema):
 
 class ProvidersSchema(Schema):
     """ Schema for Provider """
-    # Missing items in DB
+    # TODO Missing items in DB
 
 class PropertiesSchema(Schema):
     """ Schema for Properties """
-    # Missing items in DB, should somehow relate to BandSchema
+    # TODO Missing items in DB, should somehow relate to BandSchema
 
 class LinkSchema(Schema):
     """ Schema for Links """
@@ -36,8 +36,8 @@ class BandSchema(Schema):
     wavelength_nm = fields.Float(required=True)
 
 
-class ProductRecordSchema(Schema):
-    """ Schema for ProductRecord """
+class CollectionSchema(Schema):
+    """ Schema for Collection """
 
     stac_version = fields.String(required=True)
     id = fields.String(required=True)
@@ -51,18 +51,8 @@ class ProductRecordSchema(Schema):
     version = fields.String() # Missing in DB
     properties = fields.Nested(PropertiesSchema)
 
-# class RecordSchema(Schema):
-#     """ Schema for Record """
+class CollectionsSchema(Schema):
+    """ Schema for Collections """
 
-#     name = fields.String(required=True)
-#     path = fields.String(required=True)
-#     spatial_extent = fields.Nested(SpatialExtentSchema, required=True)
-#     temporal_extent = fields.String()
-
-# class FilePathSchema(Schema):
-#     """ Schema for FilePath """
-
-#     date = fields.String(required=True)
-#     name = fields.String(required=True)
-#     path = fields.String(required=True)
-
+    collections = fields.List(fields.Nested(CollectionSchema), required=True)
+    links = fields.List(fields.Nested(LinkSchema), required=True)

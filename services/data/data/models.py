@@ -40,12 +40,12 @@ class Band:
         self.unit = unit
 
 
-class ProductRecord:
-    """ Represents a single product record """
+class Collection:
+    """ Represents a single collection """
 
     def __init__(self, stac_version: str, b_id: str, description: str, b_license: str,
-                 extent: Extent, links: Link, title: str=None, keywords: list=None,
-                 providers: Providers=None, version: str=None, properties: Properties=None):
+                 extent: Extent, links: list, title: str=None, keywords: list=None,
+                 providers: list=None, version: str=None, properties: Properties=None):
         self.stac_version = stac_version
         setattr(self, "id", b_id) # Because 'id' is reserved in Python
         self.description = description
@@ -57,3 +57,10 @@ class ProductRecord:
         if providers: self.providers = providers
         if version: self.version = version
         if properties: self.properties = properties
+
+class Collections:
+    """ Represents multiple collections """
+
+    def __init__(self, collections: list, links: list):
+        self.collections = collections
+        self.links = links
