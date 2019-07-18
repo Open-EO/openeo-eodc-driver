@@ -115,8 +115,10 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/jobs.env
+      - ./envs/data.env
     volumes:
       - ./services/jobs:/usr/src/app
+      - ${AIRFLOW_DAGS}:/usr/src/dags
 
 networks:
   default:
