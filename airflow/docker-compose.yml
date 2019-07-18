@@ -39,8 +39,8 @@ services:
             EXECUTOR: $EXECUTOR
             FLASK_ENV: $FLASK_ENV
         volumes:
-            - ./plugins:/usr/local/airflow/plugins
-            - ./dags:/usr/local/airflow/dags
+            - $PLUGINS:/usr/local/airflow/plugins
+            - $DAGS:/usr/local/airflow/dags
         ports:
             - "8080:8080"
         # todo: --ssl_cert path --ssl_key path
@@ -89,8 +89,8 @@ services:
             EXECUTOR: $EXECUTOR
             FLASK_ENV: $FLASK_ENV
         volumes:
-            - ./plugins:/usr/local/airflow/plugins
-            - ./dags:/usr/local/airflow/dags
+            - $PLUGINS:/usr/local/airflow/plugins
+            - $DAGS:/usr/local/airflow/dags
         command: scheduler
         networks:
             - default
@@ -114,10 +114,10 @@ services:
             GDAL_VRT_PYTHON_TRUSTED_MODULES: $GDAL_VRT_PYTHON_TRUSTED_MODULES
             FLASK_ENV: $FLASK_ENV
         volumes:
-            - ./plugins:/usr/local/airflow/plugins
-            - ./dags:/usr/local/airflow/dags
-            - /srv/airflow/data/input_data:/data_in
-            - /srv/airflow/data/output_data:/data_out
+            - $PLUGINS:/usr/local/airflow/plugins
+            - $DAGS:/usr/local/airflow/dags
+            - $HOST_INPUT:$CONTAINER_INPUT
+            - $HOST_OUTPUT:$CONTAINER_OUTPUT
         command: worker
         networks:
             - default
@@ -128,4 +128,3 @@ networks:
         # driver: bridge
         # driver_opts:
         #     com.docker.network.driver.mtu: 1450
-
