@@ -5,9 +5,7 @@ from marshmallow import Schema, fields
 class ExtentSchema(Schema):
     """ Schema for Extent """
     spatial = fields.List(fields.Float(), required=True)
-    # temporal = fields.List(fields.String(), allow_none=True)
     temporal = fields.List(fields.String(), required=True, missing=None)
-    # temporal = fields.List(fields.DateTime(format='%Y-%m-%dT%H:%M:%S.%f'), required=True, missing='null')
 
 class ProvidersSchema(Schema):
     """ Schema for Provider """
