@@ -12,6 +12,7 @@ from .schema import JobSchema, JobSchemaFull
 # from .dependencies.api_connector import APIConnector
 from .dependencies.template_controller import TemplateController
 from .models import JobStatus
+from .dependencies.write_airflow_dag import WriteAirflowDag
 
 
 service_name = "jobs"
@@ -205,27 +206,33 @@ class JobService:
             job_args {dict} -- The information needed to create a job
         """
         try:
+            process_graph = job_args.pop('process_graph')
             process_response = self.process_graphs_service.create(
                 user_id=user_id,
-                **{"process_graph": job_args.pop('process_graph')})
+                **{"process_graph": process_graph})
 
             if process_response["status"] == "error":
                 return process_response
             process_graph_id = process_response["service_data"]
 
             job = Job(user_id, process_graph_id, **job_args)
-            job_id = str(job.id)
             self.db.add(job)
             self.db.commit()
+            
+            if "description" not in locals():
+                description = None
+            
+            # Create Apache Airflow DAG file
+            WriteAirflowDag(job.id, user_id, process_graph, user_email=None, job_description=description)
 
             return {
                 "status": "success",
                 "code": 201,
                 "headers": {
-                    "Location": "jobs/" + job_id,
-                    "OpenEO-Identifier": job_id
+                    "Location": "jobs/" + job.id,
+                    "OpenEO-Identifier": job.id
                 },
-                "service_data": job_id
+                "service_data": job.id
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
