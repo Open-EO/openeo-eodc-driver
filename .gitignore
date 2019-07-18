@@ -4,9 +4,11 @@
 envs
 .init
 airflow/deploy-key
+airflow/deploy.key
 *__pycache__*
 venv/
 .pylintrc
 *.pyc
 debug.py
-.gateway/
+airflow/dags/*
+!airflow/dags/test_job.py
