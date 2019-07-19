@@ -32,7 +32,6 @@ services:
     env_file:
       - ./envs/jobs.env
 
-
   processes_db:
       image: postgres
       container_name: openeo-processes-db
@@ -78,8 +77,11 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/data.env
+    environment:
+      CACHE_PATH: /usr/src/cache
     volumes:
-      - ${CACHE_PATH}:${CACHE_PATH}
+      - eo-discovery-cache:/usr/src/cache
+      - ./services/data:/usr/src/app
 
   openeo-processes:
     build: ./services/processes
@@ -97,9 +99,8 @@ services:
     environment:
       PROCESS_API_DIR: /usr/src/api
     volumes:
-      - process-api-data:/usr/scr/api
+      - process-api-data:/usr/src/api
       - ./services/processes:/usr/src/app
-
 
   openeo-jobs:
     build: ./services/jobs
@@ -124,5 +125,6 @@ networks:
 
 volumes:
   process-api-data:
+  eo-discovery-cache:
 
     # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
