@@ -1,24 +1,29 @@
 """ Models """
 
 
-class SpatialExtent:
-    """ Represents a spatial extent """
+class Extent:
+    """ Represents spatial and temporal extent """
 
-    def __init__(self, top: float, bottom: float, left: float, right: float, crs: str):
-        self.top = top
-        self.bottom = bottom
-        self.left = left
-        self.right = right
-        self.crs = crs
+    def __init__(self, spatial: list, temporal: list):
+        self.spatial = spatial
+        self.temporal = temporal
 
+class Providers:
+    """ Represents Providers """
+    # Missing items in DB
 
-class TemporalExtent:
-    """ Represents a temporal extent """
+class Properties:
+    """ Represents Properties """
+    # Missing items in DB, should somehow relate to BandSchema
+    pass
 
-    def __init__(self, t_from: str, to: str):
-        setattr(self, "from", t_from)   # Because 'from' is reserved in Python
-        self.to = to
-
+class Link:
+    """ Represents Links """
+    def __init__(self, href: str, rel: str, b_type: str=None, title: str=None):
+        self.href = href
+        self.rel = rel
+        if b_type: setattr(self, 'type', b_type) # Because 'type' is reserved in Python
+        if title: self.title = title
 
 class Band:
     """ Represents a single band. """
@@ -35,33 +40,27 @@ class Band:
         self.unit = unit
 
 
-class ProductRecord:
-    """ Represents a single product record """
+class Collection:
+    """ Represents a single collection """
 
-    def __init__(self, data_id: str, description: str, source: str,
-                 spatial_extent: SpatialExtent=None, temporal_extent: TemporalExtent=None, bands: Band=None):
-        self.data_id = data_id
+    def __init__(self, stac_version: str, b_id: str, description: str, b_license: str,
+                 extent: Extent, links: list, title: str=None, keywords: list=None,
+                 providers: list=None, version: str=None, properties: Properties=None):
+        self.stac_version = stac_version
+        setattr(self, "id", b_id) # Because 'id' is reserved in Python
         self.description = description
-        self.source = source
-        if spatial_extent: self.spatial_extent = spatial_extent
-        if temporal_extent: self.temporal_extent = temporal_extent
-        if bands: self.bands = bands
+        setattr(self, "license", b_license) # Because 'license' is reserved in Python
+        self.extent = extent
+        self.links = links
+        if title: self.title = title
+        if keywords: self.keywords = keywords
+        if providers: self.providers = providers
+        if version: self.version = version
+        if properties: self.properties = properties
 
+class Collections:
+    """ Represents multiple collections """
 
-class Record:
-    """ Represents a single record """
-
-    def __init__(self, name: str, path: str,
-                 spatial_extent: SpatialExtent=None, temporal_extent: TemporalExtent=None):
-        self.name = name
-        self.path = path
-        if spatial_extent: self.spatial_extent = spatial_extent
-        if temporal_extent: self.temporal_extent = temporal_extent
-
-
-class FilePath:
-    """ Schema for a file path """
-    def __init__(self, date:str, name: str, path: str):
-        self.date = date
-        self.name = name
-        self.path = path
+    def __init__(self, collections: list, links: list):
+        self.collections = collections
+        self.links = links
