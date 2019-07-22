@@ -68,7 +68,7 @@ class DataService:
 
         try:
             product_records = self.csw_session.get_all_products()
-            response = CollectionsSchema().dump(product_records)
+            response = CollectionsSchema().dump(product_records).data
 
             return {
                 "status": "success",
@@ -94,7 +94,7 @@ class DataService:
         try:
             name = self.arg_parser.parse_product(name)
             product_record = self.csw_session.get_product(name)
-            response = CollectionSchema().dump(product_record)
+            response = CollectionSchema().dump(product_record).data
 
             return {
                 "status": "success",
