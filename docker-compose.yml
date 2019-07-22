@@ -65,6 +65,20 @@ services:
     ports:
       - 3000:3000
 
+  openeo-capabilities:
+    build: ./services/capabilities
+    image: openeo-capabilities
+    container_name: openeo-capabilities
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - openeo-gateway
+      - openeo-base
+    env_file:
+      - ./envs/rabbitmq.env
+    volumes:
+      - ./services/capabilities:/usr/src/app
+
   openeo-data:
     build: ./services/data
     image: openeo-data

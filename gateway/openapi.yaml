@@ -35,13 +35,15 @@ tags:
     description: Management of batch processing tasks (jobs) and their results.
 paths:
   /:
-    tags:
-      - Capabilities
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.1/openapi.json#/paths/~1
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1
+  /.well-known/openeo:
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1.well-known~1openeo
   /output_formats:
-    tags:
-      - Capabilities
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.1/openapi.json#/paths/~1output_formats
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1output_formats
+  /udf_runtimes:
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1udf_runtimes
+  /service_types:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1service_types
   /collections:
     tags:
       - EO Data Discovery
