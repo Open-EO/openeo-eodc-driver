@@ -23,7 +23,7 @@ with ctx:
 
     # EO Data Discovery
     gateway.add_endpoint("/collections", func=rpc.data.get_all_products, auth=False, validate=True)
-    gateway.add_endpoint("/collections/<name>", func=rpc.data.get_product_detail, auth=False, validate=True)
+    gateway.add_endpoint("/collections/<collection_id>", func=rpc.data.get_product_detail, auth=False, validate=True)
     # /subscription
 
     # Process Discovery
@@ -53,7 +53,7 @@ with ctx:
 
     # Job Management
     # /output_formats -> implemented under 'Capabilities'
-    gateway.add_endpoint("/preview", func=rpc.jobs.process_sync, auth=True, validate=True, methods=["POST"])
+    gateway.add_endpoint("/result", func=rpc.jobs.process_sync, auth=True, validate=True, methods=["POST"])
     gateway.add_endpoint("/jobs", func=rpc.jobs.get_all, auth=True, validate=True)
     gateway.add_endpoint("/jobs", func=rpc.jobs.create, auth=True, validate=True, methods=["POST"])
     gateway.add_endpoint("/jobs/<job_id>", func=rpc.jobs.get, auth=True, validate=True)

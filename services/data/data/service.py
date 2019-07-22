@@ -80,7 +80,7 @@ class DataService:
                 links=["#tag/EO-Data-Discovery/paths/~1data/get"]).to_dict()
 
     @rpc
-    def get_product_detail(self, user_id: str=None, name: str=None) -> dict:
+    def get_product_detail(self, user_id: str=None, collection_id: str=None) -> dict:
         """The request will ask the back-end for further details about a dataset.
 
         Keyword Arguments:
@@ -92,8 +92,8 @@ class DataService:
         """
 
         try:
-            name = self.arg_parser.parse_product(name)
-            product_record = self.csw_session.get_product(name)
+            collection_id = self.arg_parser.parse_product(collection_id)
+            product_record = self.csw_session.get_product(collection_id)
             response = CollectionSchema().dump(product_record)
 
             return {
