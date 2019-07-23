@@ -36,15 +36,16 @@ with ctx:
     gateway.add_endpoint("/me", func=gateway.get_user_info, rpc=False)
 
     # File Management
-    # /files/<user_id>
-    # /files/<user_id>/<path>
-    # /files/<user_id>/<path> put
+    gateway.add_endpoint("/files/<user_id>", func=rpc.files.get_all, auth=True, validate=True)
+    gateway.add_endpoint("/files/<user_id>/<path>", func=rpc.files.download, auth=True, validate=True)
+    gateway.add_endpoint("/files/<user_id>/<path>", func=rpc.files.upload, auth=True, validate=True, methods=["PUT"])
+    gateway.add_endpoint("/files/<user_id>/<path>", func=rpc.files.delete, auth=True, validate=True, methods=["DELETE"])
     # /files/<user_id>/<path> delete
     # /subscription
 
     # Process Graph Management
     gateway.add_endpoint("/validation", func=rpc.process_graphs.validate, auth=True, validate=True, methods=["POST"])
-    # /preview -> implemented under 'Job Management'
+    # /result -> implemented under 'Job Management'
     gateway.add_endpoint("/process_graphs", func=rpc.process_graphs.get_all, auth=True, validate=True)
     gateway.add_endpoint("/process_graphs", func=rpc.process_graphs.create, auth=True, validate=True, methods=["POST"])
     gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.process_graphs.get, auth=True, validate=True)
