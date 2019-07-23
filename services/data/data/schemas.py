@@ -33,24 +33,28 @@ class BandSchema(Schema):
     unit = fields.String(required=True)
     wavelength_nm = fields.Float(required=True)
 
+class OtherPropertiesSchema(Schema):
+    """ Schema for Other Properties """
+    # TODO Missing items in DB
 
 class CollectionSchema(Schema):
     """ Schema for Collection """
 
     stac_version = fields.String(required=True)
     id = fields.String(required=True)
+    title = fields.String()
     description = fields.String(required=True)
+    keywords = fields.List(fields.String())
+    version = fields.String() # Missing in DB
     license = fields.String(required=True)
+    providers = fields.Nested(ProvidersSchema)
     extent = fields.Nested(ExtentSchema, required=True)
     links = fields.List(fields.Nested(LinkSchema), required=True)
-    title = fields.String()
-    keywords = fields.List(fields.String())
-    providers = fields.Nested(ProvidersSchema)
-    version = fields.String() # Missing in DB
-    properties = fields.Nested(PropertiesSchema)
+    other_properties = fields.Nested(OtherPropertiesSchema, required=True, default={})
+    properties = fields.Nested(PropertiesSchema, required=True, default={})
 
 class CollectionsSchema(Schema):
     """ Schema for Collections """
 
-    collections = fields.List(fields.Nested(CollectionSchema), required=True)
+    collections = fields.List(fields.Nested(CollectionSchema(exclude=['properties', 'other_properties'])), required=True)
     links = fields.List(fields.Nested(LinkSchema), required=True)
