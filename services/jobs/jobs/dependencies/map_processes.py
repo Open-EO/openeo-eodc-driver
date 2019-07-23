@@ -7,7 +7,7 @@ from owslib.csw import CatalogueServiceWeb
 from owslib.fes import PropertyIsLike, BBox, PropertyIsLessThan, PropertyIsGreaterThan
 
 
-def map_process(process, process_name, process_id, options=None):
+def map_process(process, process_name, process_id, root_folder, options=None):
     """
     Entry point.
     """
@@ -19,7 +19,7 @@ def map_process(process, process_name, process_id, options=None):
     filepaths = None
 
     # Add/set output folder
-    map_set_set_output_folder(process_id, options)
+    map_set_set_output_folder(root_folder, process_id, options)
 
     if process['process_id'] in ('get_data', 'get_collection', 'load_collection'):
         dict_items, filepaths = map_get_collection(process)
@@ -66,14 +66,14 @@ def map_save_result(process):
 
     return dict_item_list
 
-def map_set_set_output_folder(folder_name, options=[]):
+def map_set_set_output_folder(root_folder, folder_name, options=[]):
     """
     Appends folder to options.
     """
 
     # Set output_folder for this operation
     dict_item = {'name': 'set_output_folder',\
-                 'folder_name': os.environ["JOB_DATA"] + os.path.sep + folder_name + os.path.sep,\
+                 'folder_name': root_folder + os.path.sep + folder_name + os.path.sep,\
                  'absolute_path': '1;int'}
 
     # Set output_folder for this operation
