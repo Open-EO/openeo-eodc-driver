@@ -102,5 +102,5 @@ dag = DAG(dag_id="{dag_id}",
     dagfile.close()
 
     # Move file to DAGs folder (must copy/delete because of volumes mounted on different )
-    copyfile(dag_filename, os.environ.get('AIRFLOW_DAGS') + dag_filename)
+    copyfile(dag_filename, os.environ.get('AIRFLOW_DAGS') + "/" + dag_filename)
     os.remove(dag_filename)
