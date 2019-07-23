@@ -87,7 +87,7 @@ paths:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.1/openapi.json#/paths/~1process_graphs
   /jobs:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.1/openapi.json#/paths/~1jobs
-  /preview:
+  /result:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.1/openapi.json#/paths/~1preview
   /jobs/{job_id}:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.3.1/openapi.json#/paths/~1jobs~1{job_id}
