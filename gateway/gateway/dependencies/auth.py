@@ -145,7 +145,7 @@ class AuthenticationHandler:
 
         user_info = {}
         user_info['userid'] = userinfo['sub']
-        user_info['email'] = userinfo['email']
+        # user_info['email'] = userinfo['email']
 
         return user_info
 
