@@ -125,9 +125,15 @@ class OpenAPISpecParser:
                             if "schema" in p:
                                 params_specs[p["name"]] = p["schema"]
                     if "requestBody" in in_method:
-                        body = route_specs[req_method]["requestBody"]["content"]["application/json"]["schema"]
+                        content = route_specs[req_method]["requestBody"]["content"]
+                        if content.get("application/json"):
+                            body = content["application/json"]["schema"]
+                        elif content.get("application/octet-stream"):
+                            body = content["application/octet-stream"]["schema"]
+                        else:
+                            raise Exception("Input format {0} is currently not supported".format(', '.join(content.keys())))
                         if "required" in body:
-                            param_required  += body["required"]
+                            param_required += body["required"]
                         if "properties" in body:
                             for p_key, p_value in body["properties"].items():
                                 params_specs[p_key] = p_value
@@ -145,7 +151,10 @@ class OpenAPISpecParser:
                     parameters = {**parameters, **request.args.to_dict(flat=True)}
                 
                 if request.data:
-                    parameters = {**parameters, **request.get_json()}
+                    if request.headers['Content-Type'] == 'application/octet-stream':
+                        parameters = {**parameters, "file": request.data}
+                    else:
+                        parameters = {**parameters, **request.get_json()}
                 
                 return parameters
             except BadRequest as exp:
@@ -154,8 +163,6 @@ class OpenAPISpecParser:
                     code=400, 
                     service="gateway", 
                     internal=False)
-            
-            
 
         def decorator(user_id=None, **kwargs):
 
@@ -176,6 +183,16 @@ class OpenAPISpecParser:
                 parameters = get_parameters()
 
                 # TODO validation
+
+                # for file management user_id is also passed as url param > has to match the user_id from the token
+                if parameters.get("user_id", None):
+                    if not parameters.pop("user_id") == user_id:
+                        return APIException(
+                            msg="The passed user_id has to match the token.",
+                            code=400,
+                            service="gateway",
+                            user_id=user_id,
+                            internal=False)
 
                 return f(user_id=user_id,  **parameters)
             except Exception as exc:
