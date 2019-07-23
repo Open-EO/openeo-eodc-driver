@@ -1,6 +1,6 @@
 """ Job Management """
 
-from os import environ
+import os
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
 
@@ -13,6 +13,7 @@ from .schema import JobSchema, JobSchemaFull
 from .dependencies.template_controller import TemplateController
 from .models import JobStatus
 from .dependencies.write_airflow_dag import WriteAirflowDag
+from .dependencies.airflow_conn import Airflow
 
 
 service_name = "jobs"
@@ -69,6 +70,7 @@ class JobService:
     data_service = RpcProxy("data")
     # api_connector = APIConnector()
     template_controller = TemplateController()
+    airflow = Airflow()
 
     @rpc
     def get(self, user_id: str, job_id: str):
@@ -210,29 +212,31 @@ class JobService:
             process_response = self.process_graphs_service.create(
                 user_id=user_id,
                 **{"process_graph": process_graph})
-
             if process_response["status"] == "error":
                 return process_response
             process_graph_id = process_response["service_data"]
-
+            
             job = Job(user_id, process_graph_id, **job_args)
+            job_id = str(job.id)
             self.db.add(job)
             self.db.commit()
             
             if "description" not in locals():
                 description = None
+                
+            # Create folder for job
+            job_folder = self.create_folder(user_id, job_id)
             
             # Create Apache Airflow DAG file
-            WriteAirflowDag(job.id, user_id, process_graph, user_email=None, job_description=description)
+            WriteAirflowDag(job_id, user_id, process_graph, job_folder, user_email=None, job_description=description)
 
             return {
                 "status": "success",
                 "code": 201,
                 "headers": {
-                    "Location": "jobs/" + job.id,
-                    "OpenEO-Identifier": job.id
-                },
-                "service_data": job.id
+                    "Location": "jobs/" + job_id,
+                    "OpenEO-Identifier": job_id
+                }
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
@@ -240,79 +244,27 @@ class JobService:
 
     @rpc
     def process(self, user_id: str, job_id: str):
-        try:
+        try:        
             job = self.db.query(Job).filter_by(id=job_id).first()
-
+            
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
                 raise Exception(response)
 
+            response = self.airflow.unpause_dag(job_id, unpause=True)
+
+            # Update jobs database #TODO get this information from airflow database
             job.status = "running"
             self.db.commit()
 
-            # Get process nodes
-            response = self.process_graphs_service.get_nodes(
-                user_id=user_id,
-                process_graph_id= job.process_graph_id)
-
-            if response["status"] == "error":
-                raise Exception(response)
-
-            process_nodes = response["data"]
-
-            # Get file_paths
-            filter_args = process_nodes[0]["args"]
-            response = self.data_service.get_records(
-                detail="file_path",
-                user_id=user_id,
-                name=filter_args["name"],
-                spatial_extent=filter_args["extent"],
-                temporal_extent=filter_args["time"])
-
-            if response["status"] == "error":
-                raise Exception(response)
-
-            filter_args["file_paths"] = response["data"]
-
-            # TODO: Calculate storage size and get storage class
-            # TODO: Implement Ressource Management
-            storage_class = "storage-write"
-            storage_size = "5Gi"
-            if "local_registry" in environ:
-                image_registry = environ.get("local_registry")
-            else:
-                image_registry = "docker-registry.default.svc:5000"
-            processing_container = image_registry + "/execution-environment/openeo-processing"
-            min_cpu = "500m"
-            max_cpu = "4"
-            min_ram = "256Mi"
-            max_ram = "5Gi"
-
-            # Create OpenShift objects
-            pvc = self.template_controller.create_pvc(self.api_connector, "pvc-" + job.id, storage_class, storage_size)
-            # Add user_id and job_id to job data
-            process_nodes = {
-                'user_id': user_id,
-                'job_id': job.id,
-                'process_graph': process_nodes
+            return {
+                "status": "success",
+                "code": 202,
             }
-            config_map = self.template_controller.create_config(self.api_connector, "cm-" + job.id, process_nodes)
-
-            # Deploy container
-            logs, metrics =  self.template_controller.deploy(self.api_connector, job.id, processing_container,
-                                                             config_map, pvc, min_cpu, max_cpu, min_ram, max_ram)
-
-            pvc.delete(self.api_connector)
-
-            job.logs = logs
-            job.metrics = metrics
-            job.status = "finished"
-            self.db.commit()
-            return
         except Exception as exp:
             job.status = job.status + " error: " + exp.__str__() #+ ' ' + filter_args
             self.db.commit()
-            return
+            return exp
 
     @rpc
     def process_sync(self, user_id: str, process_graph: dict, output: dict=None,
@@ -403,6 +355,19 @@ class JobService:
                                            internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         return True, None
+        
+    def create_folder(self, user_id:str, job_id:str):
+        """
+        
+        """
+        
+        # NB this method to be deleted whenn this functionality provided by file management microservice
+        # Path to folder where temp/final job data is stored (no trailing slash)
+        foldername = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + job_id
+        if not os.path.isdir(foldername):
+            os.makedirs(foldername)
+        
+        return foldername
 
     # @rpc
     # def get_job(self, user_id, job_id):
