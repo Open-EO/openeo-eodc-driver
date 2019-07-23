@@ -124,6 +124,8 @@ services:
 
 networks:
     default:
+      external:
+        name: ${PROJECT_NAME}_proxy
         ## Driver options needed for OpenStack environments
         # driver: bridge
         # driver_opts:
