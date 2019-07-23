@@ -16,12 +16,14 @@ with ctx:
 
     # Capabilities
     gateway.add_endpoint("/", func=gateway.send_index, rpc=False)
-    gateway.add_endpoint("/output_formats", func=gateway.get_output_formats, rpc=False)
-    # /service_types
+    gateway.add_endpoint("/.well-known/openeo", func=rpc.capabilities.get_versions, auth=False, validate=True)
+    gateway.add_endpoint("/output_formats", func=rpc.capabilities.get_output_formats, auth=False, validate=True)
+    gateway.add_endpoint("/udf_runtimes", func=rpc.capabilities.get_udfs, auth=False, validate=True)
+    gateway.add_endpoint("/service_types", func=rpc.capabilities.get_service_types, auth=False, validate=True)
 
     # EO Data Discovery
     gateway.add_endpoint("/collections", func=rpc.data.get_all_products, auth=False, validate=True)
-    gateway.add_endpoint("/collections/<name>", func=rpc.data.get_product_detail, auth=False, validate=True)
+    gateway.add_endpoint("/collections/<collection_id>", func=rpc.data.get_product_detail, auth=False, validate=True)
     # /subscription
 
     # Process Discovery
@@ -51,7 +53,7 @@ with ctx:
 
     # Job Management
     # /output_formats -> implemented under 'Capabilities'
-    gateway.add_endpoint("/preview", func=rpc.jobs.process_sync, auth=True, validate=True, methods=["POST"])
+    gateway.add_endpoint("/result", func=rpc.jobs.process_sync, auth=True, validate=True, methods=["POST"])
     gateway.add_endpoint("/jobs", func=rpc.jobs.get_all, auth=True, validate=True)
     gateway.add_endpoint("/jobs", func=rpc.jobs.create, auth=True, validate=True, methods=["POST"])
     gateway.add_endpoint("/jobs/<job_id>", func=rpc.jobs.get, auth=True, validate=True)

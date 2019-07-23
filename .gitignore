@@ -10,3 +10,4 @@ venv/
 *.pyc
 debug.py
 .gateway/
+.idea/*
