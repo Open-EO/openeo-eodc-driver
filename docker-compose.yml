@@ -129,8 +129,12 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/jobs.env
+      - ./envs/data.env
+    environment:
+      AIRFLOW_DAGS: /usr/src/dags/
     volumes:
       - ./services/jobs:/usr/src/app
+      - $AIRFLOW_DAGS:/usr/src/dags/
 
   openeo-files:
     build: ./services/files
