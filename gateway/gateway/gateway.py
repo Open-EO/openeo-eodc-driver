@@ -231,7 +231,10 @@ class Gateway:
             endpoints.append(endpoint)
 
         capabilities = {
-            "version": api_spec["info"]["version"],
+            "api_version": api_spec["info"]["version"],
+            "backend_version": "x.x.x", # TODO include backend version
+            "title": api_spec["info"]["title"],
+            "description": api_spec["info"]["description"],
             "endpoints": endpoints
         }
 
