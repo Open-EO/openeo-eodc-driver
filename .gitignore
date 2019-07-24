@@ -12,3 +12,5 @@ venv/
 debug.py
 airflow/dags/*
 !airflow/dags/test_job.py
+.gateway/
+.idea/*

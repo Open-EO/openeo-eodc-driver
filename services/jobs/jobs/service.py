@@ -273,8 +273,8 @@ class JobService:
 
         return {
             "status": "success",
-            "code": 201,
-            "headers": {"Location": "jobs/" + job_id }
+            "code": 200,
+            # "headers": {"Location": "jobs/" + job_id }
         }
 
 

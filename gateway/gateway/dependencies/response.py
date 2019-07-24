@@ -4,6 +4,7 @@ from flask import make_response, jsonify, send_file, request, redirect
 from flask.wrappers import Response
 from uuid import uuid4
 from typing import Union
+import io
 
 
 class APIException(Exception):
@@ -117,6 +118,17 @@ class ResponseParser:
 
         return send_file("html/" + file_name)
 
+    def _file(self, filename, content: bytes) -> Response:
+        """Returns a file back to the user.
+
+        Arguments:
+            file_path {str} -- The file requested from the user
+
+        Returns:
+            Response -- The Response object
+        """
+        return send_file(io.BytesIO(content), as_attachment=True, attachment_filename=filename)
+
     def parse(self, payload: dict) -> Response:
         """Maps and parses the responses that are returned from the single
         endpoints.
@@ -134,6 +146,8 @@ class ResponseParser:
             response = self._string(payload["code"], payload["msg"])
         elif "data" in payload:
             response = self._data(payload["code"], payload["data"])
+        elif "file" in payload:
+            response = self._file(**payload["file"])
         else:
             response = self._code(payload["code"])
 
@@ -168,7 +182,7 @@ class ResponseParser:
 
         return make_response(jsonify(error_dict), error_dict["code"])
 
-    def redirect(self, url:str) -> Response:
+    def redirect(self, url: str) -> Response:
         """Redirects to another URL
 
         Arguments:
