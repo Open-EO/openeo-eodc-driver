@@ -301,36 +301,3 @@ class Gateway:
 
         return self._res.parse({"code": 200, "data": user_info})
 
-
-    def get_output_formats(self) -> Response:
-        """
-        Returns available (raster) formats.
-
-        """
-
-        # NB to be moved into an independent database
-        default_out = {
-          "default": "GTiff",
-          "formats": {
-            "GTiff": {
-              "gis_data_types": [
-                "raster"
-              ],
-              "parameters": {}
-            },
-            "png": {
-              "gis_data_types": [
-                "raster"
-              ],
-              "parameters": {}
-            },
-            "jpeg": {
-              "gis_data_types": [
-                "raster"
-              ],
-              "parameters": {}
-            }
-          }
-        }
-
-        return self._res.parse({"code": 200, "data": default_out})
