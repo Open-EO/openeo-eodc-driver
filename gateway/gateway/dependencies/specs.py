@@ -1,14 +1,14 @@
 """ OpenAPISpecParser, OpenAPISpecException """
 
-from os import path
+from os import path, environ
 from pathlib import Path
-from sys import modules
 from flask import request
 from werkzeug.exceptions import BadRequest
 from yaml import load
 from requests import get
 from typing import Callable, Any
 from re import match
+import uuid
 
 from .response import APIException
 
@@ -152,7 +152,12 @@ class OpenAPISpecParser:
                 
                 if request.data:
                     if request.headers['Content-Type'] == 'application/octet-stream':
-                        parameters = {**parameters, "file": request.data}
+                        # Create a tmp file where the binary data is stored > does not need to be passed over the rabbit
+                        temp_file = path.join(environ.get("OPENEO_TMP_DIR"), str(uuid.uuid4()))
+                        with open(temp_file, 'wb') as file:
+                            file.write(request.data)
+                        parameters = {**parameters, "tmp_path": temp_file}
+                        request.data = None
                     else:
                         parameters = {**parameters, **request.get_json()}
                 

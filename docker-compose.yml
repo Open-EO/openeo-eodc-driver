@@ -56,12 +56,14 @@ services:
       - ./envs/oidc.env
     volumes:
       - ./gateway:/usr/src/app
+      - files-data:/usr/src/files
     environment:
       VIRTUAL_HOST: $VIRTUAL_HOST
       VIRTUAL_PORT: $VIRTUAL_PORT
       LETSENCRYPT_HOST: $VIRTUAL_HOST
       LETSENCRYPT_EMAIL: $LETSENCRYPT_EMAIL
       LETSENCRYPT_TEST: $LETSENCRYPT_TEST
+      OPENEO_TMP_DIR: /usr/src/files/tmp
     ports:
       - 3000:3000
 

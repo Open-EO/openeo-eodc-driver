@@ -72,17 +72,11 @@ class FilesService:
             if not valid:
                 return err
 
-            with open(complete_path, 'rb') as f:
-                file = f.read()
-
             return {
                 "status": "success",
                 "code": 200,
                 "headers": {"Content-Type": "application/octet-stream"},
-                "file": {
-                    "filename": os.path.basename(complete_path),
-                    "content": file,
-                }
+                "file": complete_path,
             }
 
         except Exception as exp:
@@ -142,13 +136,13 @@ class FilesService:
             return ServiceException(500, user_id, str(exp), links=["/files/" + user_id]).to_dict()
 
     @rpc
-    def upload(self, user_id: str, path: str, file: bytes=None):
+    def upload(self, user_id: str, path: str, tmp_path: str=None):
         """The request will ask the back-end to create a new job using the description send in the request body.
 
         Keyword Arguments:
             user_id {str} -- The identifier of the user
             path {str} -- The file path to the requested file
-            file {File object} -- The file to be uploaded
+            tmp_path {str} -- The path where the file was temporary stored
         """
         try:
             prefix, _ = self.setup_user_folder(user_id)
@@ -161,13 +155,7 @@ class FilesService:
             if not os.path.exists(dirs):
                 os.makedirs(dirs)
 
-            if not file:
-                return ServiceException(400, user_id, "No file provided", internal=False, links=["/files/" + user_id]) \
-                    .to_dict()
-
-            with open(complete_path, "wb") as f:
-                f.write(file)
-                f.close()
+            os.rename(tmp_path, complete_path)
 
             return {
                 "status": "success",

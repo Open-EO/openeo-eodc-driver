@@ -1,7 +1,6 @@
 AMQP_URI: !env_var "pyamqp://${RABBIT_USER}:${RABBIT_PASSWORD}@${RABBIT_HOST:127.0.0.1}:${RABBIT_PORT}"
 max_workers: 10
 parent_calls_tracked: 10
-serializer: pickle
 
 # LOGGING:
 #     version: 1
