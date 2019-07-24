@@ -10,7 +10,7 @@ from nameko.extensions import DependencyProvider
 from ..models import Collection, Collections
 from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin, xml_end, xml_bbox
 from .bands import BandsExtractor
-from .cache import _cache_json, _check_cache, _get_cache_path, _get_json_cache
+from .cache import _cache_json, _get_cache_path, _get_json_cache
 from .links import LinkHandler
 
 
@@ -83,10 +83,19 @@ class CSWHandler:
             keywords=data["keywords"]
         )
 
-
         return collection
 
-    def _get_records(self, product: str=None, bbox: list=None, start: str=None, end: str=None, series: bool=False) -> list:
+    def refresh_cache(self, use_cache: bool=False):
+        """ Refreshes the cache
+
+        Keyword Arguments:
+            use_cache {bool} -- Specifies whether to or not to refresh the cache. A bit redundant because submitted through an additional POST
+        """
+        data = self._get_records(series=True, use_cache=use_cache)
+        for collection in data:
+            refreshed = self._get_records(collection['id'], series=True, use_cache=use_cache)[0]
+
+    def _get_records(self, product: str=None, bbox: list=None, start: str=None, end: str=None, series: bool=False, use_cache: bool=True) -> list:
         """Parses the XML request for the CSW server and collects the responsed by the
         batch triggered _get_single_records function.
 
@@ -96,6 +105,7 @@ class CSWHandler:
             start {str} -- The end date of the temporal extent (default: {None})
             end {str} -- The end date of the temporal extent (default: {None})
             series {bool} -- Specifier if series (products) or records are queried (default: {False})
+            use_cache {bool} -- Specifies whether to use the
 
         Raises:
             CWSError -- If a problem occures while communicating with the CSW server
@@ -148,7 +158,7 @@ class CSWHandler:
         # Create a request and cache the data for a day
         # Caching to increase speed
         path_to_cache = _get_cache_path(self.cache_path, product, series)
-        if not _check_cache(path_to_cache):
+        if not use_cache:
             while int(record_next) > 0:
                 record_next, records=self._get_single_records(
                     record_next, filter_parsed, output_schema)

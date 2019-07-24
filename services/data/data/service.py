@@ -107,3 +107,28 @@ class DataService:
         except Exception as exp:
             return ServiceException(500, user_id, str(exp)).to_dict()
 
+    @rpc
+    def refresh_cache(self, user_id: str=None, use_cache: bool=False) -> dict:
+        """The request will refresh the cache
+
+        Keyword Arguments:
+            user_id {str} -- The user id (default: {None})
+            use_cache {bool} -- Trigger to refresh the cache
+
+        Returns:
+            dict -- Success message or Exception
+        """
+
+        try:
+            self.csw_session.refresh_cache(use_cache)
+
+            return {
+                "status": "success",
+                "code": 200,
+                "data": {"message": "Successfully refreshed cache"}
+            }
+        except ValidationError as exp:
+            return ServiceException(400, user_id, str(exp), internal=False,
+                links=["#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"]).to_dict()
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp)).to_dict()
