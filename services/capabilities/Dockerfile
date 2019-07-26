@@ -2,5 +2,6 @@ FROM openeo-base
 COPY requirements.txt .
 RUN python3 -m pip install -r requirements.txt
 RUN mkdir /usr/src/api
-EXPOSE 5000
+RUN chown www-openeo:openeo /usr/src/api
+USER www-openeo
 CMD nameko run --config config.yaml capabilities.service --backdoor 3000
