@@ -128,7 +128,7 @@ class ArgParser:
 
         if not product:
             raise ValidationError(
-                "Product '{0}' not found.".format(data_id), 404)
+                "Collection '{0}' not found.".format(data_id), 404)
 
         return data_id
 
