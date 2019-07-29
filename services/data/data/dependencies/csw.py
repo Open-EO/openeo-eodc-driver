@@ -10,7 +10,7 @@ from nameko.extensions import DependencyProvider
 from ..models import Collection, Collections
 from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin, xml_end, xml_bbox
 from .bands import BandsExtractor
-from .cache import _cache_json, _get_cache_path, _get_json_cache
+from .cache import cache_json, get_cache_path, get_json_cache
 from .links import LinkHandler
 
 
@@ -157,7 +157,7 @@ class CSWHandler:
 
         # Create a request and cache the data for a day
         # Caching to increase speed
-        path_to_cache = _get_cache_path(self.cache_path, product, series)
+        path_to_cache = get_cache_path(self.cache_path, product, series)
         if not use_cache:
             while int(record_next) > 0:
                 record_next, records=self._get_single_records(
@@ -165,9 +165,9 @@ class CSWHandler:
                 all_records += records
             # additionally add the links to each record and collection
             all_records = self.link_handler.get_links(all_records)
-            _cache_json(all_records, path_to_cache)
+            cache_json(all_records, path_to_cache)
         else:
-            all_records = _get_json_cache(path_to_cache)
+            all_records = get_json_cache(path_to_cache)
 
         return all_records
 
