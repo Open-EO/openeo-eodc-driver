@@ -1,10 +1,10 @@
 openapi: 3.0.1
 servers:
-  - url: 'https://api.eodc.eu/api/v0.5/'
+  - url: 'https://openeo.eodc.eu/'
     description: 'The URL to the EODC API'
     variables:
       version:
-        default: v0.5
+        default: v0.4
         description: API versioning
 info:
   title: EODC API
@@ -12,14 +12,14 @@ info:
   description: 'The EODC API provides access to the EODC services and data, as well as access to the openEO endpoints.'
   contact:
     name: Luca Foresta
-    url: 'https://api.eodc.eu'
+    url: 'https://openeo.eodc.eu'
     email: luca.foresta@eodc.eu
   license:
     name: Apache 2.0
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
 externalDocs:
   description: EODC API Description
-  url: 'https://api.eodc.eu/redoc'
+  url: 'https://openeo.eodc.eu/redoc'
 tags:
   - name: OpenAPI
     description: The OpenAPI specification and Tools for inspecting
