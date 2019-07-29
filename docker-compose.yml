@@ -1,11 +1,11 @@
 version: '3.4'
 services:
-  openeo-base:
-    build: ./base
-    image: openeo-base
-    container_name: openeo-base
-    command: echo
-    network_mode: none
+#   openeo-base:
+#     build: ./base
+#     image: openeo-base
+#     container_name: openeo-base
+#     command: echo
+#     network_mode: none
 
   rabbitmq:
     image: rabbitmq:3.6-management
@@ -22,145 +22,145 @@ services:
         timeout: 10s
         retries: 5
 
-  jobs_db:
-    image: postgres
-    container_name: openeo-jobs-db
-    restart: always
-    hostname: jobs_db
-    volumes:
-      - /srv/openeo/data/jobs_db_data:/var/lib/postgresql/data
-    env_file:
-      - ./envs/jobs.env
+#   jobs_db:
+#     image: postgres
+#     container_name: openeo-jobs-db
+#     restart: always
+#     hostname: jobs_db
+#     volumes:
+#       - /srv/openeo/data/jobs_db_data:/var/lib/postgresql/data
+#     env_file:
+#       - ./envs/jobs.env
 
-  processes_db:
-      image: postgres
-      container_name: openeo-processes-db
-      restart: always
-      hostname: processes_db
-      volumes:
-        - /srv/openeo/data/processes_db_data:/var/lib/postgresql/data
-      env_file:
-        - ./envs/processes.env
+#   processes_db:
+#       image: postgres
+#       container_name: openeo-processes-db
+#       restart: always
+#       hostname: processes_db
+#       volumes:
+#         - /srv/openeo/data/processes_db_data:/var/lib/postgresql/data
+#       env_file:
+#         - ./envs/processes.env
 
-  openeo-gateway:
-    image: openeo-gateway
-    build: ./gateway
-    container_name: openeo-gateway
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-      - ./envs/gateway.env
-      - ./envs/oidc.env
-    volumes:
-      - ./gateway:/usr/src/app
-    environment:
-      VIRTUAL_HOST: $VIRTUAL_HOST
-      VIRTUAL_PORT: $VIRTUAL_PORT
-      LETSENCRYPT_HOST: $VIRTUAL_HOST
-      LETSENCRYPT_EMAIL: $LETSENCRYPT_EMAIL
-      LETSENCRYPT_TEST: $LETSENCRYPT_TEST
-    ports:
-      - 3000:3000
+#   openeo-gateway:
+#     image: openeo-gateway
+#     build: ./gateway
+#     container_name: openeo-gateway
+#     restart: on-failure
+#     depends_on:
+#       - rabbitmq
+#       - openeo-base
+#     env_file:
+#       - ./envs/rabbitmq.env
+#       - ./envs/gateway.env
+#       - ./envs/oidc.env
+#     volumes:
+#       - ./gateway:/usr/src/app
+#     environment:
+#       VIRTUAL_HOST: $VIRTUAL_HOST
+#       VIRTUAL_PORT: $VIRTUAL_PORT
+#       LETSENCRYPT_HOST: $VIRTUAL_HOST
+#       LETSENCRYPT_EMAIL: $LETSENCRYPT_EMAIL
+#       LETSENCRYPT_TEST: $LETSENCRYPT_TEST
+#     ports:
+#       - 3000:3000
 
-  openeo-capabilities:
-    build: ./services/capabilities
-    image: openeo-capabilities
-    container_name: openeo-capabilities
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-gateway
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-    volumes:
-      - ./services/capabilities:/usr/src/app
+#   openeo-capabilities:
+#     build: ./services/capabilities
+#     image: openeo-capabilities
+#     container_name: openeo-capabilities
+#     restart: on-failure
+#     depends_on:
+#       - rabbitmq
+#       - openeo-gateway
+#       - openeo-base
+#     env_file:
+#       - ./envs/rabbitmq.env
+#     volumes:
+#       - ./services/capabilities:/usr/src/app
 
-  openeo-data:
-    build: ./services/data
-    image: openeo-data
-    container_name: openeo-data
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-gateway
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-      - ./envs/data.env
-    environment:
-      CACHE_PATH: /usr/src/cache
-    volumes:
-      - eo-discovery-cache:/usr/src/cache
-      - ./services/data:/usr/src/app
+#   openeo-data:
+#     build: ./services/data
+#     image: openeo-data
+#     container_name: openeo-data
+#     restart: on-failure
+#     depends_on:
+#       - rabbitmq
+#       - openeo-gateway
+#       - openeo-base
+#     env_file:
+#       - ./envs/rabbitmq.env
+#       - ./envs/data.env
+#     environment:
+#       CACHE_PATH: /usr/src/cache
+#     volumes:
+#       - eo-discovery-cache:/usr/src/cache
+#       - ./services/data:/usr/src/app
 
-  openeo-processes:
-    build: ./services/processes
-    image: openeo-processes
-    container_name: openeo-processes
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-gateway
-      - processes_db
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-      - ./envs/processes.env
-    environment:
-      PROCESS_API_DIR: /usr/src/api
-    volumes:
-      - process-api-data:/usr/src/api
-      - ./services/processes:/usr/src/app
+#   openeo-processes:
+#     build: ./services/processes
+#     image: openeo-processes
+#     container_name: openeo-processes
+#     restart: on-failure
+#     depends_on:
+#       - rabbitmq
+#       - openeo-gateway
+#       - processes_db
+#       - openeo-base
+#     env_file:
+#       - ./envs/rabbitmq.env
+#       - ./envs/processes.env
+#     environment:
+#       PROCESS_API_DIR: /usr/src/api
+#     volumes:
+#       - process-api-data:/usr/src/api
+#       - ./services/processes:/usr/src/app
 
-  openeo-jobs:
-    build: ./services/jobs
-    image: openeo-jobs
-    container_name: openeo-jobs
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-gateway
-      - jobs_db
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-      - ./envs/jobs.env
-      - ./envs/data.env
-    environment:
-      AIRFLOW_DAGS: /usr/src/dags/
-    volumes:
-      - ./services/jobs:/usr/src/app
-      - $AIRFLOW_DAGS:/usr/src/dags/
+#   openeo-jobs:
+#     build: ./services/jobs
+#     image: openeo-jobs
+#     container_name: openeo-jobs
+#     restart: on-failure
+#     depends_on:
+#       - rabbitmq
+#       - openeo-gateway
+#       - jobs_db
+#       - openeo-base
+#     env_file:
+#       - ./envs/rabbitmq.env
+#       - ./envs/jobs.env
+#       - ./envs/data.env
+#     environment:
+#       AIRFLOW_DAGS: /usr/src/dags/
+#     volumes:
+#       - ./services/jobs:/usr/src/app
+#       - $AIRFLOW_DAGS:/usr/src/dags/
 
-  openeo-files:
-    build: ./services/files
-    image: openeo-files
-    container_name: openeo-files
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-gateway
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-    environment:
-      OPENEO_FILES_DIR: /usr/src/files
-    volumes:
-      - files-data:/usr/src/files
-      - ./services/files:/usr/src/app
+#   openeo-files:
+#     build: ./services/files
+#     image: openeo-files
+#     container_name: openeo-files
+#     restart: on-failure
+#     depends_on:
+#       - rabbitmq
+#       - openeo-gateway
+#       - openeo-base
+#     env_file:
+#       - ./envs/rabbitmq.env
+#     environment:
+#       OPENEO_FILES_DIR: /usr/src/files
+#     volumes:
+#       - files-data:/usr/src/files
+#       - ./services/files:/usr/src/app
 
-networks:
-  default:
-    external:
-      name: ${PROJECT_NAME}_proxy
+# networks:
+#   default:
+#     external:
+#       name: ${PROJECT_NAME}_proxy
 
-volumes:
-  process-api-data:
-  eo-discovery-cache:
-  files-data:
+# volumes:
+#   process-api-data:
+#   eo-discovery-cache:
+#   files-data:
 
-    # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
+#     # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
