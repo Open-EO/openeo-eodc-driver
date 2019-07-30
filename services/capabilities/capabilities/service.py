@@ -55,7 +55,7 @@ class CapabilitiesService:
                 "data": {
                     "versions": [
                         {
-                            "url": "/v0.4",
+                            "url": "https://openeo.eodc.eu",
                             "api_version": "0.4.0",
                         }
                     ]

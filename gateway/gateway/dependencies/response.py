@@ -4,6 +4,7 @@ from flask import make_response, jsonify, send_file, request, redirect
 from flask.wrappers import Response
 from uuid import uuid4
 from typing import Union
+import io
 
 
 class APIException(Exception):

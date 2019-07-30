@@ -131,8 +131,29 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/jobs.env
+      - ./envs/data.env
+    environment:
+      AIRFLOW_DAGS: /usr/src/dags/
     volumes:
       - ./services/jobs:/usr/src/app
+      - $AIRFLOW_DAGS:/usr/src/dags/
+
+  openeo-files:
+    build: ./services/files
+    image: openeo-files
+    container_name: openeo-files
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - openeo-gateway
+      - openeo-base
+    env_file:
+      - ./envs/rabbitmq.env
+    environment:
+      OPENEO_FILES_DIR: /usr/src/files
+    volumes:
+      - files-data:/usr/src/files
+      - ./services/files:/usr/src/app
 
   openeo-files:
     build: ./services/files

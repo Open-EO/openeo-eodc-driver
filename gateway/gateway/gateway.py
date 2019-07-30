@@ -230,7 +230,10 @@ class Gateway:
             endpoints.append(endpoint)
 
         capabilities = {
-            "version": api_spec["info"]["version"],
+            "api_version": api_spec["info"]["version"],
+            "backend_version": "x.x.x", # TODO include backend version
+            "title": api_spec["info"]["title"],
+            "description": api_spec["info"]["description"],
             "endpoints": endpoints
         }
 
@@ -293,40 +296,10 @@ class Gateway:
             Response -- 200 HTTP code
         """
 
-        user_info = self._auth.user_info()
+        try:
+            user_info = self._auth.user_info()
+            return self._res.parse({"code": 200, "data": user_info})
+        except Exception as exc:
+            return self._res.error(exc)
 
-        return self._res.parse({"code": 200, "data": user_info})
 
-
-    def get_output_formats(self) -> Response:
-        """
-        Returns available (raster) formats.
-
-        """
-
-        # NB to be moved into an independent database
-        default_out = {
-          "default": "GTiff",
-          "formats": {
-            "GTiff": {
-              "gis_data_types": [
-                "raster"
-              ],
-              "parameters": {}
-            },
-            "png": {
-              "gis_data_types": [
-                "raster"
-              ],
-              "parameters": {}
-            },
-            "jpeg": {
-              "gis_data_types": [
-                "raster"
-              ],
-              "parameters": {}
-            }
-          }
-        }
-
-        return self._res.parse({"code": 200, "data": default_out})

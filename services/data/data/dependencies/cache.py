@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from json import dumps, loads
 from os import path
 
-def _cache_json(records: list, path_to_cache: str):
+def cache_json(records: list, path_to_cache: str):
     """Stores the output to a json file with the id if single record or
     to a full collection json file
 
@@ -20,28 +20,7 @@ def _cache_json(records: list, path_to_cache: str):
     with open(path_to_cache, 'w') as f:
         f.write(json_dump)
 
-def _check_cache(path_to_cache: str) -> bool:
-    """Checks whether the cache exists and if it is older than a day from
-    running this function
-
-    Arguments:
-        path_to_cache {str} -- The path to the cached file
-
-    Returns:
-        bool -- False if cache doesn't exist or hasn't refreshed for
-        longer than a day, True otherwise
-    """
-
-    if path.isfile(path_to_cache):
-        now = datetime.now()
-        file_time = datetime.utcfromtimestamp(int(path.getmtime(path_to_cache)))
-        difference = now - file_time
-        if difference < timedelta(1):
-            return True
-
-    return False
-
-def _get_json_cache(path_to_cache: str) -> list:
+def get_json_cache(path_to_cache: str) -> list:
     """Fetches the item(s) from the json cache
 
     Arguments:
@@ -50,12 +29,14 @@ def _get_json_cache(path_to_cache: str) -> list:
     Returns:
         list -- List of dictionaries containing cached data
     """
-    with open(path_to_cache, 'r') as f:
-        data = loads(f.read())
-
+    try:
+        with open(path_to_cache, 'r') as f:
+            data = loads(f.read())
+    except FileNotFoundError:
+        data = []
     return data
 
-def _get_cache_path(cache_path_dir: str, product: str, series: bool) -> str:
+def get_cache_path(cache_path_dir: str, product: str=None, series: bool=False) -> str:
     """Get the path of the cache depending on whether series or
     product were passed
 

@@ -1,17 +1,14 @@
 """ Job Management """
 
-from os import environ
+import os
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
 
 from .models import Base, Job
 from .schema import JobSchema, JobSchemaFull
-# from .exceptions import BadRequest, Forbidden, APIConnectionError
-# from .dependencies.task_parser import TaskParser
-# from .dependencies.validator import Validator
-# from .dependencies.api_connector import APIConnector
-from .dependencies.template_controller import TemplateController
 from .models import JobStatus
+from .dependencies.write_airflow_dag import WriteAirflowDag
+from .dependencies.airflow_conn import Airflow
 
 
 service_name = "jobs"
@@ -66,8 +63,7 @@ class JobService:
     db = DatabaseSession(Base)
     process_graphs_service = RpcProxy("process_graphs")
     data_service = RpcProxy("data")
-    # api_connector = APIConnector()
-    template_controller = TemplateController()
+    airflow = Airflow()
 
     @rpc
     def get(self, user_id: str, job_id: str):
@@ -205,18 +201,27 @@ class JobService:
             job_args {dict} -- The information needed to create a job
         """
         try:
+            process_graph = job_args.pop('process_graph')
             process_response = self.process_graphs_service.create(
                 user_id=user_id,
-                **{"process_graph": job_args.pop('process_graph')})
-
+                **{"process_graph": process_graph})
             if process_response["status"] == "error":
                 return process_response
             process_graph_id = process_response["service_data"]
-
+            
             job = Job(user_id, process_graph_id, **job_args)
             job_id = str(job.id)
             self.db.add(job)
             self.db.commit()
+            
+            if "description" not in locals():
+                description = None
+                
+            # Create folder for job
+            job_folder = self.create_folder(user_id, job_id)
+            
+            # Create Apache Airflow DAG file
+            WriteAirflowDag(job_id, user_id, process_graph, job_folder, user_email=None, job_description=description)
 
             return {
                 "status": "success",
@@ -224,8 +229,7 @@ class JobService:
                 "headers": {
                     "Location": "jobs/" + job_id,
                     "OpenEO-Identifier": job_id
-                },
-                "service_data": job_id
+                }
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
@@ -233,79 +237,27 @@ class JobService:
 
     @rpc
     def process(self, user_id: str, job_id: str):
-        try:
+        try:        
             job = self.db.query(Job).filter_by(id=job_id).first()
-
+            
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
                 raise Exception(response)
 
+            response = self.airflow.unpause_dag(job_id, unpause=True)
+
+            # Update jobs database #TODO get this information from airflow database
             job.status = "running"
             self.db.commit()
 
-            # Get process nodes
-            response = self.process_graphs_service.get_nodes(
-                user_id=user_id,
-                process_graph_id= job.process_graph_id)
-
-            if response["status"] == "error":
-                raise Exception(response)
-
-            process_nodes = response["data"]
-
-            # Get file_paths
-            filter_args = process_nodes[0]["args"]
-            response = self.data_service.get_records(
-                detail="file_path",
-                user_id=user_id,
-                name=filter_args["name"],
-                spatial_extent=filter_args["extent"],
-                temporal_extent=filter_args["time"])
-
-            if response["status"] == "error":
-                raise Exception(response)
-
-            filter_args["file_paths"] = response["data"]
-
-            # TODO: Calculate storage size and get storage class
-            # TODO: Implement Ressource Management
-            storage_class = "storage-write"
-            storage_size = "5Gi"
-            if "local_registry" in environ:
-                image_registry = environ.get("local_registry")
-            else:
-                image_registry = "docker-registry.default.svc:5000"
-            processing_container = image_registry + "/execution-environment/openeo-processing"
-            min_cpu = "500m"
-            max_cpu = "4"
-            min_ram = "256Mi"
-            max_ram = "5Gi"
-
-            # Create OpenShift objects
-            pvc = self.template_controller.create_pvc(self.api_connector, "pvc-" + job.id, storage_class, storage_size)
-            # Add user_id and job_id to job data
-            process_nodes = {
-                'user_id': user_id,
-                'job_id': job.id,
-                'process_graph': process_nodes
+            return {
+                "status": "success",
+                "code": 202,
             }
-            config_map = self.template_controller.create_config(self.api_connector, "cm-" + job.id, process_nodes)
-
-            # Deploy container
-            logs, metrics =  self.template_controller.deploy(self.api_connector, job.id, processing_container,
-                                                             config_map, pvc, min_cpu, max_cpu, min_ram, max_ram)
-
-            pvc.delete(self.api_connector)
-
-            job.logs = logs
-            job.metrics = metrics
-            job.status = "finished"
-            self.db.commit()
-            return
         except Exception as exp:
             job.status = job.status + " error: " + exp.__str__() #+ ' ' + filter_args
             self.db.commit()
-            return
+            return exp
 
     @rpc
     def process_sync(self, user_id: str, process_graph: dict, output: dict=None,
@@ -321,8 +273,8 @@ class JobService:
 
         return {
             "status": "success",
-            "code": 201,
-            "headers": {"Location": "jobs/" + job_id }
+            "code": 200,
+            # "headers": {"Location": "jobs/" + job_id }
         }
 
 
@@ -344,22 +296,6 @@ class JobService:
             "code": 200,
             "data": default_out
         }
-
-    # TODO: If build should be automated using an endpoint e.g. /build the following can be
-    # activated and adapted
-    # @rpc
-    # def build(self, user_id: str):
-    #     try:
-    #         status, log, obj_image_stream = self.template_controller.build(
-    #             self.api_connector,
-    #             environ["CONTAINER_NAME"],
-    #             environ["CONTAINER_TAG"],
-    #             environ["CONTAINER_GIT_URI"],
-    #             environ["CONTAINER_GIT_REF"],
-    #             environ["CONTAINER_GIT_DIR"])
-    #     except Exception as exp:
-    #         return ServiceException(500, user_id, str(exp),
-    #             links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
 
     @rpc
     def cancel_processing(self, user_id: str, job_id: str):
@@ -396,117 +332,16 @@ class JobService:
                                            internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         return True, None
-
-    # @rpc
-    # def get_job(self, user_id, job_id):
-    #     try:
-    #         job = self.db.query(Job).filter_by(id=job_id).first()
-
-    #         if not job:
-    #             raise BadRequest("Job with id '{0}' does not exist.").format(job_id)
-
-    #         if job.user_id != user_id:
-    #             raise Forbidden("You don't have the permission to access job with id '{0}'.").format(job_id)
-
-    #         return {
-    #             "status": "success",
-    #             "data": JobSchemaFull().dump(job).data
-    #         }
-    #     except BadRequest:
-    #         return {"status": "error", "service": self.name, "key": "BadRequest", "msg": str(exp)}
-    #     except Forbidden:
-    #         return {"status": "error", "service": self.name, "key": "Forbidden", "msg": str(exp)}
-    #     except Exception as exp:
-    #         return {"status": "error", "service": self.name, "key": "InternalServerError", "msg": str(exp)}
-
-    # @rpc
-    # def process_job(self, job_id):
-    #     try:
-    #         job = self.db.query(Job).filter_by(id=job_id).first()
-    #         tasks = self.db.query(Task).filter_by(job_id=job_id).all()
-    #         processes = self.process_service.get_all_processes_full()["data"]
-
-    #         tasks = sorted(tasks, key=lambda task: task.seq_num)
-
-    #         job.status = "running"
-    #         self.db.commit()
-
-    #         data_filter = tasks[0]
-
-    #         pvc = self.data_service.prepare_pvc(data_filter)["data"]
-
-    #         # TODO: Implement in Extraction Service
-    #         filter = tasks[0]
-    #         product = filter.args["product"]
-    #         start = filter.args["filter_daterange"]["from"]
-    #         end = filter.args["filter_daterange"]["to"]
-    #         left = filter.args["filter_bbox"]["left"]
-    #         right = filter.args["filter_bbox"]["right"]
-    #         top = filter.args["filter_bbox"]["top"]
-    #         bottom = filter.args["filter_bbox"]["bottom"]
-    #         srs = filter.args["filter_bbox"]["srs"]
-
-    #         bbox = [top, left, bottom, right]
-
-    #         # in_proj = Proj(init=srs)
-    #         # out_proj = Proj(init='epsg:4326')
-    #         # in_x1, in_y1 = bottom, left
-    #         # in_x2, in_y2 = top, right
-    #         # out_x1, out_y1 = transform(in_proj, out_proj, in_x1, in_y1)
-    #         # out_x2, out_y2 = transform(in_proj, out_proj, in_x2, in_y2)
-    #         # bbox = [out_x1, out_y1, out_x2, out_y2]
-
-    #         file_paths = self.data_service.get_records(qtype="file_paths", qname=product, qgeom=bbox, qstartdate=start, qenddate=end)["data"]
-    #         tasks[0].args["file_paths"] = file_paths
-
-    #         pvc = self.template_controller.create_pvc(self.api_connector, "pvc-" + str(job.id), "storage-write", "5Gi")     # TODO: Calculate storage size and get storage class
-    #         previous_folder = None
-    #         for idx, task in enumerate(tasks):
-    #             try:
-    #                 template_id = "{0}-{1}".format(job.id, task.id)
-
-    #                 for p in processes:
-    #                     if p["process_id"] == task.process_id:
-    #                         process = p
-
-    #                 config_map = self.template_controller.create_config(
-    #                     self.api_connector,
-    #                     template_id,
-    #                     {
-    #                         "template_id": template_id,
-    #                         "last": previous_folder,
-    #                         "args": task.args
-    #                     })
-
-    #                 image_name = process["process_id"].replace("_", "-").lower() # TODO: image name in process spec
-
-    #                 status, log, obj_image_stream = self.template_controller.build(
-    #                     self.api_connector,
-    #                     template_id,
-    #                     image_name,
-    #                     "latest",   # TODO: Implement tagging in process service
-    #                     process["git_uri"],
-    #                     process["git_ref"],
-    #                     process["git_dir"])
-
-    #                 status, log, metrics =  self.template_controller.deploy(
-    #                     self.api_connector,
-    #                     template_id,
-    #                     obj_image_stream,
-    #                     config_map,
-    #                     pvc,
-    #                     "500m",     # TODO: Implement Ressource Management
-    #                     "1",
-    #                     "256Mi",
-    #                     "1Gi")
-
-    #                 previous_folder = template_id
-    #             except APIConnectionError as exp:
-    #                 task.status = exp.__str__()
-    #                 self.db.commit()
-    #         pvc.delete(self.api_connector)
-    #         job.status = "finished"
-    #         self.db.commit()
-    #     except Exception as exp:
-    #         job.status = str(exp)
-    #         self.db.commit()
+        
+    def create_folder(self, user_id:str, job_id:str):
+        """
+        
+        """
+        
+        # NB this method to be deleted whenn this functionality provided by file management microservice
+        # Path to folder where temp/final job data is stored (no trailing slash)
+        foldername = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + job_id
+        if not os.path.isdir(foldername):
+            os.makedirs(foldername)
+        
+        return foldername

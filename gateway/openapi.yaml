@@ -1,10 +1,10 @@
 openapi: 3.0.1
 servers:
-  - url: 'https://api.eodc.eu/api/v0.5/'
+  - url: 'https://openeo.eodc.eu/'
     description: 'The URL to the EODC API'
     variables:
       version:
-        default: v0.5
+        default: v0.4
         description: API versioning
 info:
   title: EODC API
@@ -12,14 +12,14 @@ info:
   description: 'The EODC API provides access to the EODC services and data, as well as access to the openEO endpoints.'
   contact:
     name: Luca Foresta
-    url: 'https://api.eodc.eu'
+    url: 'https://openeo.eodc.eu'
     email: luca.foresta@eodc.eu
   license:
     name: Apache 2.0
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
 externalDocs:
   description: EODC API Description
-  url: 'https://api.eodc.eu/redoc'
+  url: 'https://openeo.eodc.eu/redoc'
 tags:
   - name: OpenAPI
     description: The OpenAPI specification and Tools for inspecting
@@ -53,7 +53,35 @@ paths:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1service_types
 
   /collections:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1collections
+    get:
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1collections
+    post:
+      summary: Post a request to refresh the cache
+      description: >-
+        The request will refresh the stored cache for all collections and each individual collection.
+        \n\n **Note:** This is an extension of the EODC API!
+      requestBody:
+        content:
+          application/json:
+            schema:
+              title: Collections cache refresh
+              type: object
+              required:
+                - use_cache
+              properties:
+                use_cache:
+                  type: boolean
+      security:
+        - {}
+        - Bearer: []
+      responses:
+        '200':
+          description: The cache has been refreshed
+        4XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/client_error
+        5XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/server_error
+      
   /collections/{collection_id}:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1collections~1{collection_id}
 

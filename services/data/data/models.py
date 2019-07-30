@@ -39,6 +39,9 @@ class Band:
         setattr(self, "type", b_type)   # Because 'type' is reserved in Python
         self.unit = unit
 
+class OtherProperties:
+    """ Represents other properties """
+    pass
 
 class Collection:
     """ Represents a single collection """

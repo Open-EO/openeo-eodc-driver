@@ -8,6 +8,9 @@ nameko-sqlalchemy==1.4.0
 psycopg2==2.7.4
 pycparser==2.18
 pyOpenSSL==18.0.0
+pyproj==1.9.5.1
 python-dateutil==2.7.3
 python-editor==1.0.3
 SQLAlchemy==1.2.8
+OWSLib==0.18.0
+git+git://github.com/Open-EO/openeo-pg-parser-python.git#egg=openeo-pg-parser-python
