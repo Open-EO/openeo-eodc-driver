@@ -155,7 +155,7 @@ class OpenAPISpecParser:
                         parameters = {**parameters, **get_file_data()}
                     else:
                         parameters = {**parameters, **request.get_json()}
-   return parameters
+                return parameters
             except BadRequest as exp:
                 raise APIException(
                     msg="Error while parsing JSON in payload. Please make sure the JSON is valid.",
