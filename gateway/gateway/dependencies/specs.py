@@ -1,6 +1,6 @@
 """ OpenAPISpecParser, OpenAPISpecException """
 
-from os import path, environ
+from os import path, environ, mkdir
 from pathlib import Path
 from flask import request
 from werkzeug.exceptions import BadRequest
@@ -164,6 +164,9 @@ class OpenAPISpecParser:
                     internal=False)
 
         def get_file_data():
+            if not path.exists(environ.get("OPENEO_TMP_DIR")):
+                mkdir(environ.get("OPENEO_TMP_DIR"))
+
             # Create a tmp file where the binary data is stored > does not need to be passed over the rabbit
             temp_file = path.join(environ.get("OPENEO_TMP_DIR"), str(uuid.uuid4()))
             with open(temp_file, 'wb') as file:
