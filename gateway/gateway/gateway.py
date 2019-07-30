@@ -136,7 +136,6 @@ class Gateway:
                 environ.get("RABBIT_HOST"),
                 environ.get("RABBIT_PORT")
             ),
-            "NAMEKO_serializer": "pickle",
         })
 
         rpc = FlaskPooledClusterRpcProxy()

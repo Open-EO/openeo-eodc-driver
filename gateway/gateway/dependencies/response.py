@@ -118,7 +118,7 @@ class ResponseParser:
 
         return send_file("html/" + file_name)
 
-    def _file(self, filename, content: bytes) -> Response:
+    def _file(self, filepath: str) -> Response:
         """Returns a file back to the user.
 
         Arguments:
@@ -127,7 +127,7 @@ class ResponseParser:
         Returns:
             Response -- The Response object
         """
-        return send_file(io.BytesIO(content), as_attachment=True, attachment_filename=filename)
+        return send_file(filepath)
 
     def parse(self, payload: dict) -> Response:
         """Maps and parses the responses that are returned from the single
@@ -147,7 +147,7 @@ class ResponseParser:
         elif "data" in payload:
             response = self._data(payload["code"], payload["data"])
         elif "file" in payload:
-            response = self._file(**payload["file"])
+            response = self._file(payload["file"])
         else:
             response = self._code(payload["code"])
 

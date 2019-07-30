@@ -1,14 +1,14 @@
 """ OpenAPISpecParser, OpenAPISpecException """
 
-from os import path
+from os import path, environ
 from pathlib import Path
-from sys import modules
 from flask import request
 from werkzeug.exceptions import BadRequest
 from yaml import load
 from requests import get
 from typing import Callable, Any
 from re import match
+import uuid
 
 from .response import APIException
 
@@ -139,7 +139,7 @@ class OpenAPISpecParser:
                                 params_specs[p_key] = p_value
 
             return has_specs, params_specs, param_required
-        
+
         def get_parameters():
             try:
                 parameters = {}
@@ -149,20 +149,27 @@ class OpenAPISpecParser:
 
                 if len(request.args) > 0:
                     parameters = {**parameters, **request.args.to_dict(flat=True)}
-                
+
                 if request.data:
                     if request.headers['Content-Type'] == 'application/octet-stream':
-                        parameters = {**parameters, "file": request.data}
+                        parameters = {**parameters, **get_file_data()}
                     else:
                         parameters = {**parameters, **request.get_json()}
-                
-                return parameters
+   return parameters
             except BadRequest as exp:
                 raise APIException(
-                    msg="Error while parsing JSON in payload. Please make sure the JSON is valid.", 
-                    code=400, 
-                    service="gateway", 
+                    msg="Error while parsing JSON in payload. Please make sure the JSON is valid.",
+                    code=400,
+                    service="gateway",
                     internal=False)
+
+        def get_file_data():
+            # Create a tmp file where the binary data is stored > does not need to be passed over the rabbit
+            temp_file = path.join(environ.get("OPENEO_TMP_DIR"), str(uuid.uuid4()))
+            with open(temp_file, 'wb') as file:
+                file.write(request.data)
+            request.data = None
+            return {"tmp_path": temp_file}
 
         def decorator(user_id=None, **kwargs):
 
