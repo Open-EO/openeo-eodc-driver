@@ -1,6 +1,7 @@
 FROM openeo-base
-RUN mkdir /usr/src/files
 COPY requirements.txt .
 RUN python3 -m pip install -r requirements.txt
-EXPOSE 5000
+RUN mkdir /usr/src/files
+RUN chown www-openeo:airflow /usr/src/files
+USER www-openeo
 CMD nameko run --config config.yaml files.service --backdoor 3000
