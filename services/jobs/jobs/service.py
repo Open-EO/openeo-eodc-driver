@@ -62,7 +62,7 @@ class JobService:
     name = service_name
     db = DatabaseSession(Base)
     process_graphs_service = RpcProxy("process_graphs")
-    data_service = RpcProxy("data")
+    files_service = RpcProxy("files")
     airflow = Airflow()
 
     @rpc
@@ -218,9 +218,10 @@ class JobService:
                 description = None
                 
             # Create folder for job
-            job_folder = self.create_folder(user_id, job_id)
+            self.files_service.setup_jobs_folder(user_id=user_id, job_id=job_id)
             
             # Create Apache Airflow DAG file
+            job_folder = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + job_id
             WriteAirflowDag(job_id, user_id, process_graph, job_folder, user_email=None, job_description=description)
 
             return {
