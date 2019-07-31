@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from json import dumps, loads
 from os import path
 
-def _cache_json(records: list, path_to_cache: str):
+def cache_json(records: list, path_to_cache: str):
     """Stores the output to a json file with the id if single record or
     to a full collection json file
 
@@ -20,7 +20,7 @@ def _cache_json(records: list, path_to_cache: str):
     with open(path_to_cache, 'w') as f:
         f.write(json_dump)
 
-def _get_json_cache(path_to_cache: str) -> list:
+def get_json_cache(path_to_cache: str) -> list:
     """Fetches the item(s) from the json cache
 
     Arguments:
@@ -36,7 +36,7 @@ def _get_json_cache(path_to_cache: str) -> list:
         data = []
     return data
 
-def _get_cache_path(cache_path_dir: str, product: str, series: bool) -> str:
+def get_cache_path(cache_path_dir: str, product: str=None, series: bool=False) -> str:
     """Get the path of the cache depending on whether series or
     product were passed
 

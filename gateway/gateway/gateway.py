@@ -136,7 +136,6 @@ class Gateway:
                 environ.get("RABBIT_HOST"),
                 environ.get("RABBIT_PORT")
             ),
-            "NAMEKO_serializer": "pickle",
         })
 
         rpc = FlaskPooledClusterRpcProxy()
@@ -297,7 +296,10 @@ class Gateway:
             Response -- 200 HTTP code
         """
 
-        user_info = self._auth.user_info()
+        try:
+            user_info = self._auth.user_info()
+            return self._res.parse({"code": 200, "data": user_info})
+        except Exception as exc:
+            return self._res.error(exc)
 
-        return self._res.parse({"code": 200, "data": user_info})
 

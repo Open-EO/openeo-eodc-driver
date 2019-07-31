@@ -102,7 +102,7 @@ class DataService:
                 "data": response
             }
         except ValidationError as exp:
-            return ServiceException(400, user_id, str(exp), internal=False,
+            return ServiceException(exp.code, user_id, str(exp), internal=False,
                 links=["#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"]).to_dict()
         except Exception as exp:
             return ServiceException(500, user_id, str(exp)).to_dict()
