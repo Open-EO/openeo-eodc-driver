@@ -117,6 +117,7 @@ services:
     volumes:
       - process-api-data:/usr/src/api
       - ./services/processes:/usr/src/app
+    command: alembic upgrade head
 
   openeo-jobs:
     build: ./services/jobs
@@ -137,6 +138,7 @@ services:
     volumes:
       - ./services/jobs:/usr/src/app
       - $AIRFLOW_DAGS:/usr/src/dags/
+    command: alembic upgrade head
 
   openeo-files:
     build: ./services/files
