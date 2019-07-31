@@ -209,7 +209,7 @@ class FilesService:
 
         if os.path.exists(to_create):
             shutil.rmtree(to_create)
-        os.makedirs(to_create, mode=664)
+        os.makedirs(to_create)
 
     def authorize_file(self, user_id: str, path: str):
         """
