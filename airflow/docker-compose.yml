@@ -117,10 +117,15 @@ services:
             - $PLUGINS:/usr/local/airflow/plugins
             - $DAGS:/usr/local/airflow/dags
             - $HOST_INPUT:$CONTAINER_INPUT
-            - $HOST_OUTPUT:$CONTAINER_OUTPUT
+            - files-data:$CONTAINER_OUTPUT
         command: worker
         networks:
             - default
+            
+volumes:
+  files-data:
+    external:
+      name: ${PROJECT_NAME}_files-data
 
 networks:
     default:
