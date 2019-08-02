@@ -55,4 +55,4 @@ class Airflow():
         job_url = self.dags_url + "/" + job_id + "/dag_runs"
         response = requests.get(job_url, headers=self.header, data=self.data)
 
-        return response
+        return response.json()[0]['state']
