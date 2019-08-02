@@ -221,8 +221,9 @@ class JobService:
             self.files_service.setup_jobs_folder(user_id=user_id, job_id=job_id)
             
             # Create Apache Airflow DAG file
-            job_folder = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + job_id
+            job_folder = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + "jobs" + os.path.sep + job_id
             WriteAirflowDag(job_id, user_id, process_graph, job_folder, user_email=None, job_description=description)
+            
 
             return {
                 "status": "success",
