@@ -187,7 +187,7 @@ class FilesService:
 
         for d in dirs_to_create:
             if not os.path.exists(d):
-                os.makedirs(d, mode=664)
+                os.makedirs(d)
 
         return dirs_to_create
 
@@ -205,7 +205,7 @@ class FilesService:
             job_id {str} -- The identifier for the job
         """
         _, jobs_dir = self.setup_user_folder(user_id)
-        to_create = os.path.join(jobs_dir, job_id)
+        to_create = os.path.join(jobs_dir, job_id + os.path.sep + "results")
 
         if os.path.exists(to_create):
             shutil.rmtree(to_create)
