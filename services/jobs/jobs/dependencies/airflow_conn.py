@@ -54,5 +54,11 @@ class Airflow():
 
         job_url = self.dags_url + "/" + job_id + "/dag_runs"
         response = requests.get(job_url, headers=self.header, data=self.data)
-
-        return response.json()[0]['state']
+        if response.status_code == 400:
+            if 'not found' in response.json()['error']:
+                dag_status = 'cancelled'
+        else:
+            dag_status = response.json()[0]['state']
+        dag_status = dag_status.replace('success', 'finished')
+            
+        return dag_status
