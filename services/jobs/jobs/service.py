@@ -83,8 +83,11 @@ class JobService:
             response = self.process_graphs_service.get(user_id, job.process_graph_id)
             if response["status"] == "error":
                 return response
-
             job.process_graph = response["data"]["process_graph"]
+                
+            # Get job status
+            job.status = self.airflow.check_dag_status(job_id)
+
             return {
                 "status": "success",
                 "code": 200,
@@ -179,6 +182,10 @@ class JobService:
         """
         try:
             jobs = self.db.query(Job).filter_by(user_id=user_id).order_by(Job.created_at).all()
+            
+            # Update job status for all jobs
+            for k, job in enumerate(jobs):
+                jobs[k].status = self.airflow.check_dag_status(job.id)
 
             return {
                 "status": "success",
