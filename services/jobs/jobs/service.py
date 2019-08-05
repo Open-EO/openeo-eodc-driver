@@ -274,6 +274,8 @@ class JobService:
         """
         Creates a processes a job directly using two other functions of this class.
         """
+        # TODO remove or update this functionality
+        # it works differently than process. It must exec the job immediately and return the processed data.
 
         response = self.create(user_id=user_id, process_graph=process_graph, output=output, plan=plan, budget=budget)
         job_id = response['headers']['Location'].split('jobs/')[-1]
@@ -341,16 +343,3 @@ class JobService:
                                            internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         return True, None
-        
-    def create_folder(self, user_id:str, job_id:str):
-        """
-        
-        """
-        
-        # NB this method to be deleted whenn this functionality provided by file management microservice
-        # Path to folder where temp/final job data is stored (no trailing slash)
-        foldername = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + job_id
-        if not os.path.isdir(foldername):
-            os.makedirs(foldername)
-        
-        return foldername
