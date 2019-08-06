@@ -336,7 +336,7 @@ class JobService:
                 job_data['links'] = []
                 for filepath in output['data']['file_list']:
                     filename = os.path.join(os.environ.get("VIRTUAL_HOST"),
-                                            "downloads", job_id, "result", filepath.split(os.path.sep)[-1])
+                                            "downloads", user_id, job_id, filepath.split(os.path.sep)[-1])
                     job_data['links'].append({
                                                 "href": filename,
                                                 "type": "image/tiff"
