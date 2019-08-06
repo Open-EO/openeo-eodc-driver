@@ -138,6 +138,18 @@ paths:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1files~1{user_id}
   /files/{user_id}/{path}:
       $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1files~1{user_id}~1{path}
+      
+  /downloads/{user_id}/{job_id}/{path}:
+    parameters: 
+      - $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1files~1{user_id}
+    get:
+      responses:
+        '200':
+          description: aaa.
+        4XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/client_error
+        5XX:
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/server_error
 
   /openapi:
     get:

@@ -41,6 +41,7 @@ with ctx:
     gateway.add_endpoint("/files/<user_id>/<path>", func=rpc.files.download, auth=True, validate=True)
     gateway.add_endpoint("/files/<user_id>/<path>", func=rpc.files.upload, auth=True, validate=True, methods=["PUT"])
     gateway.add_endpoint("/files/<user_id>/<path>", func=rpc.files.delete, auth=True, validate=True, methods=["DELETE"])
+    gateway.add_endpoint("/downloads/<user_id>/<job_id>/<path>", func=rpc.files.download_result, auth=True, validate=True)
     # /files/<user_id>/<path> delete
     # /subscription
 
