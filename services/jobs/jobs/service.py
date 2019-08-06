@@ -4,9 +4,8 @@ import os
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
 
-from .models import Base, Job
-from .schema import JobSchema, JobSchemaFull
-from .models import JobStatus
+from .models import Base, Job, JobStatus
+from .schema import JobSchema, JobSchemaFull, JobSchemaShort
 from .dependencies.write_airflow_dag import WriteAirflowDag
 from .dependencies.airflow_conn import Airflow
 
@@ -74,6 +73,7 @@ class JobService:
             job_id {str} -- The id of the job
         """
         try:
+            self.update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
 
             valid, response = self.authorize(user_id, job_id, job)
@@ -84,9 +84,6 @@ class JobService:
             if response["status"] == "error":
                 return response
             job.process_graph = response["data"]["process_graph"]
-                
-            # Get job status
-            job.status = self.airflow.check_dag_status(job_id)
 
             return {
                 "status": "success",
@@ -106,6 +103,7 @@ class JobService:
             job_id {str} -- The id of the job
         """
         try:
+            self.update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
@@ -147,6 +145,7 @@ class JobService:
             job_id {str} -- The id of the process graph
         """
         try:
+            self.update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
@@ -181,6 +180,7 @@ class JobService:
             user_id {str} -- The identifier of the user
         """
         try:
+            # self.update_job_status(job_id=job_id) # should be done for all jobs
             jobs = self.db.query(Job).filter_by(user_id=user_id).order_by(Job.created_at).all()
             
             # Update job status for all jobs
@@ -246,7 +246,8 @@ class JobService:
 
     @rpc
     def process(self, user_id: str, job_id: str):
-        try:        
+        try:
+            self.update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
             
             valid, response = self.authorize(user_id, job_id, job)
@@ -256,7 +257,7 @@ class JobService:
             response = self.airflow.unpause_dag(job_id, unpause=True)
 
             # Update jobs database #TODO get this information from airflow database
-            job.status = "running"
+            job.status = JobStatus.running
             self.db.commit()
 
             return {
@@ -319,10 +320,41 @@ class JobService:
     @rpc
     def get_results(self, user_id: str, job_id: str):
         try:
-            raise Exception("Not implemented yet!")
+            self.update_job_status(job_id=job_id)
+            job = self.db.query(Job).filter_by(id=job_id).first()
+            if job.status != JobStatus.finished:
+                raise Exception(response) # NB code proper response "JobNotFinished"
+
+            valid, response = self.authorize(user_id, job_id, job)
+            if not valid:
+                raise Exception(response)
+                
+            output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
+            
+            if output['status'] == 'success':            
+                job_data = JobSchemaShort().dump(job).data
+                job_data['links'] = []
+                for filepath in output['data']['file_list']:
+                    filename = os.path.join(os.environ.get("VIRTUAL_HOST"),
+                                            "downloads", job_id, "result", filepath.split(os.path.sep)[-1])
+                    job_data['links'].append({
+                                                "href": filename,
+                                                "type": "image/tiff"
+                                                }
+                                            )
+            
+                return {
+                    "status": "success",
+                    "code": 200,
+                    "headers": {
+                                "Expires": "not given",
+                                "OpenEO-Costs": 0
+                                },
+                    "data": job_data
+                }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
-                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/get"]).to_dict()
+                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/get"]).to_dict()    
 
     @staticmethod
     def authorize(user_id: str, job_id: str, job: Job):
@@ -343,3 +375,16 @@ class JobService:
                                            internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         return True, None
+        
+    
+    def update_job_status(self, job_id: str):
+        """
+        Get job status from airflow db and updates jobs db.
+        """
+        # NB we need to push notification from the airflow db to the jobs db
+        
+        job = self.db.query(Job).filter_by(id=job_id).first()
+        job.status = self.airflow.check_dag_status(job_id)
+        self.db.merge(job)
+        self.db.commit()
+        

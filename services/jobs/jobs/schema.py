@@ -26,3 +26,11 @@ class JobSchemaFull(Schema):
     plan = fields.Str(required=False)
     costs = fields.Int(attribute="current_costs", required=False)
     budget = fields.Int(required=False)
+    
+
+class JobSchemaShort(Schema):
+    id = fields.Str(required=True)
+    title = fields.Str(required=False)
+    description = fields.Str(required=False)
+    status = fields.Str(required=True)
+    updated = fields.DateTime(attribute="updated_at", required=False)
