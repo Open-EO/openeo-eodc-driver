@@ -1,7 +1,7 @@
 """ Files Management """
 
 import os
-import shutil
+import glob
 from nameko.rpc import rpc
 from werkzeug.security import safe_join
 from typing import List, Optional
@@ -59,14 +59,14 @@ class FilesService:
     name = service_name
 
     # each directory / file name is only allowed to use a max. of 200 Alpha-Numeric characters
-    allowed_dirname = re.compile(r'[a-zA-Z0-9_]{1,200}')
-    allowed_filename = re.compile(r'[a-zA-Z0-9_]{1,200}\.[a-zA-Z0-9]{1,10}')
+    allowed_dirname = re.compile(r'[a-zA-Z0-9_-]{1,200}')
+    allowed_filename = re.compile(r'[a-zA-Z0-9_-]{1,200}\.[a-zA-Z0-9]{1,10}')
 
     files_folder = "files"
     jobs_folder = "jobs"
 
     @rpc
-    def download(self, user_id: str, path: str):
+    def download(self, user_id: str, path: str, source_dir: str = 'files'):
         """The request will ask the back-end to get the job using the job_id.
 
         Arguments:
@@ -74,7 +74,7 @@ class FilesService:
             path {str} -- The file path to the requested file
         """
         try:
-            valid, err, complete_path = self.authorize_existing_file(user_id, path)
+            valid, err, complete_path = self.authorize_existing_file(user_id, path, source_dir=source_dir)
             if not valid:
                 return err
 
@@ -173,6 +173,31 @@ class FilesService:
 
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=["/files/" + user_id]).to_dict()
+            
+            
+    @rpc
+    def get_job_output(self, user_id: str, job_id: str):
+        """
+        Returns a list of output files produced by a job.
+        """
+        try:            
+            file_list = glob.glob(os.path.join(self.get_user_folder(user_id=user_id), 'jobs', job_id, 'result', '*'))
+            if file_list:
+                response = {
+                    "status": "success",
+                    "code": 200,
+                    "data": {"file_list": file_list}
+                }
+            else:
+                response = {
+                    "status": "error",
+                    "code": 500,
+                    "data": {"file_list": []}
+                }
+            return response
+
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp)).to_dict()
 
     @rpc
     def setup_user_folder(self, user_id: str) -> list:
@@ -211,7 +236,7 @@ class FilesService:
             shutil.rmtree(to_create)
         os.makedirs(to_create)
 
-    def authorize_file(self, user_id: str, path: str):
+    def authorize_file(self, user_id: str, path: str, source_dir: str = 'files'):
         """
         Returns Exception if path is invalid or points to a directory.
 
@@ -221,7 +246,7 @@ class FilesService:
         """
 
         # check pattern
-        complete_path = self.get_allowed_path(user_id, path.split('/'))
+        complete_path = self.get_allowed_path(user_id, path.split('/'), source_dir=source_dir)
         if not complete_path:
             return False, FileOperationUnsupported(404, user_id, "{0}: This path is not valid.".format(path),
                                                    internal=False, links=["/files/" + user_id]).to_dict(), None
@@ -231,7 +256,7 @@ class FilesService:
                                                    internal=False, links=["/files/" + user_id]).to_dict(), None
         return True, None, complete_path
 
-    def authorize_existing_file(self, user_id: str, path: str):
+    def authorize_existing_file(self, user_id: str, path: str, source_dir: str = 'files'):
         """
         Returns Exception if path is invalid, points to a directory or does not exist.
 
@@ -239,7 +264,7 @@ class FilesService:
             user_id {str} -- The identifier of the user
             path {str} -- The file path to the requested file
         """
-        valid, err, complete_path = self.authorize_file(user_id, path)
+        valid, err, complete_path = self.authorize_file(user_id, path, source_dir=source_dir)
         if valid:
             # check existence
             if not os.path.exists(complete_path):
@@ -247,13 +272,17 @@ class FilesService:
                                                        internal=False, links=["/files/" + user_id]).to_dict(), None
         return valid, err, complete_path
 
-    def get_allowed_path(self, user_id: str, parts: List[str]) -> Optional[str]:
+    def get_allowed_path(self, user_id: str, parts: List[str], source_dir: str = 'files') -> Optional[str]:
         """ Checks if file has an allowed extension
 
         Arguments:
             parts {List[str]} -- List of all directories and the filename
         """
-        files_dir, _ = self.setup_user_folder(user_id)
+        files_dir, jobs_dir = self.setup_user_folder(user_id)
+        if source_dir == 'files':
+            out_dir = files_dir
+        else:
+            out_dir = jobs_dir
 
         filename = parts.pop(-1)
         for part in parts:
@@ -262,7 +291,7 @@ class FilesService:
         if re.fullmatch(self.allowed_filename, filename) is None:
             return
 
-        return safe_join(files_dir, *parts, filename)
+        return safe_join(out_dir, *parts, filename)
 
     @staticmethod
     def sizeof_fmt(num: float) -> str:
