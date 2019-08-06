@@ -87,6 +87,25 @@ class FilesService:
 
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=["files/" + user_id]).to_dict()
+            
+    @rpc
+    def download_result(self, user_id: str, job_id: str, path: str):
+        """
+        
+        """
+        try:
+            complete_path = os.path.join(self.get_user_folder(user_id), "jobs", job_id, "result", path)
+            
+            return {
+                "status": "success",
+                "code": 200,
+                "headers": {"Content-Type": "application/octet-stream"},
+                "file": complete_path,
+            }
+
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp), links=["files/" + user_id]).to_dict()
+
 
     @rpc
     def delete(self, user_id: str, path: str):
