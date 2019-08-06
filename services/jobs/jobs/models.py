@@ -14,7 +14,7 @@ class JobStatus(enum.Enum):
     submitted = "submitted"
     queued = "queued"
     running = "running"
-    canceled = "canceled"
+    cancelled = "cancelled"
     finished = "finished"
     error = "error"
 
