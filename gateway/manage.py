@@ -1,38 +1,13 @@
-from flask_script import Manager
-from unittest import TestLoader, TextTestRunner
+from gevent import pywsgi
+from geventwebsocket.handler import WebSocketHandler
+
 from gateway import gateway
 
-manager = Manager(gateway.get_service())
 
-@manager.option('-b', '--bind', dest='bind', default='127.0.0.1:8000')
-@manager.option('-w', '--workers', dest='workers', type=int, default=3)
-def prod(bind, workers):
-    """Start the Server with Gunicorn"""
-    from gunicorn.app.base import Application
+app = gateway.get_service()
 
-    class FlaskApplication(Application):
-        def init(self, parser, opts, args):
-            return {
-                'bind': bind,
-                'workers': workers
-            }
 
-        def load(self):
-            return gateway.get_service()
+if __name__ == "__main__":
 
-    application = FlaskApplication()
-    return application.run()
-
-@manager.command
-def test():
-    ''' Runs Unit tests. '''
-
-    tests = TestLoader().discover('tests', pattern='test*.py')
-    result = TextTestRunner(verbosity=2).run(tests)
-    
-    if result.wasSuccessful():
-        return 0
-    return 1
-
-if __name__ == '__main__':
-    manager.run()
+    server = pywsgi.WSGIServer(('', 3000), app, handler_class=WebSocketHandler)
+    server.serve_forever()

@@ -51,6 +51,8 @@ paths:
       $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1udf_runtimes
   /service_types:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1service_types
+  /subscription:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1subscription
 
   /collections:
     get:

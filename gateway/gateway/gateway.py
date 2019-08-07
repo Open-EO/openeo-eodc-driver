@@ -8,10 +8,10 @@ from flask.wrappers import Response
 from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
 #from flask_oidc import OpenIDConnect
+from flask_sockets import Sockets
 from typing import Union, Callable
 
 from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException
-
 
 class Gateway:
     """Gateway is the central class to instantiate a RPC based API gateway object based on
@@ -20,6 +20,7 @@ class Gateway:
 
     def __init__(self):
         self._service = self._init_service()
+        self._socket = self._init_socket()
         self._rpc = self._init_rpc()
         self._res = self._init_response()
         self._spec = self._init_specs()
@@ -42,6 +43,14 @@ class Gateway:
             Flask -- The Flask object
         """
         return self._service
+
+    def get_socket(self) -> Sockets:
+        """Returns the Sockets service object
+
+        Returns:
+            Sockets -- The Sockets object
+        """
+        return self._socket
 
     def get_rpc_context(self) -> Union[AppContext, FlaskPooledClusterRpcProxy]:
         """Returns the application context of the Flask application object and the
@@ -67,7 +76,7 @@ class Gateway:
         CORS(self._service, resources=resources)
 
     def add_endpoint(self, route: str, func: Callable, methods: list=["GET"], auth: bool=False,
-        role: str=None, validate: bool=False, rpc: bool=True, is_async: bool=False):
+        role: str=None, validate: bool=False, rpc: bool=True, is_async: bool=False, sock: bool=False):
         """Adds an endpoint to the API, pointing to a Remote Procedure Call (RPC) of a microservice or a
         local function. Serval decorators can be added to enable authentication, authorization and input
         validation.
@@ -91,20 +100,33 @@ class Gateway:
         if validate: func = self._validate(func)
         if role: func = self._authorize(func, role)
         if auth: func = self._authenticate(func)
-
-        self._service.add_url_rule(
-            route,
-            view_func=func,
-            endpoint=route + '_'.join(methods),
-            provide_automatic_options=True,
-            methods=methods)
+        if sock:
+            # Sockets.add_url_rule from flask-socket doesn't pass **kwargs to werkzeug.routing.Rule properly
+            # the code below adds the rule and additionally appends the methods so that
+            # the endpoint validation can handle the methods 
+            self._socket.add_url_rule(
+                route,
+                None,
+                func,
+            )
+            for rule in self._socket.url_map.iter_rules():
+                if rule.rule == route:
+                    rule.methods = methods
+        else:
+            self._service.add_url_rule(
+                route,
+                view_func=func,
+                endpoint=route + '_'.join(methods),
+                provide_automatic_options=True,
+                methods=methods
+            )
 
     def validate_api_setup(self):
         """Validates the setup of the API with respect to the specification in the
         OpenAPI document. Throws an OpenAPISpecException if the validation fails.
         """
         try:
-            self._spec.validate_api(self._service.url_map)
+            self._spec.validate_api(self._service.url_map, self._socket.url_map)
         except OpenAPISpecException as exp:
             print(" -> API setup is not valid: " + str(exp))
             exit(1)
@@ -120,6 +142,17 @@ class Gateway:
         service.config.from_object(environ.get("GATEWAY_SETTINGS"))
 
         return service
+
+    def _init_socket(self) -> Sockets:
+        """Initalizes the Sockets
+
+        Returns:
+            Sockets -- The instantiated Flask object
+        """
+
+        sockets = Sockets()
+        sockets.init_app(self._service)
+        return sockets
 
     def _init_rpc(self) -> FlaskPooledClusterRpcProxy:
         """Initalizes the RPC proxy
@@ -301,5 +334,3 @@ class Gateway:
             return self._res.parse({"code": 200, "data": user_info})
         except Exception as exc:
             return self._res.error(exc)
-
-

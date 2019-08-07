@@ -40,7 +40,7 @@ class OpenAPISpecParser:
 
         return self._specs
     
-    def validate_api(self, endpoints:object):
+    def validate_api(self, service_endpoints:object, socket_endpoints:object):
         """Validated if the input endpoints and the available HTTP options
         of the API are consistent to the OpenAPI specification of the Flask 
         API gateway.
@@ -61,8 +61,9 @@ class OpenAPISpecParser:
                     target[endpoint].append(method.lower())
 
         # Extract the current status of the API
+        # TODO refactor copy pasted function
         status = {}
-        for rule in endpoints.iter_rules():
+        for rule in service_endpoints.iter_rules():
             if not rule.rule.startswith("/static"):
                 endpoint = rule.rule.replace("<", "{").replace(">", "}")
                 if endpoint not in status:
@@ -72,6 +73,16 @@ class OpenAPISpecParser:
                     if method in allowed_methods:
                         status[endpoint].append(method)
         
+        for rule in socket_endpoints.iter_rules():
+            if not rule.rule.startswith("/static"):
+                endpoint = rule.rule.replace("<", "{").replace(">", "}")
+                if endpoint not in status:
+                    status[endpoint] = []
+                for method in rule.methods:
+                    method = method.lower()
+                    if method in allowed_methods:
+                        status[endpoint].append(method)
+
         # Check if the target matches the status
         difference = set(target.keys()).symmetric_difference(status.keys())
 

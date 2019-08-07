@@ -1,6 +1,7 @@
 """ Initialize the Gateway """
 
 from .gateway import Gateway
+from .socket import subscription
 
 gateway = Gateway()
 gateway.set_cors()
@@ -25,7 +26,6 @@ with ctx:
     gateway.add_endpoint("/collections", func=rpc.data.get_all_products, auth=False, validate=True)
     gateway.add_endpoint("/collections/<collection_id>", func=rpc.data.get_product_detail, auth=False, validate=True)
     gateway.add_endpoint("/collections", func=rpc.data.refresh_cache, auth=True, validate=True, methods=["POST"], role="admin") # NB extension of openEO API
-    # /subscription
 
     # Process Discovery
     gateway.add_endpoint("/processes", func=rpc.processes.get_all, auth=False, validate=True)
@@ -42,7 +42,6 @@ with ctx:
     gateway.add_endpoint("/files/<user_id>/<path>", func=rpc.files.upload, auth=True, validate=True, methods=["PUT"])
     gateway.add_endpoint("/files/<user_id>/<path>", func=rpc.files.delete, auth=True, validate=True, methods=["DELETE"])
     # /files/<user_id>/<path> delete
-    # /subscription
 
     # Process Graph Management
     gateway.add_endpoint("/validation", func=rpc.process_graphs.validate, auth=True, validate=True, methods=["POST"])
@@ -65,7 +64,9 @@ with ctx:
     gateway.add_endpoint("/jobs/<job_id>/results", func=rpc.jobs.get_results, auth=True, validate=True)
     gateway.add_endpoint("/jobs/<job_id>/results", func=rpc.jobs.process, auth=True, validate=True, methods=["POST"], is_async=True)
     gateway.add_endpoint("/jobs/<job_id>/results", func=rpc.jobs.cancel_processing, auth=True, validate=True, methods=["DELETE"])
-    # /subscription
+
+    # Subscription Handling
+    gateway.add_endpoint("/subscription", func=subscription, rpc=False, auth=False, validate=False, sock=True)
 
     # Secondary Services Management
     # /service_types
