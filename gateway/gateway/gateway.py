@@ -289,17 +289,14 @@ class Gateway:
                 internal=False))
 
 
-    def get_user_info(self) -> Response:
+    def get_user_info(self, user_id: str) -> Response:
         """Returns info about the (logged in) user.
 
         Returns:
             Response -- 200 HTTP code
         """
+        user_info = {}
+        user_info['user_id'] = user_id
 
-        try:
-            user_info = self._auth.user_info()
-            return self._res.parse({"code": 200, "data": user_info})
-        except Exception as exc:
-            return self._res.error(exc)
-
+        return self._res.parse({"code": 200, "data": user_info})
 
