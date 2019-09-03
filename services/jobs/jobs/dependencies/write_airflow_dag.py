@@ -1,20 +1,18 @@
 import os
 from shutil import copyfile
-from openeo_pg_parser_python.translate_process_graph import translate_graph
-from .map_processes import map_process
+from .openeo_to_eodatareaders import openeo_to_eodatareaders
 
 
 def WriteAirflowDag(job_id, user_name, process_graph_json, job_data, user_email=None, job_description=None):
     """
-    Parse a process graph from the input json file, convert it to eoDataReaders syntax and
-    creates an Apache Airflow DAG.
+    Creates an Apache Airflow DAG with eoDataReaders syntax from a parsed openEO process graph.
     """
+    
+    # Convert from openEO to eoDataReaders syntax
+    nodes, graph = openeo_to_eodatareaders(process_graph_json, job_data)
 
     if not job_description:
         job_description = "No description provided."
-
-        
-    graph = translate_graph(process_graph_json)
 
     dag_filename = 'dag_' + job_id + '.py'
     dagfile = open(dag_filename, 'w+')
@@ -32,7 +30,7 @@ from airflow.operators import eoDataReadersOp
     )
     dagfile.write('\n')
 
-    # Add default
+    # Add default args
     dagfile.write(
 '''
 default_args = {{
@@ -54,6 +52,7 @@ default_args = {{
 '''.format(username=user_name, usermail=user_email)
     )
 
+    # Add DAG instance
     dagfile.write(
 '''
 dag = DAG(dag_id="{dag_id}",
@@ -62,20 +61,23 @@ dag = DAG(dag_id="{dag_id}",
           default_args=default_args)
 '''.format(dag_id=job_id, dag_description=job_description)
     )
-
-    for node_id in graph.nodes:
-        params, input_type, filepaths = map_process(graph.nodes[node_id].graph,
-                                   graph.nodes[node_id].name,
-                                   graph.nodes[node_id].id,
-                                   job_data)
-        # if parallel (from json process schema), second loop create airflow task
-        #
-        print(params, input_type, filepaths)
+    
+    # Add nodes
+    for node in nodes:
+        node_id = node[0]
+        params = node[1]
+        filepaths = node[2]
+        node_dependencies = node[3]
+        print(params, filepaths)
         print('\n')
         quotes = '' # empty
         if not filepaths:
-            if graph.nodes[node_id].dependencies:
-                filepaths = job_data + os.path.sep + graph.nodes[node_id].dependencies[-1].id + os.path.sep # this is to be changed!
+            if node_dependencies:
+                filepaths = []
+                for dep in node_dependencies:
+                    filepaths.append(job_data + os.path.sep + dep + os.path.sep)
+            # if graph.nodes[node_id].dependencies:
+            #     filepaths = job_data + os.path.sep + graph.nodes[node_id].dependencies[-1].id + os.path.sep # this is to be changed!
             quotes = '"' # "
         dagfile.write(
 '''
@@ -86,17 +88,25 @@ dag = DAG(dag_id="{dag_id}",
                                 )
 '''.format(id=node_id, task_id=node_id, filepaths=filepaths, quote=quotes, process_graph=params)
         )
-
-    for node_id in graph.nodes:
-        if graph.nodes[node_id].dependencies:
-            node_dependencies = []
-            for dependency in graph.nodes[node_id].dependencies:
-                node_dependencies.append(dependency.id)
+#         if node_dependencies:                
+#             dagfile.write(
+# '''
+# {id}.set_upstream([{dependencies}])
+# '''.format(id=node_id, dependencies=",".join(map(str, node_dependencies)))
+#                 )
+    
+    # Add node dependencies
+    for node in nodes:
+        node_id = node[0]
+        params = node[1]
+        filepaths = node[2]
+        node_dependencies = node[3]
+        if node_dependencies:
             dagfile.write(
 '''
 {id}.set_upstream([{dependencies}])
 '''.format(id=node_id, dependencies=",".join(map(str, node_dependencies)))
-            )
+                )
 
     # Close file
     dagfile.close()
