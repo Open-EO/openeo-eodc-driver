@@ -9,6 +9,7 @@ from requests import post, exceptions
 from jwt import decode
 from typing import Callable, Union
 from keycloak import KeycloakOpenID
+from keycloak.exceptions import KeycloakAuthenticationError
 
 from .response import ResponseParser, APIException
 
@@ -28,8 +29,6 @@ class AuthenticationHandler:
         def decorator(*args, **kwargs):
             try:
                 token = self._parse_auth_header(request)
-
-                # Check validity of token
                 userinfo = self.keycloak_openid.userinfo(token)
                 if userinfo['email_verified']:
                     user_id = userinfo['sub']
@@ -42,12 +41,17 @@ class AuthenticationHandler:
                         code=401,
                         service="gateway",
                         internal=False)
-            except exceptions.HTTPError as exc:
-                raise APIException(
-                    msg=str(exc),
-                    code=401,
-                    service="gateway",
-                    internal=False)
+            except KeycloakAuthenticationError as exc:
+                from ast import literal_eval
+                msg = literal_eval(exc.error_message.decode('utf-8'))['error_description']
+                return self._res.error(
+                    APIException(
+                        msg=msg,
+                        code=exc.response_code,
+                        service="gateway",
+                        internal=False
+                    )
+                )
             except Exception as exc:
                 return self._res.error(exc)
         return decorator
@@ -119,7 +123,7 @@ class AuthenticationHandler:
         if "Authorization" not in req.headers or not req.headers["Authorization"]:
             raise APIException(
                 msg="Missing 'Authorization' header.",
-                code=400,
+                code=401,
                 service="gateway",
                 internal=False)
 
@@ -135,21 +139,7 @@ class AuthenticationHandler:
         return token_split[1]
 
 
-    def user_info(self) -> dict:
-        """
-        Get info about loggedin user from token embedded in the request's headers.
-        """
-
-        token = self._parse_auth_header(request)
-        userinfo = self.keycloak_openid.userinfo(token)
-
-        user_info = {}
-        user_info['userid'] = userinfo['sub']
-        # user_info['email'] = userinfo['email']
-
-        return user_info
-
-def start_keycloak():
+def start_keycloak() -> KeycloakOpenID:
     """
     Start Keycloak client according to credentials stored in env variables.
     """

@@ -34,7 +34,7 @@ with ctx:
     # Account Management
     gateway.add_endpoint("/credentials/oidc", func=gateway.send_openid_connect_discovery, rpc=False)
     # /credentials/basic
-    gateway.add_endpoint("/me", func=gateway.get_user_info, rpc=False)
+    gateway.add_endpoint("/me", func=gateway.get_user_info, auth=True, rpc=False)
 
     # File Management
     gateway.add_endpoint("/files/<user_id>", func=rpc.files.get_all, auth=True, validate=True)
