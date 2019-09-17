@@ -30,7 +30,7 @@ class Airflow():
         Pause/unpause DAG
         """
 
-        request_url = self.dags_url + "/" + job_id + "/paused/" + str(unpause)
+        request_url = self.dags_url + "/" + job_id + "/paused/" + str(not unpause)
         response = requests.get(request_url, headers=self.header, data=self.data)
 
         return response
@@ -51,14 +51,17 @@ class Airflow():
         """
         Check status of airflow DAG
         """
-
+        
         job_url = self.dags_url + "/" + job_id + "/dag_runs"
         response = requests.get(job_url, headers=self.header, data=self.data)
         if response.status_code == 400:
             if 'not found' in response.json()['error']:
                 dag_status = 'cancelled'
         else:
-            dag_status = response.json()[0]['state']
+            if response.json():
+                dag_status = response.json()[0]['state']
+            else:
+                dag_status = 'submitted'
         dag_status = dag_status.replace('success', 'finished')
             
         return dag_status
