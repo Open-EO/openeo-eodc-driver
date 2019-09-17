@@ -14,10 +14,15 @@ RUN touch /root/.ssh/known_hosts
 RUN chmod 600 /root/.ssh/id_rsa
 RUN ssh-keyscan git.eodc.eu >> /root/.ssh/known_hosts
 WORKDIR /tmp
-RUN git clone -b remove-eomDR git+ssh://git@git.eodc.eu/eodc/eoDataReaders.git
+## To be removed when geopathfinder uses pyScaffold 3.x and can be installed as a dependency of eoDataReaders
+RUN git clone -b eodatareaders_extension https://github.com/TUW-GEO/geopathfinder.git
+WORKDIR /tmp/geopathfinder
+RUN /bin/bash -c "python3 setup.py install"
+WORKDIR /tmp
+##
+RUN git clone -b reduce-hack git+ssh://git@git.eodc.eu/eodc/eoDataReaders.git
 WORKDIR /tmp/eoDataReaders
-#Temporary hack
-RUN git checkout f19a1c66
+# RUN git checkout 2c3c838c7824fe8804b7633e35e5949ed149579a
 RUN /bin/bash -c "python3 setup.py install"
 RUN apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
