@@ -1,11 +1,7 @@
-FROM python:3.6.2
-
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
-
+FROM openeo-base
 COPY requirements.txt .
-
-RUN pip install -r requirements.txt
-ADD . /usr/src/app
-
+RUN python3 -m pip install -r requirements.txt
+RUN mkdir /usr/src/cache
+RUN chown www-openeo:airflow /usr/src/cache
+USER www-openeo
 CMD nameko run --config config.yaml data.service

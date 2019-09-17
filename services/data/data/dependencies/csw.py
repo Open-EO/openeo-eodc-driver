@@ -1,15 +1,17 @@
 """ CSW Session """
 
-from os import environ
+from os import environ, path
 from requests import post
 from json import loads, dumps
-from datetime import datetime
+from datetime import datetime, timedelta
 from xml.dom.minidom import parseString
 from nameko.extensions import DependencyProvider
 
-from ..models import ProductRecord, Record, FilePath, SpatialExtent, TemporalExtent
+from ..models import Collection, Collections
 from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin, xml_end, xml_bbox
 from .bands import BandsExtractor
+from .cache import cache_json, get_cache_path, get_json_cache
+from .links import LinkHandler
 
 
 class CWSError(Exception):
@@ -25,9 +27,12 @@ class CSWHandler:
     required output format.
     """
 
-    def __init__(self, csw_server_uri: str):
+    def __init__(self, csw_server_uri: str, cache_path: str, service_uri: str):
         self.csw_server_uri = csw_server_uri
+        self.cache_path = cache_path
+        self.service_uri = service_uri
         self.bands_extractor = BandsExtractor()
+        self.link_handler = LinkHandler(service_uri)
 
     def get_all_products(self) -> list:
         """Returns all products available at the back-end.
@@ -38,16 +43,22 @@ class CSWHandler:
 
         data = self._get_records(series=True)
 
-        product_records = []
-        for product_record in data:
-            product_records.append(
-                ProductRecord(
-                    data_id=product_record["dc:identifier"],
-                    description=product_record["dct:abstract"],
-                    source=product_record["dc:creator"])
+        collections = []
+        for collection in data:
+            collections.append(
+                Collection(
+                    stac_version=collection["stac_version"],
+                    b_id=collection["id"],
+                    description=collection["description"],
+                    b_license=collection["license"],
+                    extent=collection["extent"],
+                    links=collection["links"],
                 )
+            )
+        links = self.link_handler.get_links(collection=True)
+        collections = Collections(collections, links)
 
-        return product_records
+        return collections
 
     def get_product(self, data_id: str) -> dict:
         """Returns information about a specific product.
@@ -61,123 +72,30 @@ class CSWHandler:
 
         data = self._get_records(data_id, series=True)[0]
 
-        upper = data["ows:BoundingBox"]["ows:UpperCorner"].split(" ")
-        lower = data["ows:BoundingBox"]["ows:LowerCorner"].split(" ")
-
-        product_record = ProductRecord(
-            data_id=data["dc:identifier"],
-            description=data["dct:abstract"],
-            source=data["dc:creator"],
-            spatial_extent=SpatialExtent(
-                top=upper[1],
-                bottom=lower[1],
-                left=lower[0],
-                right=upper[0],
-                crs="EPSG:4326"
-            ),
-            temporal_extent="{0}/{1}".format(data["dc:date"], 
-                                             datetime.now().strftime('%Y-%m-%d')),
-            bands=self.bands_extractor.get_bands(data_id)
+        collection = Collection(
+            stac_version=data["stac_version"],
+            b_id=data["id"],
+            description=data["description"],
+            b_license=data["license"],
+            extent=data["extent"],
+            links=data["links"],
+            title=data["title"],
+            keywords=data["keywords"]
         )
 
-        return product_record
+        return collection
 
-    def get_records_full(self, product: str, bbox: list, start: str, end: str) -> list:
-        """Returns the full information of the records of the specified products
-        in the temporal and spatial extents.
+    def refresh_cache(self, use_cache: bool=False):
+        """ Refreshes the cache
 
-        Arguments:
-            product {str} -- The identifier of the product
-            bbox {list} -- The spatial extent of the records
-            start {str} -- The start date of the temporal extent
-            end {str} -- The end date of the temporal extent
-
-        Returns:
-            list -- The records data
+        Keyword Arguments:
+            use_cache {bool} -- Specifies whether to or not to refresh the cache. A bit redundant because submitted through an additional POST
         """
+        data = self._get_records(series=True, use_cache=use_cache)
+        for collection in data:
+            refreshed = self._get_records(collection['id'], series=True, use_cache=use_cache)[0]
 
-        return self._get_records(product, bbox, start, end)
-
-    def get_records_shorts(self, product: str, bbox: list, start: str, end: str) -> list:
-        """Returns the short information of the records of the specified products
-        in the temporal and spatial extents.
-
-        Arguments:
-            product {str} -- The identifier of the product
-            bbox {list} -- The spatial extent of the records
-            start {str} -- The start date of the temporal extent
-            end {str} -- The end date of the temporal extent
-
-        Returns:
-            list -- The records data
-        """
-
-        data = self._get_records(product, bbox, start, end)
-
-        response = []
-        for item in data:
-            path = item["gmd:distributionInfo"]["gmd:MD_Distribution"]["gmd:transferOptions"][
-                "gmd:MD_DigitalTransferOptions"]["gmd:onLine"][0]["gmd:CI_OnlineResource"]["gmd:linkage"]["gmd:URL"]
-            name = item["gmd:fileIdentifier"]["gco:CharacterString"]
-            name = name.split("/")[-1].split(".")[0]
-            extend = item["gmd:identificationInfo"]["gmd:MD_DataIdentification"]["gmd:extent"]["gmd:EX_Extent"]
-            spatial_extend = extend["gmd:geographicElement"]["gmd:EX_GeographicBoundingBox"]
-            temporal_extend = extend["gmd:temporalElement"]["gmd:EX_TemporalExtent"]["gmd:extent"]["gml:TimePeriod"]
-
-            response.append(
-                Record(
-                    name=name,
-                    path=path,
-                    spatial_extent=SpatialExtent(
-                        top=spatial_extend["gmd:northBoundLatitude"]["gco:Decimal"],
-                        bottom=spatial_extend["gmd:southBoundLatitude"]["gco:Decimal"],
-                        left=spatial_extend["gmd:eastBoundLongitude"]["gco:Decimal"],
-                        right=spatial_extend["gmd:westBoundLongitude"]["gco:Decimal"],
-                        crs="EPSG:4326" 
-                    ),
-                    temporal_extent="{0}/{1}".format(temporal_extend["gml:beginPosition"], 
-                                                     temporal_extend["gml:endPosition"])
-                )
-            )
-
-        return response
-
-    def get_file_paths(self, product: str, bbox: list, start: str, end: str) -> list:
-        """Returns the file paths of the records of the specified products
-        in the temporal and spatial extents.
-
-        Arguments:
-            product {str} -- The identifier of the product
-            bbox {list} -- The spatial extent of the records
-            start {str} -- The start date of the temporal extent
-            end {str} -- The end date of the temporal extent
-
-        Returns:
-            list -- The records data
-        """
-
-        records=self._get_records(product, bbox, start, end)
-
-        # TODO: Better solution than this bulls** xml paths
-        response=[]
-        for item in records:
-            path=item["gmd:distributionInfo"]["gmd:MD_Distribution"]["gmd:transferOptions"][
-                "gmd:MD_DigitalTransferOptions"]["gmd:onLine"][0]["gmd:CI_OnlineResource"]["gmd:linkage"]["gmd:URL"]
-            name=path.split("/")[-1].split(".")[0]
-            date=item["gmd:identificationInfo"]["gmd:MD_DataIdentification"]["gmd:extent"]["gmd:EX_Extent"][
-                "gmd:temporalElement"]["gmd:EX_TemporalExtent"]["gmd:extent"]["gml:TimePeriod"]["gml:beginPosition"][0:10]
-
-            response.append(
-                FilePath(
-                    date=date,
-                    name=name,
-                    path=path
-                )
-            )
-
-        return response
-
-    def _get_records(self, product: str=None, bbox: list=None, start: str=None, end: str=None, series: bool=False) -> list:
+    def _get_records(self, product: str=None, bbox: list=None, start: str=None, end: str=None, series: bool=False, use_cache: bool=True) -> list:
         """Parses the XML request for the CSW server and collects the responsed by the
         batch triggered _get_single_records function.
 
@@ -187,6 +105,7 @@ class CSWHandler:
             start {str} -- The end date of the temporal extent (default: {None})
             end {str} -- The end date of the temporal extent (default: {None})
             series {bool} -- Specifier if series (products) or records are queried (default: {False})
+            use_cache {bool} -- Specifies whether to use the
 
         Raises:
             CWSError -- If a problem occures while communicating with the CSW server
@@ -196,7 +115,7 @@ class CSWHandler:
         """
 
         # Parse the XML request by injecting the query data into the XML templates
-        output_schema="http://www.opengis.net/cat/csw/2.0.2" if series is True else "http://www.isotc211.org/2005/gmd"
+        output_schema='https://github.com/radiantearth/stac-spec'
 
         xml_filters=[]
 
@@ -235,10 +154,20 @@ class CSWHandler:
         # While still data is available send requests to the CSW server (-1 if not more data is available)
         all_records=[]
         record_next=1
-        while int(record_next) > 0:
-            record_next, records=self._get_single_records(
-                record_next, filter_parsed, output_schema)
-            all_records += records
+
+        # Create a request and cache the data for a day
+        # Caching to increase speed
+        path_to_cache = get_cache_path(self.cache_path, product, series)
+        if not use_cache:
+            while int(record_next) > 0:
+                record_next, records=self._get_single_records(
+                    record_next, filter_parsed, output_schema)
+                all_records += records
+            # additionally add the links to each record and collection
+            all_records = self.link_handler.get_links(all_records)
+            cache_json(all_records, path_to_cache)
+        else:
+            all_records = get_json_cache(path_to_cache)
 
         return all_records
 
@@ -288,6 +217,8 @@ class CSWHandler:
             records=search_result["gmd:MD_Metadata"]
         elif "csw:Record" in search_result:
             records=search_result["csw:Record"]
+        elif "collection" in search_result:
+            records=search_result["collection"]
         else:
             record_next=0
             records=[]
@@ -313,4 +244,4 @@ class CSWSession(DependencyProvider):
             CSWHandler -- The instantiated CSWHandler object
         """
 
-        return CSWHandler(environ.get("CSW_SERVER"))
+        return CSWHandler(environ.get("CSW_SERVER"), environ.get("CACHE_PATH"), environ.get("SERVICE_URI"))

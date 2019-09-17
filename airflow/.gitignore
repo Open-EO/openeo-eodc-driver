@@ -1,0 +1,6 @@
+deploy.key
+deploy_key
+__pycache__
+*.bkp
+.env
+envs

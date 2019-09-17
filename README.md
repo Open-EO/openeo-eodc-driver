@@ -1,73 +1,128 @@
-# openEO: OpenShift Driver
+# openEO EODC Driver
 
 ## Information
-- version: 0.3
-- Python: 3.6.2
-- Databases: Postgres, Redis
-- Message Broker: RabbitMQ
-- Dependencies: Flask, Nameko
 
-The openEO OpenShift driver provides openEO API functionality on top of RedHat's OpenShift Origin.
-A flask REST client on route /jobs is provided.
+- version: 0.4
 
-For more information on OpenShift please visit:
-- [OpenShift Origin website](https://www.openshift.org/)
-- [OpenShift Origin documentation](https://docs.openshift.org/latest/welcome/index.html)
-- [How to setup an OpenShift cluster](https://docs.openshift.org/latest/install_config/install/planning.html)
+## NGINX Proxy and Letsencrypt Setup
 
-## Installation
-### Template File
-The template file (template.json) is an OpenShift descriptive file that is used to implement an environment and its parameterized objects.A template can be processed and the included objects will be created in the project namespace.
-The openEO Openshift template file uses references to the public git repository to build and deploy the required services (/services).
-For further information please visit: [OpenShift Templates](https://docs.openshift.org/latest/dev_guide/templates.html)
+This setup uses an NGINX Proxy in combination with Docker Gen and LetsEncrypt to auto create and renew SSL certificates for https.
 
-### Requirements
-- For the installation and running of the openEO instance a OpenShift cluster with accessible OpenShift API must be setup. (See: [Installing a cluster](https://docs.openshift.com/container-platform/3.7/install_config/install/planning.html)
-- The OpenShift cluster needs to have persitant volumes avaiable and a storage class to access the storage (See: [Configure Persistant Storage](https://docs.openshift.com/container-platform/3.7/install_config/persistent_storage/index.html)
-- The OpenShift Client Tools must be installed (See: [OpenShift client tools download](https://www.openshift.org/download.html))
+- NGINX Proxy Docker image: https://github.com/jwilder/nginx-proxy
+- Letsencrypt NGINX Docker Companion: https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion
 
-### Installation Steps
-- Log into OpenShift instance usuing OpenShift Client Tools (oc): ```oc login <openshift_api_url>```
-- Create new project for openEO: ```oc new-project <openeo_project_name>```
-- Create new project for job execution: ```oc new-project <execution_project_name>```
-- Create a service account: ```oc create serviceaccount robot```
-- Grant admin role to service account: ```oc policy add-role-to-user admin system:serviceaccounts:test:robot```
-- Fill out parameters in OpenShift template file (template.json)
-- Change to the created OpenShift openEO project: ```oc project <openeo_project_name>```
-- Download the template.json from the git repository
-- Process the template and create objects: ```oc process template.json | oc create -f -```
-- The project will now be setup in the openeo namespace and can be accesses over the host name that was specified in the template file
+Copy `sample.env` to `.env` and adjust the environment variables. These variables are needed for the NGINX proxy and LetsEncrypt NGINX Proxy Companion to work.
+Do not add `.env`to a git repository! (added to `.gitgnore` by default - don't change this!)
 
-### Parameters
-- EXECUTION_NAMESPACE:
-  Namspace of OpenSHift project for job execution (e.g. "execution-environment")
-- SERVICEACCOUNT_TOKEN:
-  Permanent token of a service account in the execution namespace that can bus used to access the OpenShift API
-- STORAGE_CLASS:
-  Storage class for PersitantVolumeClaims that should be used (e.g. "storage-write")
-- OPENEO_API
-  URI for accessing the openEO API (e.g. http://openeo.example.com)
-- OPENSHIFT_API
-  URI for accessing the OpenShift API (e.g. http://openshift.example.com)
-- CSW_SERVER
-  URI for accessing CSW server (e.g. http://csw.example.com)
+```bash
+VIRTUAL_HOST=example.com # Your domain
+VIRTUAL_PORT=3000 # Gateway port. Default 3000
+LETSENCRYPT_HOST= example.com # Your domain (has to be the same as VIRTUAL_HOST)
+LETSENCRYPT_EMAIL=example@example.com
+LETSENCRYPT_TEST='false' # set to true in development environment
+PROJECT_NAME=openeo-openshift-driver # name this after project folder  
+```
 
-## Contributing
-### Developing Locally
-MiniShift is a tool for local development by launching a single node OpenShift cluster. It can be downloaded at [MiniShift](https://www.openshift.org/minishift/)
-Furthermore, for developing locally on an external cluster the port of the pods in the project namespace can be forwarded to a local machine:
-- Login into the OpenShift instance: ```oc login <openshift_api_url>```
-- Switch to openEO project: ```oc project <openeo_project_name>```
-- Get names of pods in project: ```oc get pods```
-- Forward ports of pods that are needed for developing (e.g. database/service): ```oc port-forward <pod> [<local_port>:]<pod_port> [[<local_port>:]<pod_port> ...]```
-- E.g. ```oc port-forward -p openeo-user-postgres-1-s2da 5432:5432```
+## Environment variables
 
-### Further Commands:
-- Delete all objects in namespace (except secrets and pvcs): ```oc delete all --all```
-- Run service test: ```python manage.py test```
-- Run service locally: ```python manage.py runserver```
-- Recreate service database: ```python manage.py recreate_db```
-- Seed service database: ```python manage.py seed_db```
-- Drop service database: ```python manage.py drop_db```
-- Migrate service database: ```python manage.py db migrate```
-- Upgrade service database: ```python manage.py db upgrade```
+Each container has its own environment file.
+
+- Copy the `sample-envs` directory to `./envs`
+- Adjust each environment file accordingly
+- Make sure to use secure and unique credentials!
+- Do not add `./envs`to a git repository! (added to `.gitgnore` by default - don't change this!)
+
+## Persistent data
+
+- NGINX config files and SSL certs are bind mounted to the host at `/srv/nginx/data/`.
+- PostgreSQL databases are bind mounted to `/srv/openeo/data/jobs_db_data`and `/srv/openeo/data/processes_db_data`.
+
+It is a good idea to mount a seperate logical volume to the `/srv` directory of the Docker host.
+
+## MTU Settings in OpenStack
+
+A common problem running docker in OpenStack and possibly other virtualization infrastructure is that the attached network interfaces do not have the default MTU of 1500.
+In this case you have to change the default Docker MTU from 1500 to e.g. 1450
+
+Should you be running docker on OpenStack follow these steps: 
+
+- Use your editor of choice and edit `/etc/docker/daemon.json`
+- If the file does not exist, create it.
+
+```bash
+sudo vim /etc/docker/daemon.json
+```
+
+- Paste the following lines.
+
+```json
+{
+    "mtu": 1450
+}
+```
+
+- Restart Docker
+
+```bash
+sudo systemctl restart docker
+```
+
+- Edit `docker-compose.nginx.yml` and uncomment the driver options.
+
+```yml
+networks:
+  proxy:
+    driver: bridge
+#   Custom MTU overide needed for OpenStack environment only.
+    driver_opts: 
+        com.docker.network.driver.mtu: 1400
+```
+
+## Build and start the containers
+
+To create the images and start the docker containers use the `run.sh` script.
+The script will check if image dependencies are met, build necessary images and start the containers.
+
+After the script completes succesfully it will create an empty `.init` file. This is needed in case
+you want to use the `run.sh` script the image build process is skipped.
+
+- Make the script executable and run it.
+
+```bash
+sudo chmod +x run.sh
+./run.sh
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,17 +1,8 @@
-FROM alpine:3.7
-
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
-
+FROM openeo-base
 COPY requirements.txt .
-
-RUN apk update && \
-    apk add build-base libressl-dev libffi-dev gcc python3-dev musl-dev postgresql-dev && \
-    pip3 install --upgrade pip && \
-    python3 -m pip install -r requirements.txt 
-
-ADD . /usr/src/app
-
-EXPOSE 5000
-
+RUN python3 -m pip install -r requirements.txt
+RUN mkdir /usr/src/api
+RUN chown www-openeo:airflow /usr/src/api
+USER www-openeo
+CMD alembic upgrade head
 CMD nameko run --config config.yaml processes.service --backdoor 3000

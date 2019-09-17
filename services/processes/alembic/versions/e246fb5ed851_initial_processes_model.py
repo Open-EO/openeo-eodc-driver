@@ -15,6 +15,7 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
+
 def upgrade():
     op.create_table(
         'processes',
@@ -70,6 +71,7 @@ def upgrade():
         sa.Column('created_at', sa.DateTime(), default=sa.func.now(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), default=sa.func.now(), onupdate=sa.func.now(), nullable=False)
     )
+
 
 def downgrade():
     op.drop_table('parameters')

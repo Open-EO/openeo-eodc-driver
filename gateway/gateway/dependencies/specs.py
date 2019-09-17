@@ -1,14 +1,14 @@
 """ OpenAPISpecParser, OpenAPISpecException """
 
-from os import path
+from os import path, environ, mkdir
 from pathlib import Path
-from sys import modules
 from flask import request
 from werkzeug.exceptions import BadRequest
 from yaml import load
 from requests import get
 from typing import Callable, Any
 from re import match
+import uuid
 
 from .response import APIException
 
@@ -125,15 +125,21 @@ class OpenAPISpecParser:
                             if "schema" in p:
                                 params_specs[p["name"]] = p["schema"]
                     if "requestBody" in in_method:
-                        body = route_specs[req_method]["requestBody"]["content"]["application/json"]["schema"]
+                        content = route_specs[req_method]["requestBody"]["content"]
+                        if content.get("application/json"):
+                            body = content["application/json"]["schema"]
+                        elif content.get("application/octet-stream"):
+                            body = content["application/octet-stream"]["schema"]
+                        else:
+                            raise Exception("Input format {0} is currently not supported".format(', '.join(content.keys())))
                         if "required" in body:
-                            param_required  += body["required"]
+                            param_required += body["required"]
                         if "properties" in body:
                             for p_key, p_value in body["properties"].items():
                                 params_specs[p_key] = p_value
 
             return has_specs, params_specs, param_required
-        
+
         def get_parameters():
             try:
                 parameters = {}
@@ -143,19 +149,30 @@ class OpenAPISpecParser:
 
                 if len(request.args) > 0:
                     parameters = {**parameters, **request.args.to_dict(flat=True)}
-                
+
                 if request.data:
-                    parameters = {**parameters, **request.get_json()}
-                
+                    if request.headers['Content-Type'] == 'application/octet-stream':
+                        parameters = {**parameters, **get_file_data()}
+                    else:
+                        parameters = {**parameters, **request.get_json()}
                 return parameters
             except BadRequest as exp:
                 raise APIException(
-                    msg="Error while parsing JSON in payload. Please make sure the JSON is valid.", 
-                    code=400, 
-                    service="gateway", 
+                    msg="Error while parsing JSON in payload. Please make sure the JSON is valid.",
+                    code=400,
+                    service="gateway",
                     internal=False)
-            
-            
+
+        def get_file_data():
+            if not path.exists(environ.get("OPENEO_TMP_DIR")):
+                mkdir(environ.get("OPENEO_TMP_DIR"))
+
+            # Create a tmp file where the binary data is stored > does not need to be passed over the rabbit
+            temp_file = path.join(environ.get("OPENEO_TMP_DIR"), str(uuid.uuid4()))
+            with open(temp_file, 'wb') as file:
+                file.write(request.data)
+            request.data = None
+            return {"tmp_path": temp_file}
 
         def decorator(user_id=None, **kwargs):
 
@@ -175,34 +192,19 @@ class OpenAPISpecParser:
 
                 parameters = get_parameters()
 
-                parsed_params = {}
-                for p_name, p_specs in specs.items():
-                    if p_name not in parameters.keys():
-                        if p_name in required:
-                            if "default" in p_specs:
-                                parsed_params[p_name] = p_specs["default"]
-                            else:
-                                msg = "Missing parameter {0}.".format(p_name)
-                                raise APIException(msg=msg, code=400, service="gateway", internal=False)
-                    else:
-                        p_value = parameters[p_name]
+                # TODO validation
 
-                        if "type" in p_specs:
-                            p_value = type_map.get(p_specs["type"], lambda x: x)(p_value)
-                        
-                        if "pattern" in p_specs:
-                            if not match(p_specs["pattern"], p_value):
-                                msg = "Parameter {0} does not match pattern {1}.".format(p_name, p_specs["pattern"])
-                                raise APIException(msg=msg, code=400, service="gateway", internal=False)
+                # for file management user_id is also passed as url param > has to match the user_id from the token
+                if parameters.get("user_id", None):
+                    if not parameters.pop("user_id") == user_id:
+                        return APIException(
+                            msg="The passed user_id has to match the token.",
+                            code=400,
+                            service="gateway",
+                            user_id=user_id,
+                            internal=False)
 
-                        if "enum" in p_specs:
-                            if not p_value in p_specs["enum"]:
-                                msg = "Parameter {0} does not match enum item {1}.".format(p_name, p_specs["enum"])
-                                raise APIException(msg=msg, code=400, service="gateway", internal=False)
-                        
-                        parsed_params[p_name] = p_value
-    
-                return f(user_id=user_id, **parsed_params)
+                return f(user_id=user_id,  **parameters)
             except Exception as exc:
                 return self._res.error(exc)
         return decorator

@@ -4,6 +4,25 @@ from gateway import gateway
 
 manager = Manager(gateway.get_service())
 
+@manager.option('-b', '--bind', dest='bind', default='127.0.0.1:8000')
+@manager.option('-w', '--workers', dest='workers', type=int, default=3)
+def prod(bind, workers):
+    """Start the Server with Gunicorn"""
+    from gunicorn.app.base import Application
+
+    class FlaskApplication(Application):
+        def init(self, parser, opts, args):
+            return {
+                'bind': bind,
+                'workers': workers
+            }
+
+        def load(self):
+            return gateway.get_service()
+
+    application = FlaskApplication()
+    return application.run()
+
 @manager.command
 def test():
     ''' Runs Unit tests. '''
