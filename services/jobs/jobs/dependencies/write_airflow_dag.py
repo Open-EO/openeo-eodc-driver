@@ -1,6 +1,10 @@
 import os
 from shutil import copyfile
-from .openeo_to_eodatareaders import openeo_to_eodatareaders
+
+try:
+    from openeo_to_eodatareaders import openeo_to_eodatareaders
+except:
+    from .openeo_to_eodatareaders import openeo_to_eodatareaders
 
 
 def WriteAirflowDag(job_id, user_name, process_graph_json, job_data, user_email=None, job_description=None):
@@ -22,9 +26,6 @@ def WriteAirflowDag(job_id, user_name, process_graph_json, job_data, user_email=
 '''
 from datetime import datetime, timedelta
 from airflow import DAG
-from airflow.operators.dummy_operator import DummyOperator
-from airflow.operators.python_operator import PythonOperator
-#from eodatareaders.eo_data_reader import eoDataReader
 from airflow.operators import eoDataReadersOp
 '''
     )
@@ -36,14 +37,12 @@ from airflow.operators import eoDataReadersOp
 default_args = {{
     'owner': "{username}",
     'depends_on_past': False,
-    'start_date': datetime(2015, 6, 1),
+    'start_date': datetime.combine(datetime.today() - timedelta(1), datetime.min.time()),
     'email': "{usermail}",
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
     'schedule_interval': None,
-    'catchup': False,
+    # 'catchup': False,
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
     # 'priority_weight': 10,
@@ -57,7 +56,7 @@ default_args = {{
 '''
 dag = DAG(dag_id="{dag_id}",
           description="{dag_description}",
-          catchup=False,
+          catchup=True,
           default_args=default_args)
 '''.format(dag_id=job_id, dag_description=job_description)
     )
@@ -78,7 +77,7 @@ dag = DAG(dag_id="{dag_id}",
                     filepaths.append(job_data + os.path.sep + dep + os.path.sep)
             # if graph.nodes[node_id].dependencies:
             #     filepaths = job_data + os.path.sep + graph.nodes[node_id].dependencies[-1].id + os.path.sep # this is to be changed!
-            quotes = '"' # "
+            quotes = '' # "
         dagfile.write(
 '''
 {id} = eoDataReadersOp(task_id="{task_id}",
@@ -88,12 +87,6 @@ dag = DAG(dag_id="{dag_id}",
                                 )
 '''.format(id=node_id, task_id=node_id, filepaths=filepaths, quote=quotes, process_graph=params)
         )
-#         if node_dependencies:                
-#             dagfile.write(
-# '''
-# {id}.set_upstream([{dependencies}])
-# '''.format(id=node_id, dependencies=",".join(map(str, node_dependencies)))
-#                 )
     
     # Add node dependencies
     for node in nodes:
