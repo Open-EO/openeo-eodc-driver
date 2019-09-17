@@ -20,8 +20,9 @@ WORKDIR /tmp/geopathfinder
 RUN /bin/bash -c "python3 setup.py install"
 WORKDIR /tmp
 ##
-RUN git clone -b xarray git+ssh://git@git.eodc.eu/eodc/eoDataReaders.git
+RUN git clone -b reduce-hack git+ssh://git@git.eodc.eu/eodc/eoDataReaders.git
 WORKDIR /tmp/eoDataReaders
+# RUN git checkout 2c3c838c7824fe8804b7633e35e5949ed149579a
 RUN /bin/bash -c "python3 setup.py install"
 RUN apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
