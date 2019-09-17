@@ -1,5 +1,9 @@
 from openeo_pg_parser_python.translate_process_graph import translate_graph
-from .map_processes import map_process
+
+try:
+    from map_processes import map_process
+except:
+    from .map_processes import map_process
 
 
 def openeo_to_eodatareaders(process_graph_json, job_data):
@@ -8,13 +12,8 @@ def openeo_to_eodatareaders(process_graph_json, job_data):
     """
 
     graph = translate_graph(process_graph_json)
-    
     nodes = []
-
-    for node_id in graph.nodes:
-        # if "callback" in graph.nodes[node_id].id: 
-        #     continue
-            
+    for node_id in graph.nodes:            
         # Check if this node contains a callback
         reducer_name = None
         reducer_dimension = None
@@ -29,17 +28,8 @@ def openeo_to_eodatareaders(process_graph_json, job_data):
             elif 'from_node' in graph.nodes[node_id].graph['parameters']['reducer'].keys():
                 # Callback is itself a process graph
                 node_dependencies = [graph.nodes[node_id].graph['parameters']['reducer']['from_node']]
-                                
-            
-        # reducer_graph = None
-        # reducer_name = None
-        # reducer_id = None
         
         if graph.nodes[node_id].graph['process_id'] == "reduce":
-            # reducer_id = graph.nodes[node_id].graph['parameters']['reducer']['from_node']
-            # reducer_graph = graph.nodes[reducer_id].graph
-            # reducer_name = graph.nodes[reducer_id].name
-            # reducer_id = graph.nodes[reducer_id].id    
             reducer_name = graph.nodes[graph.nodes[node_id].graph['parameters']['reducer']['from_node']].graph['process_id']
             reducer_dimension = graph.nodes[node_id].graph['parameters']['dimension']
         
@@ -58,15 +48,6 @@ def openeo_to_eodatareaders(process_graph_json, job_data):
         if reducer_dimension:
             reducer_dimension = reducer_dimension.replace('spectral', 'band')
             reducer_dimension = reducer_dimension.replace('temporal', 'time')
-        # params, filepaths = map_process(
-        #                                 graph.nodes[node_id].graph,
-        #                                 graph.nodes[node_id].name,
-        #                                 graph.nodes[node_id].id,
-        #                                 job_data,
-        #                                 reducer=reducer_graph,
-        #                                 reducer_name=reducer_name,
-        #                                 reducer_id=reducer_id
-        #                                 )
         params, filepaths = map_process(
                                         graph.nodes[node_id].graph,
                                         graph.nodes[node_id].name,
@@ -81,12 +62,10 @@ def openeo_to_eodatareaders(process_graph_json, job_data):
             for dependency in graph.nodes[node_id].dependencies:
                 if 'callback' not in dependency.id:
                     node_dependencies.append(dependency.id)
-            if len(node_dependencies) > 1:
-                # TODO wacky bit: if more dependencies for a reduce process, it assumes they are to be process file by file
-                # not generally true.
+            if reducer_dimension != 'time':
                 for k, item in enumerate(params):
                     if item['name'] == 'reduce':
-                        params[k]['f_input']['per_file'] = 'True;bool'
+                        params[k]['per_file'] = 'True'
         
         # Add to nodes list
         nodes.append((graph.nodes[node_id].id, params, filepaths, node_dependencies))
