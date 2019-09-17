@@ -6,6 +6,12 @@
 from os import path
 import inspect
 import importlib
+from numbers import Number
+
+try:
+    from map_cubes_processes import map_apply, map_reduce
+except:
+    from .map_cubes_processes import map_apply, map_reduce
 
 
 #def __map_default(process, process_name, mapping, add_ignore_nodata=True):
@@ -19,41 +25,12 @@ def __map_default(process, process_name, mapping, **kwargs):
     for item in kwargs:
         f_input[item] = kwargs[item]
         
-    process['f_input'] = f_input
-    
-    # if 'ignore_nodata' in process['parameters'].keys():
-    #     ignore_nodata = str(process['parameters']['ignore_nodata'])
-    # else:
-    #     ignore_nodata = str(True)
-    # 
-    # if add_ignore_nodata:
-    #     process['f_input'] = {
-    #         'f_name': process_name,
-    #         'ignore_nodata': ignore_nodata + ';bool'
-    #     }
-    # else:
-    #     process['f_input'] = {'f_name': process_name}
-        
+    process['f_input'] = f_input        
         
     if mapping == 'apply':
         return map_apply(process)
     elif mapping == 'reduce':
         return map_reduce(process)
-    
-    # if add_ignore_nodata:
-    #     dict_item = [
-    #         {'name': 'apply', 'f_input': {
-    #                                         'f_name': process_name, 
-    #                                         'ignore_nodata': ignore_nodata + ';bool'
-    #                                         }
-    #         }
-    #         ]
-    # else:
-    #     dict_item = [
-    #         {'name': 'apply', 'f_input': {'f_name': process_name}}
-    #         ]
-
-    #return f_input
     
     
 def __simple_process(process):
@@ -61,23 +38,39 @@ def __simple_process(process):
     
     """
     
-    process_params = __set_ignore_data(process)
+    process_params = __get_process_params(process, {'ignore_data': 'bool'})
     
     return __map_default(process, process['id'], 'apply', **process_params)
     
 
-def __set_ignore_data(process):
+def __get_process_params(process, param_dict):
     """
-    Wrapper for common operation
+    params_list is a dict, e.g.: {'ignore_data': 'bool', 'p': 'int'}
     """
-    
-    if 'ignore_nodata' in process['parameters'].keys():
-        ignore_nodata = str(process['parameters']['ignore_nodata'])
-    else:
-        ignore_nodata = str(True) # default
     
     process_params = {}
-    process_params['ignore_nodata'] = ignore_nodata + ';bool'
+    for param in param_dict:
+        if param in process['parameters'].keys():
+            process_params[param] = str(process['parameters'][param]) + ';' + param_dict[param]
+    
+    return process_params
+    
+
+def __set_extra_values(process, add_extra_idxs=False):
+    
+    extra_values = []
+    extra_idxs = []
+    for k, item in enumerate(process['parameters']['data']):
+        if isinstance(item, Number):
+            extra_values.append(item)
+            if add_extra_idxs:
+                extra_idxs.append(k)            
+    
+    process_params = {}
+    if extra_values:
+        process_params['extra_values'] = str(extra_values) + ';list'
+        if add_extra_idxs:
+            process_params['extra_idxs'] = str(extra_idxs) + ';list'
     
     return process_params
 

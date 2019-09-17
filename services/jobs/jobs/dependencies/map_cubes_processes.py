@@ -89,25 +89,21 @@ def map_reduce(process):
     """
     
     if 'f_input' in process.keys():
-        dict_item_list = [
-                    {'name': 'reduce',
-                    'dimension': process['reducer_dimension'],
-                    'f_input': process['f_input']
-                    }
-                    ]
+        per_file = None
+        if 'per_file' in process['f_input']:
+            per_file = process['f_input'].pop('per_file')
+        dict_item = {
+            'name': 'reduce',
+            'dimension': process['reducer_dimension'],
+            'f_input': process['f_input']
+            }
+        if per_file:
+            dict_item['per_file'] = per_file
     else:
         # Add saving to vrt, else no vrt file is generated
-        dict_item_list = [
-            {'name': 'save_raster', 'format_type':'vrt'}
-            ]
-        # dict_item_list = [
-        #             {'name': 'reduce',
-        #             'dimension': process['reducer_dimension'],
-        #             'f_input': {'f_name': 'eo_' + process['reducer_name']}
-        #             }
-        #             ]
+        dict_item = {'name': 'save_raster', 'format_type':'vrt'}
 
-    return dict_item_list
+    return [dict_item]
     
 
 def map_apply(process):

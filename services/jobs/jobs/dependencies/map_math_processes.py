@@ -3,7 +3,10 @@
 """
 
 
-from .map_utils import __map_default, __simple_process
+try:
+    from map_utils import __map_default, __simple_process, __set_extra_values
+except:
+    from .map_utils import __map_default, __simple_process, __set_extra_values
 
 
 def map_absolute(process):
@@ -19,9 +22,8 @@ def map_clip(process):
     
     """
     
-    process_params = {}
-    process_params['min'] = process['parameters']['min'] + ';float'
-    process_params['max'] = process['parameters']['max'] + ';float'
+    param_dict = {'min': 'float', 'max': 'float'}
+    process_params = __get_process_params(process, param_dict)
     
     return __map_default(process, 'eo_clip', 'apply', **process_params)
 
@@ -31,44 +33,24 @@ def map_divide(process):
     
     """
     
-    return __map_default(process, 'eo_divide', 'reduce')
+    process_params = __set_extra_values(process, add_extra_idxs=True)
+    
+    return __map_default(process, 'eo_divide', 'reduce', **process_params)
     
     
 def map_linear_scale_range(process):
     """
     
     """
-        
-    if 'output_min' in process['parameters'].keys():
-        output_min = process['parameters']['output_min']
-    else:
-        output_min = 0
-    if 'output_max' in process['parameters'].keys():
-        output_max = process['parameters']['output_max']
-    else:
-        output_max = 1
-        
-    process_params ={}
-    process_params['input_min'] = process['parameters']['input_min'] + ';float'
-    process_params['input_max'] = process['parameters']['input_max'] + ';float'
-    process_params['output_min'] = process['parameters']['output_min'] + ';float'
-    process_params['output_max'] = process['parameters']['output_max'] + ';float'
+    
+    param_dict = {'input_min': 'float', 'input_max': 'float', 'output_min': 'float', 'output_max': 'float'}
+    process_params = __get_process_params(process, param_dict)
+    if not process_params['output_min']:
+        process_params['output_min'] = 0
+    if not process_params['output_max']:
+        process_params['output_max'] = 1
     
     return __map_default(process, 'eo_linear_scale_range', 'apply', **process_params)
-    # 
-    # dict_item = [
-    #     {'name': 'add_band', 'bands': 'all', 'file_num': 'all'},
-    #     {'name': 'apply', 'f_input': {
-    #                                     'f_name': 'eo_linear_scale_range',
-    #                                     'input_min': process['parameters']['input_min'] + ';float',
-    #                                     'input_max': process['parameters']['input_max'] + ';float',
-    #                                     'output_min': process['parameters']['output_min'] + ';float',
-    #                                     'output_max': process['parameters']['output_max'] + ';float'
-    #                                     }
-    #     }
-    #     ]
-    # 
-    # return dict_item
     
     
 def map_max(process):
@@ -114,28 +96,16 @@ def map_mod(process):
     process_params['y'] = process['parameters']['y'] + ';float'
     
     return __map_default(process, 'eo_mod', 'apply', **process_params)
-    # 
-    # 
-    # dict_item = [
-    #     {'name': 'add_band', 'bands': 'all', 'file_num': 'all'},
-    #     {'name': 'apply', 'f_input': {
-    #                                     'f_name': 'eo_mod',
-    #                                     'y': process['parameters']['y'] + ';float'
-    #                                     }
-    #     }
-    #     ]
-    # 
-    # return dict_item
-    
+
 
 def map_multiply(process):
     """
     
     """
     
-    process['f_input'] = __map_default(process, 'eo_multiply', 'reduce')
+    process_params = __set_extra_values(process)
     
-    return map_reduce(process)
+    return __map_default(process, 'eo_multiply', 'reduce', **process_params)
     
     
 def map_power(process):
@@ -147,17 +117,6 @@ def map_power(process):
     process_params['p'] = process['parameters']['p'] + ';float'
     
     return __map_default(process, 'eo_power', 'apply', **process_params)
-    # 
-    # dict_item = [
-    #     {'name': 'add_band', 'bands': 'all', 'file_num': 'all'},
-    #     {'name': 'apply', 'f_input': {
-    #                                     'f_name': 'eo_power',
-    #                                     'p': process['parameters']['p'] + ';float'
-    #                                     }
-    #     }
-    #     ]
-    # 
-    # return dict_item
     
     
 def map_product(process):
@@ -166,10 +125,9 @@ def map_product(process):
     
     """
     
-    return __map_default(process, 'eo_multiply', 'reduce')
+    process_params = __set_extra_values(process)
     
-    
-    #return map_reduce(process)
+    return __map_default(process, 'eo_multiply', 'reduce', **process_params)
     
     
 def map_quantiles(process):
@@ -191,19 +149,6 @@ def map_quantiles(process):
     process_params['q'] = q + ';float'
     
     return __map_default(process, 'eo_quantiles', 'apply', **process_params)
-    # 
-    # dict_item = [
-    #     {'name': 'add_band', 'bands': 'all', 'file_num': 'all'},
-    #     {'name': 'apply', 'f_input': {
-    #                                     'f_name': 'eo_quantiles',
-    #                                     'ignore_nodata': ignore_nodata + ';bool',
-    #                                     'probabilities': probabilities + ';float',
-    #                                     'q': q + ';float'
-    #                                     }
-    #     }
-    #     ]
-    # 
-    # return dict_item
     
     
 def map_sd(process):
@@ -235,10 +180,9 @@ def map_subtract(process):
     
     """
     
-    return __map_default(process, 'eo_subtract', 'reduce')
+    process_params = __set_extra_values(process, add_extra_idxs=True)
     
-    #return map_reduce(process)
-    #return __map_default(process, 'eo_subtract')
+    return __map_default(process, 'eo_subtract', 'reduce', **process_params)
     
     
 def map_sum(process):
@@ -246,10 +190,9 @@ def map_sum(process):
     
     """
     
-    return __map_default(process, 'eo_sum', 'reduce')
-    
-    #return map_reduce(process)
-    
+    process_params = __set_extra_values(process)
+        
+    return __map_default(process, 'eo_sum', 'reduce', **process_params)    
     
 
 def map_variance(process):
@@ -308,7 +251,7 @@ def map_exp(process):
     """
     
     if 'p' in process['parameters'].keys():
-        p = str(process['parameters']['ignore_nodata'])
+        p = str(process['parameters']['p'])
     else:
         p = None
     
@@ -316,16 +259,6 @@ def map_exp(process):
     process_params['p'] = p + ';float'
     
     return __map_default(process, 'eo_exp', 'apply', **process_params)
-    # 
-    # dict_item = [
-    #     {'name': 'apply', 'f_input': {
-    #                                         'f_name': 'eo_exp',
-    #                                         'p': process['parameters']['p'] + ';float'
-    #                                         }
-    #     }
-    #     ]
-    # 
-    # return dict_item
     
     
 def map_ln(process):
@@ -350,16 +283,6 @@ def map_log(process):
     process_params['base'] = ignore_nodata + ';float'
     
     return __map_default(process, 'eo_log', 'apply', **process_params)
-    # 
-    # dict_item = [
-    #     {'name': 'apply', 'f_input': {
-    #                                     'f_name': 'eo_log',
-    #                                     'base': process['parameters']['base'] + ';float'
-    #                                     }
-    # }
-    #     ]
-    # 
-    # return dict_item
     
     
 def map_ceil(process):
@@ -391,7 +314,15 @@ def map_round(process):
     
     """
     
-    return __simple_process(process)
+    if 'p' in process['parameters'].keys():
+        p = str(process['parameters']['p'])
+    else:
+        p = None
+    
+    process_params = {}
+    process_params['p'] = p + ';int'
+    
+    return __map_default(process, 'eo_round', 'apply', **process_params)
     
 
 def map_arccos(process):
@@ -495,77 +426,3 @@ def map_tanh(process):
     """
     
     return __simple_process(process)
-    
-    
-# #def __map_default(process, process_name, mapping, add_ignore_nodata=True):
-# def __map_default(process, process_name, mapping, **kwargs):
-#     """
-#     Maps all processes which have only data input and ignore_nodata option.
-#     """
-# 
-#     f_input = {}
-#     f_input['f_name'] = process_name
-#     for item in kwargs:
-#         f_input[item] = kwargs[item]
-# 
-#     process['f_input'] = f_input
-# 
-#     # if 'ignore_nodata' in process['parameters'].keys():
-#     #     ignore_nodata = str(process['parameters']['ignore_nodata'])
-#     # else:
-#     #     ignore_nodata = str(True)
-#     # 
-#     # if add_ignore_nodata:
-#     #     process['f_input'] = {
-#     #         'f_name': process_name,
-#     #         'ignore_nodata': ignore_nodata + ';bool'
-#     #     }
-#     # else:
-#     #     process['f_input'] = {'f_name': process_name}
-# 
-# 
-#     if mapping == 'apply':
-#         return map_apply(process)
-#     elif mapping == 'reduce':
-#         return map_reduce(process)
-# 
-#     # if add_ignore_nodata:
-#     #     dict_item = [
-#     #         {'name': 'apply', 'f_input': {
-#     #                                         'f_name': process_name, 
-#     #                                         'ignore_nodata': ignore_nodata + ';bool'
-#     #                                         }
-#     #         }
-#     #         ]
-#     # else:
-#     #     dict_item = [
-#     #         {'name': 'apply', 'f_input': {'f_name': process_name}}
-#     #         ]
-# 
-#     #return f_input
-# 
-# 
-# def __simple_process(process):
-#     """
-# 
-#     """
-# 
-#     process_params = __set_ignore_data(process)
-# 
-#     return __map_default(process, process['id'], 'apply', **process_params)
-# 
-# 
-# def __set_ignore_data(process):
-#     """
-#     Wrapper for common operation
-#     """
-# 
-#     if 'ignore_nodata' in process['parameters'].keys():
-#         ignore_nodata = str(process['parameters']['ignore_nodata'])
-#     else:
-#         ignore_nodata = str(True) # default
-# 
-#     process_params = {}
-#     process_params['ignore_nodata'] = ignore_nodata + ';bool'
-# 
-#     return process_params
