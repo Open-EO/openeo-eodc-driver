@@ -39,4 +39,4 @@ python-dateutil==2.7.2
 pytz==2018.4
 rsa==3.4.2
 urllib3==1.24
-webargs==4.0.0
+webargs==5.1.3
