@@ -4,7 +4,7 @@ from flask import make_response, jsonify, send_file, request, redirect
 from flask.wrappers import Response
 from uuid import uuid4
 from typing import Union
-import io
+import os
 
 
 class APIException(Exception):
@@ -148,6 +148,9 @@ class ResponseParser:
             response = self._data(payload["code"], payload["data"])
         elif "file" in payload:
             response = self._file(payload["file"])
+            # Delete temporary created files (e.g. for sync processed files)
+            if "delete_file" in payload and payload["delete_file"]:
+                os.remove(payload["file"])
         else:
             response = self._code(payload["code"])
 

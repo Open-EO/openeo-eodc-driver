@@ -57,6 +57,7 @@ services:
     volumes:
       - ./gateway:/usr/src/app
       - files-data:/usr/src/files
+      - jobs-data-sync:$SYNC_RESULTS_FOLDER
       - $OIDC_DIR:/usr/src/oidc
     environment:
       VIRTUAL_HOST: $VIRTUAL_HOST
@@ -136,9 +137,11 @@ services:
       - ./envs/data.env
     environment:
       AIRFLOW_DAGS: /usr/src/dags/
+      SYNC_RESULTS_FOLDER: $SYNC_RESULTS_FOLDER
     volumes:
       - ./services/jobs:/usr/src/app
       - $AIRFLOW_DAGS:/usr/src/dags/
+      - jobs-data-sync:$SYNC_RESULTS_FOLDER
 
   openeo-files:
     build: ./services/files
@@ -166,5 +169,6 @@ volumes:
   process-api-data:
   eo-discovery-cache:
   files-data:
+  jobs-data-sync:
 
     # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)

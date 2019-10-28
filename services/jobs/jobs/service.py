@@ -230,7 +230,6 @@ class JobService:
             # Create Apache Airflow DAG file
             job_folder = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + "jobs" + os.path.sep + job_id
             WriteAirflowDag(job_id, user_id, process_graph, job_folder, user_email=None, job_description=description)
-            
 
             return {
                 "status": "success",
@@ -283,12 +282,22 @@ class JobService:
 
         _ = self.process(user_id=user_id, job_id=job_id)
 
+        # I created an additional docker volume attached to the jobs container where sync results can be stored
+        # it is mounted at os.environ.get('SYNC_RESULTS_FOLDER')
+
+        results_path = ''  # TODO needs to be set before
+        extension = results_path.split('.')[-1]  # maybe MIME type could be returned from process_graph
+
         return {
             "status": "success",
             "code": 200,
-            # "headers": {"Location": "jobs/" + job_id }
+            "headers": {
+                "Content-Type": extension,
+                "OpenEO-Costs": 0
+            },
+            "file": results_path,
+            "delete_file": True,
         }
-
 
     @rpc
     def estimate(self, user_id: str, job_id: str):
@@ -323,7 +332,7 @@ class JobService:
             self.update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
             if job.status != JobStatus.finished:
-                raise Exception(response) # NB code proper response "JobNotFinished"
+                raise Exception(response)  # NB code proper response "JobNotFinished"
 
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
@@ -375,8 +384,7 @@ class JobService:
                                            internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         return True, None
-        
-    
+
     def update_job_status(self, job_id: str):
         """
         Get job status from airflow db and updates jobs db.
@@ -387,4 +395,3 @@ class JobService:
         job.status = self.airflow.check_dag_status(job_id)
         self.db.merge(job)
         self.db.commit()
-        
