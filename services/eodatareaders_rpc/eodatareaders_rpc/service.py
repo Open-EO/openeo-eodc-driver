@@ -71,13 +71,13 @@ class EoDataReadersService:
             output_format, output_folder = write_basic_job(process_graph, job_folder, python_filepath=out_filepath)
             if output_format == 'Gtiff':
                 output_format = '.tif'
+            output_format = 'application/octet-stream'
             
+            cmd = "python " + out_filepath
             out = Popen(cmd, shell=True).wait()
-            filepath = glob.glob(output_folder + os.path.sep + '*' + output_format)
-            out = Popen(cmd, shell=True).wait()
-            filepath = glob.glob(output_folder + os.path.sep + '*' + output_format)
+            results_path = glob.glob(output_folder + '*' + output_format)
             
-            results_path = out_filepath  # TODO needs to be set before
+            # results_path = filepath  # TODO needs to be set before
             # extension = results_path.split('.')[-1]  # maybe MIME type could be returned from process_graph
             return {
                 "status": "success",
