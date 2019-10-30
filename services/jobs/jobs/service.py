@@ -269,37 +269,6 @@ class JobService:
             return exp
 
     @rpc
-    def process_sync(self, user_id: str, process_graph: dict, output: dict=None,
-                     plan: str=None, budget: int=None):
-        """
-        Creates a processes a job directly using two other functions of this class.
-        """
-        # TODO remove or update this functionality
-        # it works differently than process. It must exec the job immediately and return the processed data.
-
-        response = self.create(user_id=user_id, process_graph=process_graph, output=output, plan=plan, budget=budget)
-        job_id = response['headers']['Location'].split('jobs/')[-1]
-
-        _ = self.process(user_id=user_id, job_id=job_id)
-
-        # I created an additional docker volume attached to the jobs container where sync results can be stored
-        # it is mounted at os.environ.get('SYNC_RESULTS_FOLDER')
-
-        results_path = ''  # TODO needs to be set before
-        extension = results_path.split('.')[-1]  # maybe MIME type could be returned from process_graph
-
-        return {
-            "status": "success",
-            "code": 200,
-            "headers": {
-                "Content-Type": extension,
-                "OpenEO-Costs": 0
-            },
-            "file": results_path,
-            "delete_file": True,
-        }
-
-    @rpc
     def estimate(self, user_id: str, job_id: str):
         """
         Basic function to return default information about processng costs on back-end.
