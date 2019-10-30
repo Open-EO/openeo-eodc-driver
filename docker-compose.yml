@@ -57,7 +57,7 @@ services:
     volumes:
       - ./gateway:/usr/src/app
       - files-data:/usr/src/files
-      - jobs-data-sync:$SYNC_RESULTS_FOLDER
+      - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
       - $OIDC_DIR:/usr/src/oidc
     environment:
       VIRTUAL_HOST: $VIRTUAL_HOST
@@ -137,11 +137,30 @@ services:
       - ./envs/data.env
     environment:
       AIRFLOW_DAGS: /usr/src/dags/
-      SYNC_RESULTS_FOLDER: $SYNC_RESULTS_FOLDER
+      SYNC_RESULTS_FOLDER: /usr/src/sync-results
     volumes:
       - ./services/jobs:/usr/src/app
       - $AIRFLOW_DAGS:/usr/src/dags/
-      - jobs-data-sync:$SYNC_RESULTS_FOLDER
+      - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
+    
+  openeo-eodatareaders:
+      build: ./services/eodatareaders_rpc
+      image: openeo-eodatareaders
+      container_name: openeo-eodatareaders
+      restart: on-failure
+      depends_on:
+        - rabbitmq
+        - openeo-gateway
+      env_file:
+        - ./envs/rabbitmq.env
+        - ./envs/data.env
+        - ./envs/eodatareaders.env
+      environment:
+        SYNC_RESULTS_FOLDER: /usr/src/sync-results
+      volumes:
+          - /eodc:/eodc
+          - ./services/eodatareaders_rpc:/usr/src/app
+          - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
 
   openeo-files:
     build: ./services/files
@@ -169,6 +188,5 @@ volumes:
   process-api-data:
   eo-discovery-cache:
   files-data:
-  jobs-data-sync:
 
     # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
