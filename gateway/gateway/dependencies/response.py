@@ -5,6 +5,7 @@ from flask.wrappers import Response
 from uuid import uuid4
 from typing import Union
 import os
+import shutil
 
 
 class APIException(Exception):
@@ -151,6 +152,8 @@ class ResponseParser:
             # Delete temporary created files (e.g. for sync processed files)
             if "delete_file" in payload and payload["delete_file"]:
                 os.remove(payload["file"])
+            elif "delete_folder" in payload and os.path.isdir(payload["delete_folder"]):
+                shutil.rmtree(payload["delete_folder"])
         else:
             response = self._code(payload["code"])
 
