@@ -73,7 +73,7 @@ class EoDataReadersService:
             # Create folder for tmp job
             job_tmp_id = str(uuid4())
             job_folder = os.path.join(os.environ['SYNC_RESULTS_FOLDER'], job_tmp_id)
-            os.makedirs(job_folder, mode=664)
+            os.makedirs(job_folder)
             py_filepath = os.path.join(job_folder, 'jb-' + job_tmp_id + '.py')
 
             output_format, output_folder = write_basic_job(process_graph, job_folder, python_filepath=py_filepath)
