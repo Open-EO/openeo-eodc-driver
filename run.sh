@@ -39,14 +39,14 @@ check_image () {
 
 if [ ! -f ./.init ]; then
   echo "#################### Starting initial setup. ####################"
-  docker-compose -f docker-compose.nginx.yml up -d --build \
-  && check_container nginx \
+  docker-compose -f nginx/docker-compose.yml up -d --build \
+  && check_container openeo-nginx \
   && check_image openeo-base ./base \
   && docker-compose -f docker-compose.yml up -d --build \
   && touch .init
 else
   echo "#################### Found .init file. Starting existing containers. ####################"
-  docker-compose -f docker-compose.nginx.yml up -d \
-  && check_container nginx \
+  docker-compose -f nginx/docker-compose.yml up -d \
+  && check_container openeo-nginx \
   && docker-compose -f docker-compose.yml up -d
 fi
