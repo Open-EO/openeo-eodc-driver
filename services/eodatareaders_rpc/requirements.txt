@@ -11,7 +11,7 @@ mock==2.0.0
 nameko==2.9.0
 path.py==11.0.1
 pbr==4.0.4
-PyYAML==3.12
+PyYAML==5.1
 requests==2.20.0
 six==1.11.0
 urllib3==1.24
