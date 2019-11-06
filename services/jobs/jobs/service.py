@@ -230,7 +230,6 @@ class JobService:
             # Create Apache Airflow DAG file
             job_folder = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + "jobs" + os.path.sep + job_id
             WriteAirflowDag(job_id, user_id, process_graph, job_folder, user_email=None, job_description=description)
-            
 
             return {
                 "status": "success",
@@ -270,27 +269,6 @@ class JobService:
             return exp
 
     @rpc
-    def process_sync(self, user_id: str, process_graph: dict, output: dict=None,
-                     plan: str=None, budget: int=None):
-        """
-        Creates a processes a job directly using two other functions of this class.
-        """
-        # TODO remove or update this functionality
-        # it works differently than process. It must exec the job immediately and return the processed data.
-
-        response = self.create(user_id=user_id, process_graph=process_graph, output=output, plan=plan, budget=budget)
-        job_id = response['headers']['Location'].split('jobs/')[-1]
-
-        _ = self.process(user_id=user_id, job_id=job_id)
-
-        return {
-            "status": "success",
-            "code": 200,
-            # "headers": {"Location": "jobs/" + job_id }
-        }
-
-
-    @rpc
     def estimate(self, user_id: str, job_id: str):
         """
         Basic function to return default information about processng costs on back-end.
@@ -323,7 +301,7 @@ class JobService:
             self.update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
             if job.status != JobStatus.finished:
-                raise Exception(response) # NB code proper response "JobNotFinished"
+                raise Exception(response)  # NB code proper response "JobNotFinished"
 
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
@@ -375,8 +353,7 @@ class JobService:
                                            internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         return True, None
-        
-    
+
     def update_job_status(self, job_id: str):
         """
         Get job status from airflow db and updates jobs db.
@@ -387,4 +364,3 @@ class JobService:
         job.status = self.airflow.check_dag_status(job_id)
         self.db.merge(job)
         self.db.commit()
-        

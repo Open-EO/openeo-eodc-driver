@@ -6,7 +6,8 @@ manager = Manager(gateway.get_service())
 
 @manager.option('-b', '--bind', dest='bind', default='127.0.0.1:8000')
 @manager.option('-w', '--workers', dest='workers', type=int, default=3)
-def prod(bind, workers):
+@manager.option('-t', '--timeout', dest='timeout', type=int, default=30)
+def prod(bind, workers, timeout):
     """Start the Server with Gunicorn"""
     from gunicorn.app.base import Application
 
@@ -14,7 +15,8 @@ def prod(bind, workers):
         def init(self, parser, opts, args):
             return {
                 'bind': bind,
-                'workers': workers
+                'workers': workers,
+                'timeout': timeout
             }
 
         def load(self):
