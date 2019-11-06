@@ -1,10 +1,9 @@
 version: '3.4'
 
 services:
-  nginx:
+  openeo-nginx:
     image: jwilder/nginx-proxy:alpine
-    build: ./nginx
-    container_name: nginx
+    container_name: openeo-nginx
     restart: always
     labels:
       com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy: 'true'
@@ -17,19 +16,20 @@ services:
       - /srv/nginx/data/vhost.d:/etc/nginx/vhost.d
       - /srv/nginx/data/html:/usr/share/nginx/html
       - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./nginx/proxy.conf:/etc/nginx/conf.d/proxy.conf:ro
     networks:
       - proxy
 
   letsencrypt:
     image: jrcs/letsencrypt-nginx-proxy-companion
-    container_name: letsencrypt
+    container_name: openeo-letsencrypt
     volumes:
       - /srv/nginx/data/vhost.d:/etc/nginx/vhost.d
       - /srv/nginx/data/certs:/etc/nginx/certs:rw
       - /srv/nginx/data/html:/usr/share/nginx/html
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
-      - nginx
+      - openeo-nginx
     networks:
       - proxy    
 
