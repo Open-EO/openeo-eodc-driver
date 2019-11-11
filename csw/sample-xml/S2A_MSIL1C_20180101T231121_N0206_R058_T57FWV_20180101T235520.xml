@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- pycsw 2.4.0 -->
+<csw:GetRecordByIdResponse xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dct="http://purl.org/dc/terms/" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gml="http://www.opengis.net/gml" xmlns:ows="http://www.opengis.net/ows" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/cat/csw/2.0.2 http://schemas.opengis.net/csw/2.0.2/CSW-discovery.xsd">
+    <gmd:MD_Metadata xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://schemas.opengis.net/iso/19139/20060504/gmd/gmd.xsd">
+        <gmd:fileIdentifier>
+            <gco:CharacterString>S2A_MSIL1C_20180101T231121_N0206_R058_T57FWV_20180101T235520</gco:CharacterString>
+        </gmd:fileIdentifier>
+        <gmd:language>
+            <gmd:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/" codeListValue="eng">eng</gmd:LanguageCode>
+        </gmd:language>
+        <gmd:characterSet>
+            <gmd:MD_CharacterSetCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_CharacterSetCode" codeListValue="MD_CharacterSetCode_utf8" codeSpace="ISOTC211/19115">MD_CharacterSetCode_utf8</gmd:MD_CharacterSetCode>
+        </gmd:characterSet>
+        <gmd:hierarchyLevel>
+            <gmd:MD_ScopeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset">dataset</gmd:MD_ScopeCode>
+        </gmd:hierarchyLevel>
+        <gmd:contact>
+            <gmd:CI_ResponsibleParty>
+                <gmd:organisationName>
+                    <gco:CharacterString>EODC Earth Observation Data Centre GmbH</gco:CharacterString>
+                </gmd:organisationName>
+                <gmd:contactInfo>
+                    <gmd:CI_Contact>
+                        <gmd:address>
+                            <gmd:CI_Address>
+                                <gmd:electronicMailAddress>
+                                    <gco:CharacterString>office@eodc.eu</gco:CharacterString>
+                                </gmd:electronicMailAddress>
+                            </gmd:CI_Address>
+                        </gmd:address>
+                    </gmd:CI_Contact>
+                </gmd:contactInfo>
+                <gmd:role>
+                    <gmd:CI_RoleCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+                </gmd:role>
+            </gmd:CI_ResponsibleParty>
+        </gmd:contact>
+        <gmd:dateStamp>
+            <gco:Date>2018-01-02</gco:Date>
+        </gmd:dateStamp>
+        <gmd:metadataStandardName>
+            <gco:CharacterString>ISO19115</gco:CharacterString>
+        </gmd:metadataStandardName>
+        <gmd:metadataStandardVersion>
+            <gco:CharacterString>2003/Cor.1:2006</gco:CharacterString>
+        </gmd:metadataStandardVersion>
+        <gmd:referenceSystemInfo>
+            <gmd:MD_ReferenceSystem>
+                <gmd:referenceSystemIdentifier>
+                    <gmd:RS_Identifier>
+                        <gmd:code>
+                            <gco:CharacterString>http://www.opengis.net/def/crs/EPSG/0/4326</gco:CharacterString>
+                        </gmd:code>
+                        <gmd:codeSpace>
+                            <gco:CharacterString>INSPIRE RS registry</gco:CharacterString>
+                        </gmd:codeSpace>
+                    </gmd:RS_Identifier>
+                </gmd:referenceSystemIdentifier>
+            </gmd:MD_ReferenceSystem>
+        </gmd:referenceSystemInfo>
+        <gmd:identificationInfo>
+            <gmd:MD_DataIdentification>
+                <gmd:citation>
+                    <gmd:CI_Citation>
+                        <gmd:title>
+                            <gco:CharacterString>S2A MSIL1C 20180101T231121 N0206 R058 T57FWV 20180101T235520</gco:CharacterString>
+                        </gmd:title>
+                        <gmd:date>
+                            <gmd:CI_Date>
+                                <gmd:date>
+                                    <gco:Date>2018-01-02</gco:Date>
+                                </gmd:date>
+                                <gmd:dateType>
+                                    <gmd:CI_DateTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_DateTypeCode" codeListValue="creation">creation</gmd:CI_DateTypeCode>
+                                </gmd:dateType>
+                            </gmd:CI_Date>
+                        </gmd:date>
+                        <gmd:identifier>
+                            <gmd:RS_Identifier>
+                                <gmd:code>
+                                    <gco:CharacterString>S2A_MSIL1C_20180101T231121_N0206_R058_T57FWV_20180101T235520</gco:CharacterString>
+                                </gmd:code>
+                            </gmd:RS_Identifier>
+                        </gmd:identifier>
+                    </gmd:CI_Citation>
+                </gmd:citation>
+                <gmd:abstract>
+                    <gco:CharacterString>This dataset contains a Sentinel-2 Multi-Spectral Instrument (MSI) Level-1C product (descending orbit), with a cloud coverage of 37.0%. Sentinel-2 is a wide-swath, high-resolution, multi-spectral imaging mission, supporting Copernicus Land Monitoring studies, including the monitoring of vegetation, soil and water cover, as well as observation of inland waterways and coastal areas.</gco:CharacterString>
+                </gmd:abstract>
+                <gmd:pointOfContact>
+                    <gmd:CI_ResponsibleParty>
+                        <gmd:organisationName>
+                            <gco:CharacterString>EODC Earth Observation Data Centre GmbH</gco:CharacterString>
+                        </gmd:organisationName>
+                        <gmd:contactInfo>
+                            <gmd:CI_Contact>
+                                <gmd:address>
+                                    <gmd:CI_Address>
+                                        <gmd:electronicMailAddress>
+                                            <gco:CharacterString>office@eodc.eu</gco:CharacterString>
+                                        </gmd:electronicMailAddress>
+                                    </gmd:CI_Address>
+                                </gmd:address>
+                            </gmd:CI_Contact>
+                        </gmd:contactInfo>
+                        <gmd:role>
+                            <gmd:CI_RoleCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+                        </gmd:role>
+                    </gmd:CI_ResponsibleParty>
+                </gmd:pointOfContact>
+                <gmd:descriptiveKeywords>
+                    <gmd:MD_Keywords>
+                        <gmd:keyword>
+                            <gco:CharacterString>Sentinel-2</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:keyword>
+                            <gco:CharacterString>Sentinel-2A</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:keyword>
+                            <gco:CharacterString>descending</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:keyword>
+                            <gco:CharacterString>Multi-Spectral Instrument</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:keyword>
+                            <gco:CharacterString>MSI</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:keyword>
+                            <gco:CharacterString>Orthoimagery</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:keyword>
+                            <gco:CharacterString>Land cover</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:keyword>
+                            <gco:CharacterString>Geographical names</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:keyword>
+                            <gco:CharacterString>data set series</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:keyword>
+                            <gco:CharacterString>processing</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:keyword>
+                            <gco:CharacterString>s2a_prd_msil1c</gco:CharacterString>
+                        </gmd:keyword>
+                    </gmd:MD_Keywords>
+                </gmd:descriptiveKeywords>
+                <gmd:descriptiveKeywords>
+                    <gmd:MD_Keywords>
+                        <gmd:keyword>
+                            <gco:CharacterString>data set series</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:thesaurusName>
+                            <gmd:CI_Citation>
+                                <gmd:title>
+                                    <gco:CharacterString>INSPIRE - Glossary, version 3</gco:CharacterString>
+                                </gmd:title>
+                                <gmd:date>
+                                    <gmd:CI_Date>
+                                        <gmd:date>
+                                            <gco:Date>2010-01-12</gco:Date>
+                                        </gmd:date>
+                                        <gmd:dateType>
+                                            <gmd:CI_DateTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">publication</gmd:CI_DateTypeCode>
+                                        </gmd:dateType>
+                                    </gmd:CI_Date>
+                                </gmd:date>
+                            </gmd:CI_Citation>
+                        </gmd:thesaurusName>
+                    </gmd:MD_Keywords>
+                </gmd:descriptiveKeywords>
+                <gmd:descriptiveKeywords>
+                    <gmd:MD_Keywords>
+                        <gmd:keyword>
+                            <gco:CharacterString>Land cover</gco:CharacterString>
+                        </gmd:keyword>
+                        <gmd:thesaurusName>
+                            <gmd:CI_Citation>
+                                <gmd:title>
+                                    <gco:CharacterString>GEMET - INSPIRE themes, version 1.0</gco:CharacterString>
+                                </gmd:title>
+                                <gmd:date>
+                                    <gmd:CI_Date>
+                                        <gmd:date>
+                                            <gco:Date>2008-06-01</gco:Date>
+                                        </gmd:date>
+                                        <gmd:dateType>
+                                            <gmd:CI_DateTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">publication</gmd:CI_DateTypeCode>
+                                        </gmd:dateType>
+                                    </gmd:CI_Date>
+                                </gmd:date>
+                            </gmd:CI_Citation>
+                        </gmd:thesaurusName>
+                    </gmd:MD_Keywords>
+                </gmd:descriptiveKeywords>
+                <gmd:resourceConstraints>
+                    <gmd:MD_Constraints>
+                        <gmd:useLimitation>
+                            <gco:CharacterString>no conditions apply</gco:CharacterString>
+                        </gmd:useLimitation>
+                    </gmd:MD_Constraints>
+                </gmd:resourceConstraints>
+                <gmd:resourceConstraints>
+                    <gmd:MD_LegalConstraints>
+                        <gmd:accessConstraints>
+                            <gmd:MD_RestrictionCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#MD_RestrictionCode" codeListValue="otherRestrictions">otherRestrictions</gmd:MD_RestrictionCode>
+                        </gmd:accessConstraints>
+                        <gmd:otherConstraints>
+                            <gco:CharacterString>no limitation</gco:CharacterString>
+                        </gmd:otherConstraints>
+                    </gmd:MD_LegalConstraints>
+                </gmd:resourceConstraints>
+                <gmd:spatialResolution>
+                    <gmd:MD_Resolution>
+                        <gmd:distance>
+                            <gco:Distance uom="m">10.0</gco:Distance>
+                        </gmd:distance>
+                    </gmd:MD_Resolution>
+                </gmd:spatialResolution>
+                <gmd:language>
+                    <gmd:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/" codeListValue="eng">eng</gmd:LanguageCode>
+                </gmd:language>
+                <gmd:topicCategory>
+                    <gmd:MD_TopicCategoryCode>imageryBaseMapsEarthCover</gmd:MD_TopicCategoryCode>
+                </gmd:topicCategory>
+                <gmd:extent>
+                    <gmd:EX_Extent>
+                        <gmd:geographicElement>
+                            <gmd:EX_GeographicBoundingBox>
+                                <gmd:westBoundLongitude>
+                                    <gco:Decimal>158.99968629310513</gco:Decimal>
+                                </gmd:westBoundLongitude>
+                                <gmd:eastBoundLongitude>
+                                    <gco:Decimal>159.87078482975403</gco:Decimal>
+                                </gmd:eastBoundLongitude>
+                                <gmd:southBoundLatitude>
+                                    <gco:Decimal>-55.13487191262961</gco:Decimal>
+                                </gmd:southBoundLatitude>
+                                <gmd:northBoundLatitude>
+                                    <gco:Decimal>-54.41687751735082</gco:Decimal>
+                                </gmd:northBoundLatitude>
+                            </gmd:EX_GeographicBoundingBox>
+                        </gmd:geographicElement>
+                        <gmd:temporalElement>
+                            <gmd:EX_TemporalExtent>
+                                <gmd:extent>
+                                    <gml:TimePeriod gml:id="ID4390a804-bc09-46da-a67c-91cf64e99cda" xsi:type="gml:TimePeriodType">
+                                        <gml:beginPosition>2018-01-01T23:11:21.026000</gml:beginPosition>
+                                        <gml:endPosition>2018-01-01T23:11:21.026000</gml:endPosition>
+                                    </gml:TimePeriod>
+                                </gmd:extent>
+                            </gmd:EX_TemporalExtent>
+                        </gmd:temporalElement>
+                    </gmd:EX_Extent>
+                </gmd:extent>
+            </gmd:MD_DataIdentification>
+        </gmd:identificationInfo>
+        <gmd:distributionInfo>
+            <gmd:MD_Distribution>
+                <gmd:transferOptions>
+                    <gmd:MD_DigitalTransferOptions>
+                        <gmd:onLine>
+                            <gmd:CI_OnlineResource>
+                                <gmd:linkage>
+                                    <gmd:URL>/eodc/products/copernicus.eu/s2a_prd_msil1c/2018/01/01/S2A_MSIL1C_20180101T231121_N0206_R058_T57FWV_20180101T235520.zip</gmd:URL>
+                                </gmd:linkage>
+                                <gmd:protocol>
+                                    <gco:CharacterString>Local file access</gco:CharacterString>
+                                </gmd:protocol>
+                                <gmd:name>
+                                    <gco:CharacterString>s2a_prd_msil1c ZIP archive</gco:CharacterString>
+                                </gmd:name>
+                                <gmd:description>
+                                    <gco:CharacterString>Path to the file location on the EODC archive</gco:CharacterString>
+                                </gmd:description>
+                                <gmd:function>
+                                    <gmd:CI_OnLineFunctionCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#CI_OnLineFunctionCode" codeListValue="offlineAccess">offlineAccess</gmd:CI_OnLineFunctionCode>
+                                </gmd:function>
+                            </gmd:CI_OnlineResource>
+                        </gmd:onLine>
+                        <gmd:onLine>
+                            <gmd:CI_OnlineResource>
+                                <gmd:linkage>
+                                    <gmd:URL>ftp://galaxy.eodc.eu/copernicus.eu/s2a_prd_msil1c/2018/01/01/S2A_MSIL1C_20180101T231121_N0206_R058_T57FWV_20180101T235520.zip</gmd:URL>
+                                </gmd:linkage>
+                                <gmd:protocol>
+                                    <gco:CharacterString>ftp</gco:CharacterString>
+                                </gmd:protocol>
+                                <gmd:name>
+                                    <gco:CharacterString>s2a_prd_msil1c ZIP archive</gco:CharacterString>
+                                </gmd:name>
+                                <gmd:description>
+                                    <gco:CharacterString>ftp access</gco:CharacterString>
+                                </gmd:description>
+                                <gmd:function>
+                                    <gmd:CI_OnLineFunctionCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#CI_OnLineFunctionCode" codeListValue="onlineAccess">onlineAccess</gmd:CI_OnLineFunctionCode>
+                                </gmd:function>
+                            </gmd:CI_OnlineResource>
+                        </gmd:onLine>
+                    </gmd:MD_DigitalTransferOptions>
+                </gmd:transferOptions>
+            </gmd:MD_Distribution>
+        </gmd:distributionInfo>
+        <gmd:dataQualityInfo>
+            <gmd:DQ_DataQuality>
+                <gmd:scope>
+                    <gmd:DQ_Scope>
+                        <gmd:level>
+                            <gmd:MD_ScopeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset">dataset</gmd:MD_ScopeCode>
+                        </gmd:level>
+                    </gmd:DQ_Scope>
+                </gmd:scope>
+                <gmd:report>
+                    <gmd:DQ_DomainConsistency xsi:type="gmd:DQ_DomainConsistency_Type">
+                        <gmd:result>
+                            <gmd:DQ_ConformanceResult xsi:type="gmd:DQ_ConformanceResult_Type">
+                                <gmd:specification>
+                                    <gmd:CI_Citation>
+                                        <gmd:title>
+                                            <gco:CharacterString>Commission Regulation (EU) No 1089/2010 of 23 November 2010 implementing Directive 2007/2/EC of the European Parliament and of the Council as regards interoperability of spatial data sets and services</gco:CharacterString>
+                                        </gmd:title>
+                                        <gmd:date>
+                                            <gmd:CI_Date>
+                                                <gmd:date>
+                                                    <gco:Date>2010-12-08</gco:Date>
+                                                </gmd:date>
+                                                <gmd:dateType>
+                                                    <gmd:CI_DateTypeCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/Codelist/ML_gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">2010-12-08</gmd:CI_DateTypeCode>
+                                                </gmd:dateType>
+                                            </gmd:CI_Date>
+                                        </gmd:date>
+                                    </gmd:CI_Citation>
+                                </gmd:specification>
+                                <gmd:explanation>
+                                    <gco:CharacterString>See the referenced specification</gco:CharacterString>
+                                </gmd:explanation>
+                                <gmd:pass>
+                                    <gco:Boolean>true</gco:Boolean>
+                                </gmd:pass>
+                            </gmd:DQ_ConformanceResult>
+                        </gmd:result>
+                    </gmd:DQ_DomainConsistency>
+                </gmd:report>
+                <gmd:lineage>
+                    <gmd:LI_Lineage>
+                        <gmd:statement>
+                            <gco:CharacterString>The processing of Sentinel-2 Level-1C products is based on the Level-1B product and includes radiometric and geometric corrections including orthorectification and spatial registration on a global reference system with sub-pixel accuracy. The quality of generated products is assessed by the On Line Quality Control (OLQC) functionality. The OLQC performs essential quality checks on each product generated by the processing chain. The results of the quality checks are presented as XML reports and GML quality masks.</gco:CharacterString>
+                        </gmd:statement>
+                    </gmd:LI_Lineage>
+                </gmd:lineage>
+            </gmd:DQ_DataQuality>
+        </gmd:dataQualityInfo>
+    </gmd:MD_Metadata>
+</csw:GetRecordByIdResponse>

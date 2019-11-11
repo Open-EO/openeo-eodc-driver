@@ -1,0 +1,25 @@
+version: '3'
+services:
+  pycsw-db:
+    image: mdillon/postgis
+    container_name: pycsw-db
+    restart: always
+    ports:
+      - 8432:5432
+    volumes:
+      - pycsw-db-data:/var/lib/postgresql/data
+    env_file:
+      - ../envs/pycsw.env
+
+  pycsw:
+    build: .
+    image: pycsw_eodc
+    container_name: pycsw
+    ports:
+      - 8000:8000
+    volumes:
+      - ./pycsw.cfg:/etc/pycsw/pycsw.cfg
+      - ./xml:/home/pycsw/xml
+
+volumes:
+  pycsw-db-data:

@@ -14,3 +14,5 @@ airflow/dags/*
 !airflow/dags/test_job.py
 .gateway/
 .idea/*
+csw/xml/*
+csw/pycsw.cfg
