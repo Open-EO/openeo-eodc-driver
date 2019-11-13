@@ -21,5 +21,10 @@ services:
       - ./pycsw.cfg:/etc/pycsw/pycsw.cfg
       - ./xml:/home/pycsw/xml
 
+networks:
+  default:
+    external:
+      name: ${PROJECT_NAME}_proxy
+
 volumes:
   pycsw-db-data:
