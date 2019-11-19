@@ -28,7 +28,13 @@ def write_xmls(csw_url: str, to_import: str):
 
         tree = ET.fromstring(xml_response)
         gmd = '{http://www.isotc211.org/2005/gmd}'
+        gco = '{http://www.isotc211.org/2005/gco}'
         md_metadata = tree.find(f'{gmd}MD_Metadata')
+
+        # Set parentidentifier
+        pid = ET.SubElement(md_metadata, f'{gmd}parentIdentifier')
+        pid_char = ET.SubElement(pid, f'{gco}CharacterString')
+        pid_char.text = item['parentidentifier']
 
         # Replace filepath
         url = md_metadata.find(
