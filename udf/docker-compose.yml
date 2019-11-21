@@ -1,0 +1,18 @@
+version: '3'
+services:
+  openeo-python-udf:
+    build: ./openeo-python-udf/docker
+    image: openeo-python-udf
+    container_name: openeo-python-udf
+    restart: on-failure
+    ports:
+      - 5000:5000
+    environment:
+      START_NGINX: 1
+  openeo-r-udf:
+    image: openeor/r-udf-base:0.1-dev
+    container_name: openeo-r-udf
+    environment:
+      - PLUMBER_PORT=5555
+    ports:
+      - 5555:5555
