@@ -157,6 +157,8 @@ services:
         - ./envs/eodatareaders.env
       environment:
         SYNC_RESULTS_FOLDER: /usr/src/sync-results
+        OPENEO_PYTHON_UDF_URL: $OPENEO_PYTHON_UDF_URL
+        OPENEO_R_UDF_URL: $OPENEO_R_UDF_URL
       volumes:
           - /eodc:/eodc
           - ./services/eodatareaders_rpc:/usr/src/app

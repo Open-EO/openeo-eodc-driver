@@ -6,13 +6,19 @@ services:
     container_name: openeo-python-udf
     restart: on-failure
     ports:
-      - 5000:5000
+      - 5051:5000
     environment:
       START_NGINX: 1
   openeo-r-udf:
     image: openeor/r-udf-base:0.1-dev
     container_name: openeo-r-udf
+    restart: on-failure
     environment:
       - PLUMBER_PORT=5555
     ports:
-      - 5555:5555
+      - 5052:5555
+
+networks:
+  default:
+    external:
+      name: ${PROJECT_NAME}_proxy
