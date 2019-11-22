@@ -17,3 +17,4 @@ airflow/dags/*
 csw/xml/*
 csw/pycsw.cfg
 csw/file_list.json
+udf/openeo-python-udf/
