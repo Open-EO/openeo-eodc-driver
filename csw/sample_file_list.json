@@ -1,10 +1,12 @@
   [
     {
       "identifier": "S2A_MSIL1C_20180608T101021_N0206_R022_T32TPS_20180608T135059",
-      "local_filepath": "/path/to/S2A_MSIL1C_20180608T101021_N0206_R022_T32TPS_20180608T135059.zip"
+      "local_filepath": "/path/to/S2A_MSIL1C_20180608T101021_N0206_R022_T32TPS_20180608T135059.zip",
+      "parentidentifier": "s2a_prd_msil1c"
     },
     {
       "identifier": "S2A_MSIL1C_20180611T102021_N0206_R065_T32TPS_20180611T123241",
-      "local_filepath": "/path/to/S2A_MSIL1C_20180611T102021_N0206_R065_T32TPS_20180611T123241.zip"
+      "local_filepath": "/path/to/S2A_MSIL1C_20180611T102021_N0206_R065_T32TPS_20180611T123241.zip",
+      "parentidentifier": "s2a_prd_msil1c"
     }
   ]
