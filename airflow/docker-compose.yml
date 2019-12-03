@@ -113,6 +113,8 @@ services:
             GDAL_VRT_ENABLE_PYTHON: $GDAL_VRT_ENABLE_PYTHON
             GDAL_VRT_PYTHON_TRUSTED_MODULES: $GDAL_VRT_PYTHON_TRUSTED_MODULES
             FLASK_ENV: $FLASK_ENV
+            OPENEO_PYTHON_UDF_URL: $OPENEO_PYTHON_UDF_URL
+            OPENEO_R_UDF_URL: $OPENEO_R_UDF_URL
         volumes:
             - $PLUGINS:/usr/local/airflow/plugins
             - $DAGS:/usr/local/airflow/dags

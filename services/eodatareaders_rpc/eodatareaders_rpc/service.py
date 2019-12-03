@@ -96,8 +96,8 @@ class EoDataReadersService:
                     "Content-Type": type_map[fmt].content_type,
                     "OpenEO-Costs": 0,
                 },
-                "file": result_path,
-                "delete_folder": job_folder,
+                "file": result_path
+                #"delete_folder": job_folder,
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
