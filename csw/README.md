@@ -29,11 +29,11 @@ Next a step-by-step explanation how to set it up. (All following steps assume th
     url fits the before set username, password and database. Do not change database host or port as they have to fit
     configurations set in the docker-compose.
 
-1. **Input Metadata (XML)**: Create a folder ``csw/xml`` and add xml metadata files (need to have ``.xml`` extension) you want to make accessible
-over pycsw. For an example see the ``sample-xml`` folder.
+1. **Input Metadata (XML)**: Create a folder ``csw/xml`` and a file ``csw/file_list.json`` with content as in ``sample_file_list.json``. The run ``python create_xmls.py`` from within the csw folder. This will create one .xml file per file specififed in file_list.json (for an example see the ``sample-xml`` folder).
     ```bash
     mkdir csw/xml
-    cp <xml-metadata-file>.xml csw/xml
+    cd csw
+    python create_xmls.py
     ```
 1. **Setup containers**: Run docker-compose. This will create the two containers and already setup the needed database schema. It should be
 mentioned here that currently a hotfixed version of the pycsw image is used as otherwise metadata can not be returned
