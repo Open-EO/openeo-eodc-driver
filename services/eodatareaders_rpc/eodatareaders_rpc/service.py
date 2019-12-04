@@ -83,11 +83,13 @@ class EoDataReadersService:
             Popen(cmd, shell=True).wait()
             # TODO catch errors happening while processing
 
-            results_path = glob.glob(output_folder + '*.' + type_map[fmt].file_extension)
-            if len(results_path) == 1:
-                result_path = results_path[0]
+            search_str = os.path.join(output_folder, '*.' + type_map[fmt].file_extension)
+            results_path = glob.glob(search_str)
+            if not results_path:
+                raise RuntimeError('Processing failed. Result paths: {} - Search string: {}'.format(results_path, search_str))
             else:
-                raise RuntimeError('Processing failed. Result paths: {}'.format(results_path))
+                # TODO this only returns one file (the first) -> API endpoint does not allow to return more currently
+                result_path = results_path[0]
 
             return {
                 "status": "success",

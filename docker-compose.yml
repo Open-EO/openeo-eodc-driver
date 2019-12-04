@@ -160,7 +160,7 @@ services:
         OPENEO_PYTHON_UDF_URL: $OPENEO_PYTHON_UDF_URL
         OPENEO_R_UDF_URL: $OPENEO_R_UDF_URL
       volumes:
-          - /eodc:/eodc
+          - $DATA_FOLDER:$DATA_FOLDER
           - ./services/eodatareaders_rpc:/usr/src/app
           - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
 
