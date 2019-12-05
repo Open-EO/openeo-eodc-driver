@@ -84,7 +84,7 @@ class EoDataReadersService:
             # TODO catch errors happening while processing
 
             search_str = os.path.join(output_folder, '*.' + type_map[fmt].file_extension)
-            results_path = glob.glob(search_str)
+            results_path = sorted(glob.glob(search_str))
             if not results_path:
                 raise RuntimeError('Processing failed. Result paths: {} - Search string: {}'.format(results_path, search_str))
             else:
