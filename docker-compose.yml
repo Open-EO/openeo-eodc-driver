@@ -16,12 +16,6 @@ services:
     ports:
       - 5672:5672
       - 15672:15672
-    command: supervisord -n && apt-get update && apt-get install curl && sudo apt-get autoclean
-    healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:15672"]
-        interval: 30s
-        timeout: 10s
-        retries: 5
 
   jobs_db:
     image: postgres
