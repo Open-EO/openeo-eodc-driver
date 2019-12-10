@@ -26,14 +26,8 @@ class AuthenticationHandler:
         def decorator(*args, **kwargs):
             try:
                 token = self._parse_auth_header(request)
-                verified = verify_token(token)
-                if isinstance(verified, str): # is a oidc_token
-                    user_id = verified['sub']
-                    if verified['email_verified']:
-                        decorated_function = func(user_id=user_id)
-                        return decorated_function
-                elif isinstance(verified, int): # is an id from basic
-                    user_id = verified
+                user_id = verify_token(token)
+                if user_id:
                     decorated_function = func(user_id=user_id)
                     return decorated_function
                 else:
@@ -128,9 +122,13 @@ def verify_token(token):
                                         algorithms=token_header['alg'],
                                         audience=token_unverified['azp'],
                                         issuer=token_unverified['iss'])
-            
-        return token_verified
-    
+
+        user_id = token_verified['sub']
+        if token_verified['email_verified']:
+            return user_id
+        else:
+            return None
+
 
 def verify_user(user_email):
     """
