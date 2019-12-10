@@ -28,7 +28,7 @@ class Gateway:
         # Decorators
         self._validate = self._spec.validate
         #self._authenticate = self._auth.oidc
-        self._authenticate = self._auth.oidc_token
+        self._authenticate = self._auth.validate_token
         self._authorize = self._auth.check_role
 
         # Add custom error handler

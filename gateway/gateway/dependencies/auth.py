@@ -10,6 +10,7 @@ import requests
 from typing import Union
 from .jwksutils import rsa_pem_from_jwk
 from .response import ResponseParser, APIException
+from users.models import Users
 
 
 class AuthenticationHandler:
@@ -21,13 +22,18 @@ class AuthenticationHandler:
         self._res = response_handler
         
         
-    def oidc_token(self, func):
+    def validate_token(self, func):
         def decorator(*args, **kwargs):
             try:
                 token = self._parse_auth_header(request)
                 verified = verify_token(token)
-                user_id = verified['sub']
-                if verified['email_verified']:
+                if isinstance(verified, str): # is a oidc_token
+                    user_id = verified['sub']
+                    if verified['email_verified']:
+                        decorated_function = func(user_id=user_id)
+                        return decorated_function
+                elif isinstance(verified, int): # is an id from basic
+                    user_id = verified
                     decorated_function = func(user_id=user_id)
                     return decorated_function
                 else:
@@ -38,7 +44,7 @@ class AuthenticationHandler:
                         service="gateway",
                         internal=False)
             except Exception as exc:
-                return self._res.error(exc)        
+                return self._res.error(exc)
         return decorator
 
     def check_role(self, f, role):
@@ -98,36 +104,39 @@ class AuthenticationHandler:
 
 
 def verify_token(token):
-    
+    token_verified = None
     token_header = jwt.get_unverified_header(token)
     token_unverified = jwt.decode(token, verify=False)
-    
-    user_verified = verify_user(token_unverified['email'])
-    issuer_verified = verify_oidc_issuer(token_unverified['iss'] + "/.well-known/openid-configuration")
-    
-    token_verified = None
-    if user_verified and issuer_verified:
-        jwks = get_auth_jwks(token_unverified['iss'] + "/.well-known/openid-configuration")
-        
-        for key in jwks['keys']:
-            if key['kid'] == token_header['kid']:
-                public_key = rsa_pem_from_jwk(key)
-        
-        token_verified = jwt.decode(token,
-                             public_key,
-                             verify=True,
-                             algorithms=token_header['alg'],
-                             audience=token_unverified['azp'],
-                             issuer=token_unverified['iss'])
-        
-    return token_verified
+    user_id = User.verify_auth_token(token)
+
+    if user_id:
+        return user_id
+    else:
+        user_verified = verify_user(token_unverified['email'])
+        issuer_verified = verify_oidc_issuer(token_unverified['iss'] + "/.well-known/openid-configuration")
+
+        if user_verified and issuer_verified:
+            jwks = get_auth_jwks(token_unverified['iss'] + "/.well-known/openid-configuration")
+
+            for key in jwks['keys']:
+                if key['kid'] == token_header['kid']:
+                    public_key = rsa_pem_from_jwk(key)
+
+            token_verified = jwt.decode(token,
+                                        public_key,
+                                        verify=True,
+                                        algorithms=token_header['alg'],
+                                        audience=token_unverified['azp'],
+                                        issuer=token_unverified['iss'])
+            
+        return token_verified
     
 
 def verify_user(user_email):
     """
-    
+
     """
-    
+
     # NB this info should be stored in a database
     user_verified = False
     if user_email.split('@')[-1] == 'eodc.eu':
@@ -137,15 +146,15 @@ def verify_user(user_email):
             users_list = json.load(f)
             if user_email in users_list['users']:
                 user_verified = True
-    
+
     return user_verified
-    
+
 
 def verify_oidc_issuer(issuer):
     """
-    
+
     """
-    
+
     # NB this info should be stored in a database
     issuer_verified = False
     if issuer in os.environ.get("OPENID_DISCOVERY"):
@@ -156,11 +165,9 @@ def verify_oidc_issuer(issuer):
             oidc_list = json.load(f)
             if issuer in oidc_list['issuers']:
                 issuer_verified = True
-                
+
     return issuer_verified
-    
-    
-    
+
 def get_auth_jwks(oidc_well_known_url):
     
     jwks = None    
