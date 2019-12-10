@@ -10,7 +10,7 @@ import requests
 from typing import Union
 from .jwksutils import rsa_pem_from_jwk
 from .response import ResponseParser, APIException
-from users.models import Users
+from gateway.users.repository import verify_auth_token
 
 
 class AuthenticationHandler:
@@ -20,8 +20,7 @@ class AuthenticationHandler:
 
     def __init__(self, response_handler: ResponseParser):
         self._res = response_handler
-        
-        
+
     def validate_token(self, func):
         def decorator(*args, **kwargs):
             try:
@@ -101,7 +100,7 @@ def verify_token(token):
     token_verified = None
     token_header = jwt.get_unverified_header(token)
     token_unverified = jwt.decode(token, verify=False)
-    user_id = User.verify_auth_token(token)
+    user_id = verify_auth_token(token)
 
     if user_id:
         return user_id

@@ -1,14 +1,15 @@
 """ Gateway """
 
-from sys import exit
 from os import environ
-from flask import Flask, g
+from sys import exit
+from typing import Union, Callable
+
+from flask import Flask
 from flask.ctx import AppContext
 from flask.wrappers import Response
 from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
-#from flask_oidc import OpenIDConnect
-from typing import Union, Callable
+from flask_sqlalchemy import SQLAlchemy
 
 from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException
 
@@ -24,6 +25,7 @@ class Gateway:
         self._res = self._init_response()
         self._spec = self._init_specs()
         self._auth = self._init_auth()
+        self._user_db = self._init_users_db()
 
         # Decorators
         self._validate = self._spec.validate
@@ -55,6 +57,9 @@ class Gateway:
         ctx.push()
 
         return ctx, self._rpc
+
+    def get_user_db(self):
+        return self._user_db
 
     def set_cors(self, resources: dict = {r"/*": {"origins": "*"}}):
         """Initializes the CORS header. The header rules/resources are passed using a dictonary.
@@ -179,6 +184,17 @@ class Gateway:
         # oicd.init_app(self._service)
 
         return AuthenticationHandler(self._res) #, self._rpc) #, oicd)
+
+    def _init_users_db(self):
+        db_url = "postgresql://{0}:{1}@{2}:{3}/{4}".format(
+            environ.get("DB_USER"),
+            environ.get("DB_PASSWORD"),
+            environ.get("DB_HOST"),
+            environ.get("DB_PORT"),
+            environ.get("DB_NAME")
+        )
+        self._service.config.update({"SQLALCHEMY_DATABASE_URI": db_url})
+        return SQLAlchemy(self._service)
 
     def _rpc_wrapper(self, f:Callable, is_async) -> Union[Callable, Response]:
         """The RPC decorator function to handle repsonsed and exception when communicating
