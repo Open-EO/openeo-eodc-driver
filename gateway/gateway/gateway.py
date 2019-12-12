@@ -29,6 +29,7 @@ class Gateway:
 
         # Decorators
         self._validate = self._spec.validate
+        self._validate_custom = self._spec.validate_custom
         #self._authenticate = self._auth.oidc
         self._authenticate = self._auth.validate_token
         self._authorize = self._auth.check_role
@@ -93,7 +94,7 @@ class Gateway:
         methods = [method.upper() for method in methods]
 
         if rpc: func = self._rpc_wrapper(func, is_async)
-        if validate: func = self._validate(func)
+        func = self._validate(func) if validate else self._validate_custom(func)
         if role: func = self._authorize(func, role)
         if auth: func = self._authenticate(func)
 
@@ -315,4 +316,17 @@ class Gateway:
         user_info['user_id'] = user_id
 
         return self._res.parse({"code": 200, "data": user_info})
+        
+    
+    def add_user(self, username: str, password: str) -> Response:
+        """
+    
+        """
 
+        from gateway.users.repository import insert_users, insert_identity_provider
+        insert_users(auth_type='basic', username=username, password=password)
+    
+        out_data = {}
+        out_data['message'] = f"User '{username}' added to database."
+    
+        return self._res.parse({"code": 200, "data": out_data})

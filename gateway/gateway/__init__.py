@@ -76,6 +76,9 @@ with ctx:
     # /services/<service_id> patch
     # /services/<service_id> delete
     # /subscription
+    
+    # Users Management
+    gateway.add_endpoint("/users", func=gateway.add_user, auth=False, rpc=False, methods=["POST"])
 
 # Validate if the gateway was setup as defined by the OpenAPI specification
 gateway.validate_api_setup()
