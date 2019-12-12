@@ -96,11 +96,11 @@ class OpenAPISpecParser:
             Callable -- The validator decorator
         """
 
-        def get_parameter_specs():
-            # Get the OpenAPI parameter specifications for the route and method
-            req_path = str(request.url_rule).replace("<","{").replace(">","}")
-            req_method = request.method.lower()
-            route_specs = self._route(req_path)
+        def get_parameter_specs(req_path, req_method, route_specs):
+            # # Get the OpenAPI parameter specifications for the route and method
+            # req_path = str(request.url_rule).replace("<","{").replace(">","}")
+            # req_method = request.method.lower()
+            # route_specs = self._route(req_path)
 
             # Check if parameters requried in request specification
             in_root = route_specs.keys() & {"parameters"}
@@ -185,26 +185,34 @@ class OpenAPISpecParser:
             }
 
             try:
-                has_params, specs, required = get_parameter_specs()
+                # Get the OpenAPI parameter specifications for the route and method
+                req_path = str(request.url_rule).replace("<","{").replace(">","}")
+                req_method = request.method.lower()
+                route_specs = self._route(req_path)
+                
+                if not self._route(req_path):
+                    return f(**request.json)
+                else:
+                    has_params, specs, required = get_parameter_specs(req_path, req_method, route_specs)
 
-                if not has_params:
-                    return f(user_id=user_id)
+                    if not has_params:
+                        return f(user_id=user_id)
 
-                parameters = get_parameters()
+                    parameters = get_parameters()
 
-                # TODO validation
+                    # TODO validation
 
-                # for file management user_id is also passed as url param > has to match the user_id from the token
-                if parameters.get("user_id", None):
-                    if not parameters.pop("user_id") == user_id:
-                        return APIException(
-                            msg="The passed user_id has to match the token.",
-                            code=400,
-                            service="gateway",
-                            user_id=user_id,
-                            internal=False)
+                    # for file management user_id is also passed as url param > has to match the user_id from the token
+                    if parameters.get("user_id", None):
+                        if not parameters.pop("user_id") == user_id:
+                            return APIException(
+                                msg="The passed user_id has to match the token.",
+                                code=400,
+                                service="gateway",
+                                user_id=user_id,
+                                internal=False)
 
-                return f(user_id=user_id,  **parameters)
+                    return f(user_id=user_id,  **parameters)
             except Exception as exc:
                 return self._res.error(exc)
         return decorator
@@ -350,6 +358,6 @@ class OpenAPISpecParser:
             if oe_route == route:
                 return methods
 
-        raise OpenAPISpecException("Specification of route '{0}' " \
-                                   "does not exist".format(route))
+        # raise OpenAPISpecException("Specification of route '{0}' " \
+        #                            "does not exist".format(route))
     
