@@ -10,7 +10,6 @@ import requests
 from typing import Union
 from .jwksutils import rsa_pem_from_jwk
 from .response import ResponseParser, APIException
-from gateway.users.repository import verify_auth_token
 
 
 class AuthenticationHandler:
@@ -97,6 +96,7 @@ class AuthenticationHandler:
 
 
 def verify_token(token):
+    from gateway.users.repository import verify_auth_token
     token_verified = None
     token_header = jwt.get_unverified_header(token)
     token_unverified = jwt.decode(token, verify=False)
