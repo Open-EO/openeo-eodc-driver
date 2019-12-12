@@ -1,10 +1,10 @@
 import os
 from typing import List
 
+from sqlalchemy import exc
 from gateway.users.models import db, Users, IdentityProviders
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
-
 
 def verify_auth_token(token):
     # Verify token
@@ -25,17 +25,26 @@ def verify_auth_token(token):
 
 def insert_identity_provider(issuer_url: str, scopes: List[str], title: str, description: str = None):
     id_provider = IdentityProviders(issuer_url, scopes, title, description)
-    db.session.add(id_provider)
-    db.session.commit()
+    try:
+        db.session.add(id_provider)
+        db.session.commit()
+    except exc.IntegrityError as e:
+        db.session().rollback()
 
 
 def insert_users(auth_type: str, username: str = None, password: str = None, email: str = None,
                  identity_provider: str = None):
     identity_provider_id = get_identity_provider_id(identity_provider)
-    u = Users(auth_type, username, password, email, identity_provider_id)
-    db.session.add(u)
-    db.session.commit()
+    user = Users(auth_type, username, password, email, identity_provider_id)
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except exc.IntegrityError as e:
+        db.session().rollback()
 
 
-def get_identity_provider_id(identity_provider: str):
-    return db.session.query(IdentityProviders.id).filter(IdentityProviders.title == identity_provider).scalar()
+def get_identity_provider_id(identity_provider: str = None):
+    if identity_provider:
+        identity_provider_id = db.session.query(IdentityProviders.id).filter(IdentityProviders.title == identity_provider).scalar()
+    
+    return identity_provider
