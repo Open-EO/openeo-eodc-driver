@@ -85,6 +85,23 @@ class OpenAPISpecParser:
             if len(method_diff) > 0:
                 raise OpenAPISpecException("The gateway or specification is missing the HTTP method(s) '{0}' at endpoint '{1}'".format(str(method_diff), status_endpoint))               
     
+    def validate_custom(self, f:Callable) -> Callable:
+        """
+        Passes the **kwargs onward.
+        
+        Arguments:
+            f {Callable} -- The function to be wrapped
+        
+        Returns:
+            Callable -- The validator decorator
+        """
+        
+        def decorator(**kwargs):
+            
+            return f(**request.json)
+        
+        return decorator
+        
     def validate(self, f:Callable) -> Callable:
         """Creates a validator decorator for the input parameters in the query and path of HTTP requests 
         and the request bodies of e.g. POST requests.
@@ -190,29 +207,26 @@ class OpenAPISpecParser:
                 req_method = request.method.lower()
                 route_specs = self._route(req_path)
                 
-                if not self._route(req_path):
-                    return f(**request.json)
-                else:
-                    has_params, specs, required = get_parameter_specs(req_path, req_method, route_specs)
+                has_params, specs, required = get_parameter_specs(req_path, req_method, route_specs)
 
-                    if not has_params:
-                        return f(user_id=user_id)
+                if not has_params:
+                    return f(user_id=user_id)
 
-                    parameters = get_parameters()
+                parameters = get_parameters()
 
-                    # TODO validation
+                # TODO validation
 
-                    # for file management user_id is also passed as url param > has to match the user_id from the token
-                    if parameters.get("user_id", None):
-                        if not parameters.pop("user_id") == user_id:
-                            return APIException(
-                                msg="The passed user_id has to match the token.",
-                                code=400,
-                                service="gateway",
-                                user_id=user_id,
-                                internal=False)
+                # for file management user_id is also passed as url param > has to match the user_id from the token
+                if parameters.get("user_id", None):
+                    if not parameters.pop("user_id") == user_id:
+                        return APIException(
+                            msg="The passed user_id has to match the token.",
+                            code=400,
+                            service="gateway",
+                            user_id=user_id,
+                            internal=False)
 
-                    return f(user_id=user_id,  **parameters)
+                return f(user_id=user_id,  **parameters)
             except Exception as exc:
                 return self._res.error(exc)
         return decorator
