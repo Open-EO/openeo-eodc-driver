@@ -1,3 +1,4 @@
+alembic==0.9.9
 aniso8601==3.0.0
 apispec==0.39.0
 astroid==1.6.3
