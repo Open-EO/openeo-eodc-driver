@@ -65,13 +65,15 @@ class IdentityProviders(db.Model):
 
     __tablename__ = 'identity_providers'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id_internal = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String, nullable=False)
     issuer_url = db.Column(db.Text, nullable=False)
     scopes = db.Column(db.Text, nullable=False)
     title = db.Column(db.String, nullable=False, unique=True)
     description = db.Column(db.Text)
 
-    def __init__(self, issuer_url: str, scopes: List[str], title: str, description: str = None):
+    def __init__(self, id: str, issuer_url: str, scopes: List[str], title: str, description: str = None):
+        self.id = id
         self.issuer_url = issuer_url
         self.scopes = ','.join(scopes)
         self.title = title

@@ -22,8 +22,8 @@ def verify_auth_token(token):
     return user.id
 
 
-def insert_identity_provider(issuer_url: str, scopes: List[str], title: str, description: str = None):
-    id_provider = IdentityProviders(issuer_url, scopes, title, description)
+def insert_identity_provider(id:str, issuer_url: str, scopes: List[str], title: str, description: str = None):
+    id_provider = IdentityProviders(id, issuer_url, scopes, title, description)
     try:
         db.session.add(id_provider)
         db.session.commit()
