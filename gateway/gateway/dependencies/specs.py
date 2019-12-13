@@ -9,6 +9,7 @@ from requests import get
 from typing import Callable, Any
 from re import match
 import uuid
+import base64
 
 from .response import APIException
 
@@ -98,7 +99,17 @@ class OpenAPISpecParser:
         
         def decorator(**kwargs):
             
-            return f(**request.json)
+            if not request.json:
+                params = {}
+            else:
+                params = request.json
+            
+            if 'Authorization' in request.headers and request.headers['Authorization']:
+                encoded = request.headers['Authorization'].split(' ')[1]
+                decoded = base64.b64decode(encoded).decode('utf8')
+                params['username'], params['password'] = decoded.split(':')
+            
+            return f(**params)
         
         return decorator
         

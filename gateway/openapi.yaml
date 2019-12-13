@@ -87,6 +87,8 @@ paths:
 
   /credentials/oidc:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1credentials~1oidc
+  /credentials/basic:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1credentials~1basic
   /me:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1me
 

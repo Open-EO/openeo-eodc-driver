@@ -54,10 +54,10 @@ class Users(db.Model):
         return pwd_context.verify(password, self.password_hash)
 
     def generate_auth_token(self, expiration=600):
-        s = Serializer(os.environ.get('SECRET_KEY'), expires_in=expiration)
-        return s.dumps({
-            'id': self.id,
-        }).decode('utf-8')
+        serialized = Serializer(os.environ.get('SECRET_KEY'), expires_in=expiration)
+        token = serialized.dumps({'id': self.id}).decode('utf-8')
+        
+        return self.id, token
 
 
 class IdentityProviders(db.Model):

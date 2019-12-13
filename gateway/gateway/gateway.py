@@ -321,6 +321,21 @@ class Gateway:
         return self._res.parse({"code": 200, "data": user_info})
         
     
+    def get_basic_token(self, username: str, password: str) -> Response:
+        """
+        
+        """
+
+        from gateway.users.repository import Users
+        
+        user = Users(auth_type='basic', username=username, password=password)
+        
+        out_data = {}
+        out_data['user_id'], out_data['token'] = user.generate_auth_token(expiration=600)
+        
+        return self._res.parse({"code": 200, "data": out_data})
+        
+    
     def add_user(self, username: str, password: str) -> Response:
         """
     
