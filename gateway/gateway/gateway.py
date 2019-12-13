@@ -73,7 +73,7 @@ class Gateway:
         CORS(self._service, resources=resources)
 
     def add_endpoint(self, route: str, func: Callable, methods: list=["GET"], auth: bool=False,
-        role: str=None, validate: bool=False, rpc: bool=True, is_async: bool=False):
+        role: str=None, validate: bool=False, validate_custom: bool=False, rpc: bool=True, is_async: bool=False):
         """Adds an endpoint to the API, pointing to a Remote Procedure Call (RPC) of a microservice or a
         local function. Serval decorators can be added to enable authentication, authorization and input
         validation.
@@ -94,7 +94,10 @@ class Gateway:
         methods = [method.upper() for method in methods]
 
         if rpc: func = self._rpc_wrapper(func, is_async)
-        func = self._validate(func) if validate else self._validate_custom(func)
+        if validate:
+            func = self._validate(func)
+        elif validate_custom:
+            func = self._validate_custom(func)
         if role: func = self._authorize(func, role)
         if auth: func = self._authenticate(func)
 
@@ -323,10 +326,24 @@ class Gateway:
     
         """
 
-        from gateway.users.repository import insert_users, insert_identity_provider
+        from gateway.users.repository import insert_users
         insert_users(auth_type='basic', username=username, password=password)
     
         out_data = {}
         out_data['message'] = f"User '{username}' added to database."
     
         return self._res.parse({"code": 200, "data": out_data})
+        
+    
+    # def add_identity_provider(self, issuer_url: str, scopes: List[str], title: str, description: str = None) -> Response:
+    #     """
+    # 
+    #     """
+    # 
+    #     from gateway.users.repository import insert_identity_provider
+    #     insert_identity_provider(issuer_url=issuer_url, scopes=['openid', 'email'], title=title, description=description)
+    # 
+    #     out_data = {}
+    #     out_data['message'] = f"Identity provider '{title}' added to database."
+    # 
+    #     return self._res.parse({"code": 200, "data": out_data})

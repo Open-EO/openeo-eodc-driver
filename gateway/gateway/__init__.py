@@ -78,7 +78,7 @@ with ctx:
     # /subscription
     
     # Users Management
-    gateway.add_endpoint("/users", func=gateway.add_user, auth=False, rpc=False, methods=["POST"])
+    gateway.add_endpoint("/users", func=gateway.add_user, auth=False, rpc=False, validate_custom=True, methods=["POST"])
 
 # Validate if the gateway was setup as defined by the OpenAPI specification
 gateway.validate_api_setup()
