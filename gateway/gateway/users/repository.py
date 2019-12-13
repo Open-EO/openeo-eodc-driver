@@ -17,9 +17,8 @@ def verify_auth_token(token):
         return None  # invalid token
 
     # Verify user exists
-    user = db.session.query(Users).get(data['id']).all()
-    if len(user) == 0:
-        user = None
+    user = db.session.query(Users).filter(Users.id == data['id']).scalar()
+    
     return user.id
 
 

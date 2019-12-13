@@ -326,14 +326,21 @@ class Gateway:
         
         """
 
-        from gateway.users.repository import Users
+        from gateway.users.repository import db,  Users
         
-        user = Users(auth_type='basic', username=username, password=password)
-        
-        out_data = {}
-        out_data['user_id'], out_data['token'] = user.generate_auth_token(expiration=600)
-        
-        return self._res.parse({"code": 200, "data": out_data})
+        user = db.session.query(Users).filter(Users.username == username).scalar()
+        if user.verify_password(password):
+            
+            out_data = {}
+            out_data['user_id'], out_data['token'] = user.generate_auth_token(expiration=600)
+            # support multiple versions: v0.4.2 needs 'token', draft version needs 'access_token'
+            out_data['access_token'] = out_data['token']
+            
+            return self._res.parse({"code": 200, "data": out_data})
+            
+        else:
+            # TODO Raise proper error
+            return self._res.parse({"code": 400, "data": {'message': f'Incorrect credentials for user {username}.'}})
         
     
     def add_user(self, username: str, password: str) -> Response:
