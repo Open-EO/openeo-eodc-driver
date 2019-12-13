@@ -158,6 +158,12 @@ paths:
     post:
       responses:
         '200': successfully created user on database
+  /oidc_providers:
+    description: >-
+      **Note:** This is an extension of the EODC API!
+    post:
+      responses:
+        '200': successfully created Identity Provider on database
   /openapi:
     get:
       summary: OpenAPI v3.0.1 specification

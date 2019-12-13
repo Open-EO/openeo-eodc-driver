@@ -323,7 +323,7 @@ class Gateway:
     
     def get_basic_token(self, username: str, password: str) -> Response:
         """
-        
+        Generate token for basic user.
         """
 
         from gateway.users.repository import db,  Users
@@ -345,7 +345,7 @@ class Gateway:
     
     def add_user(self, username: str, password: str) -> Response:
         """
-    
+        Add basic or OIDC user to database.
         """
 
         from gateway.users.repository import insert_users
@@ -357,15 +357,14 @@ class Gateway:
         return self._res.parse({"code": 200, "data": out_data})
         
     
-    # def add_identity_provider(self, issuer_url: str, scopes: List[str], title: str, description: str = None) -> Response:
-    #     """
-    # 
-    #     """
-    # 
-    #     from gateway.users.repository import insert_identity_provider
-    #     insert_identity_provider(issuer_url=issuer_url, scopes=['openid', 'email'], title=title, description=description)
-    # 
-    #     out_data = {}
-    #     out_data['message'] = f"Identity provider '{title}' added to database."
-    # 
-    #     return self._res.parse({"code": 200, "data": out_data})
+    def add_identity_provider(self, id: str, issuer_url: str, scopes: list, title: str, description: str = None) -> Response:
+        """
+        Add Identity provider to database for OIDC authentication.
+        """
+    
+        from gateway.users.repository import insert_identity_provider
+        insert_identity_provider(id=id, issuer_url=issuer_url, scopes=['openid', 'email'], title=title, description=description)
+        out_data = {}
+        out_data['message'] = f"Identity provider '{id}' added to database."
+    
+        return self._res.parse({"code": 200, "data": out_data})
