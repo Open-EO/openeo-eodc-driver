@@ -96,15 +96,21 @@ class AuthenticationHandler:
 
 
 def verify_token(token):
-    from gateway.users.repository import verify_auth_token
-    token_verified = None
-    token_header = jwt.get_unverified_header(token)
-    token_unverified = jwt.decode(token, verify=False)
-    user_id = verify_auth_token(token)
+    
+    def basic_token(token):
+        """
+        
+        """
+        
+        from gateway.users.repository import verify_auth_token
+        
+        return verify_auth_token(token)
+        
+    def oidc_token(token):
+        token_verified = None
+        token_header = jwt.get_unverified_header(token)
+        token_unverified = jwt.decode(token, verify=False)
 
-    if user_id:
-        return user_id
-    else:
         user_verified = verify_user(token_unverified['email'])
         issuer_verified = verify_oidc_issuer(token_unverified['iss'] + "/.well-known/openid-configuration")
 
@@ -127,6 +133,13 @@ def verify_token(token):
             return user_id
         else:
             return None
+        
+    # TODO from version > 0.4.2 the token will contain basic or oidc and no "brute force" approach will be needed
+    user_id = basic_token(token)
+    if not user_id:
+        user_id = oidc_token(token)
+    
+    return user_id
 
 
 def verify_user(user_email):
