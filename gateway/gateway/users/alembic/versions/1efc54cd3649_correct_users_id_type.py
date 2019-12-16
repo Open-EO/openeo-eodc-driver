@@ -23,11 +23,11 @@ def upgrade():
     )
     op.drop_column('users', 'username')
     op.add_column('users',
-        sa.Column('username', sa.Text(), nullable=False, unique=True)
+        sa.Column('username', sa.Text(), unique=True)
     )
     op.drop_column('users', 'password_hash')
     op.add_column('users',
-        sa.Column('password_hash', sa.Text(), nullable=False, unique=True)
+        sa.Column('password_hash', sa.Text(), unique=True)
     )
 
 

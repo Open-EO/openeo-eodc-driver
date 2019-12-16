@@ -22,8 +22,8 @@ def verify_auth_token(token):
     return user.id
 
 
-def insert_identity_provider(id:str, issuer_url: str, scopes: List[str], title: str, description: str = None):
-    id_provider = IdentityProviders(id, issuer_url, scopes, title, description)
+def insert_identity_provider(id_openeo: str, issuer_url: str, scopes: List[str], title: str, description: str = None):
+    id_provider = IdentityProviders(id_openeo, issuer_url, scopes, title, description)
     try:
         db.session.add(id_provider)
         db.session.commit()
@@ -44,6 +44,4 @@ def insert_users(auth_type: str, username: str = None, password: str = None, ema
 
 def get_identity_provider_id(identity_provider: str = None):
     if identity_provider:
-        identity_provider_id = db.session.query(IdentityProviders.id).filter(IdentityProviders.title == identity_provider).scalar()
-    
-    return identity_provider
+        return db.session.query(IdentityProviders.id).filter(IdentityProviders.id_openeo == identity_provider).scalar()

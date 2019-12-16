@@ -343,28 +343,34 @@ class Gateway:
             return self._res.parse({"code": 400, "data": {'message': f'Incorrect credentials for user {username}.'}})
         
     
-    def add_user(self, username: str, password: str) -> Response:
+    def add_user(self, **kwargs) -> Response:
         """
-        Add basic or OIDC user to database.
+        Add Basic or OIDC user to database.
         """
-
+        
         from gateway.users.repository import insert_users
-        insert_users(auth_type='basic', username=username, password=password)
-    
+
+        if 'username' in kwargs and 'password' in kwargs:
+            insert_users(auth_type='basic', username=kwargs['username'], password=kwargs['password'])
+            out_field = kwargs['username']
+        elif 'email' in kwargs and 'identity_provider' in kwargs:
+            insert_users(auth_type='oidc', email=kwargs['email'], identity_provider=kwargs['identity_provider'])
+            out_field = kwargs['email']
+                
         out_data = {}
-        out_data['message'] = f"User '{username}' added to database."
+        out_data['message'] = f"User '{out_field}' added to database."
     
         return self._res.parse({"code": 200, "data": out_data})
         
     
-    def add_identity_provider(self, id: str, issuer_url: str, scopes: list, title: str, description: str = None) -> Response:
+    def add_identity_provider(self, id_openeo: str, issuer_url: str, scopes: list, title: str, description: str = None) -> Response:
         """
         Add Identity provider to database for OIDC authentication.
         """
     
         from gateway.users.repository import insert_identity_provider
-        insert_identity_provider(id=id, issuer_url=issuer_url, scopes=['openid', 'email'], title=title, description=description)
+        insert_identity_provider(id_openeo=id_openeo, issuer_url=issuer_url, scopes=['openid', 'email'], title=title, description=description)
         out_data = {}
-        out_data['message'] = f"Identity provider '{id}' added to database."
+        out_data['message'] = f"Identity provider '{id_openeo}' added to database."
     
         return self._res.parse({"code": 200, "data": out_data})

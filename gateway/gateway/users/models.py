@@ -48,7 +48,8 @@ class Users(db.Model):
         self.identity_provider_id = identity_provider_id
 
     def hash_password(self, password):
-        self.password_hash = pwd_context.encrypt(password)
+        if password:
+            self.password_hash = pwd_context.encrypt(password)
 
     def verify_password(self, password):
         return pwd_context.verify(password, self.password_hash)
@@ -65,15 +66,15 @@ class IdentityProviders(db.Model):
 
     __tablename__ = 'identity_providers'
 
-    id_internal = db.Column(db.Integer, primary_key=True)
-    id = db.Column(db.String, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    id_openeo = db.Column(db.String, nullable=False)
     issuer_url = db.Column(db.Text, nullable=False)
     scopes = db.Column(db.Text, nullable=False)
     title = db.Column(db.String, nullable=False, unique=True)
     description = db.Column(db.Text)
 
-    def __init__(self, id: str, issuer_url: str, scopes: List[str], title: str, description: str = None):
-        self.id = id
+    def __init__(self, id_openeo: str, issuer_url: str, scopes: List[str], title: str, description: str = None):
+        self.id_openeo = id_openeo
         self.issuer_url = issuer_url
         self.scopes = ','.join(scopes)
         self.title = title
