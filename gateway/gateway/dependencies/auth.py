@@ -39,31 +39,31 @@ class AuthenticationHandler:
                 return self._res.error(exc)
         return decorator
 
-    def check_role(self, f, role):
-        def decorator(user_id=None):
-            try:
-                token = self._parse_auth_header(request)
-                roles = self._get_roles(token)
-
-                if role not in roles:
-                    raise APIException(
-                        msg="The user {0} is not authorized to access this resources."\
-                            .format(user_id),
-                        code=403,
-                        service="gateway",
-                        internal=False)
-
-                return f(user_id=user_id)
-            except Exception as exc:
-                return self._res.error(exc)
-        return decorator
-
-    def _get_roles(self, token):
-        roles = []
-        if token:
-            token_decode = decode(token, algorithms=['HS256'], verify=False)
-            roles = token_decode["resource_access"]["openeo"]["roles"]
-        return roles
+    # def check_role(self, f, role):
+    #     def decorator(user_id=None):
+    #         try:
+    #             token = self._parse_auth_header(request)
+    #             roles = self._get_roles(token)
+    # 
+    #             if role not in roles:
+    #                 raise APIException(
+    #                     msg="The user {0} is not authorized to access this resources."\
+    #                         .format(user_id),
+    #                     code=403,
+    #                     service="gateway",
+    #                     internal=False)
+    # 
+    #             return f(user_id=user_id)
+    #         except Exception as exc:
+    #             return self._res.error(exc)
+    #     return decorator
+    # 
+    # def _get_roles(self, token):
+    #     roles = []
+    #     if token:
+    #         token_decode = decode(token, algorithms=['HS256'], verify=False)
+    #         roles = token_decode["resource_access"]["openeo"]["roles"]
+    #     return roles
 
     def _parse_auth_header(self, req: Request) -> Union[str, Exception]:
         """Parses and returns the bearer token. Raises an AuthenticationException if the Authorization
@@ -111,8 +111,8 @@ def verify_token(token):
         token_header = jwt.get_unverified_header(token)
         token_unverified = jwt.decode(token, verify=False)
 
-        user_verified = verify_user(token_unverified['email'])
-        issuer_verified = verify_oidc_issuer(token_unverified['iss'] + "/.well-known/openid-configuration")
+        user_verified, user_id = verify_user(token_unverified['email'])
+        issuer_verified = verify_oidc_issuer(token_unverified['iss']) # + "/.well-known/openid-configuration")
 
         if user_verified and issuer_verified:
             jwks = get_auth_jwks(token_unverified['iss'] + "/.well-known/openid-configuration")
@@ -128,8 +128,7 @@ def verify_token(token):
                                         audience=token_unverified['azp'],
                                         issuer=token_unverified['iss'])
 
-        user_id = token_verified['sub']
-        if token_verified['email_verified']:
+        if token_verified['email_verified'] and user_id:
             return user_id
         else:
             return None
@@ -146,37 +145,25 @@ def verify_user(user_email):
     """
 
     """
-
-    # NB this info should be stored in a database
-    user_verified = False
-    if user_email.split('@')[-1] == 'eodc.eu':
-        user_verified = True
-    else:
-        with open(os.path.join(os.environ.get('OIDC_DIR'), 'users_external.json'), 'r') as f:
-            users_list = json.load(f)
-            if user_email in users_list['users']:
-                user_verified = True
-
-    return user_verified
-
+    
+    from gateway.users.models import db, Users
+    
+    user_id = None
+    verify_flag = user_email == db.session.query(Users.email).filter(Users.email == user_email).scalar()
+    if verify_flag:
+        user_id = db.session.query(Users.id).filter(Users.email == user_email).scalar()
+    
+    return verify_flag, user_id
 
 def verify_oidc_issuer(issuer):
     """
 
     """
+    
+    from gateway.users.models import db, IdentityProviders
+    
+    return issuer == db.session.query(IdentityProviders.issuer_url).filter(IdentityProviders.issuer_url == issuer).scalar()
 
-    # NB this info should be stored in a database
-    issuer_verified = False
-    if issuer in os.environ.get("OPENID_DISCOVERY"):
-        issuer_verified = True
-    else:
-        # NB this info should be stored in a database
-        with open(os.path.join(os.environ.get('OIDC_DIR'), 'issuers_external.json'), 'r') as f:
-            oidc_list = json.load(f)
-            if issuer in oidc_list['issuers']:
-                issuer_verified = True
-
-    return issuer_verified
 
 def get_auth_jwks(oidc_well_known_url):
     

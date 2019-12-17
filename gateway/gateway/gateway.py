@@ -32,7 +32,7 @@ class Gateway:
         self._validate_custom = self._spec.validate_custom
         #self._authenticate = self._auth.oidc
         self._authenticate = self._auth.validate_token
-        self._authorize = self._auth.check_role
+        #self._authorize = self._auth.check_role
 
         # Add custom error handler
         self._service.register_error_handler(404, self._parse_error_to_json)
@@ -98,7 +98,7 @@ class Gateway:
             func = self._validate(func)
         elif validate_custom:
             func = self._validate_custom(func)
-        if role: func = self._authorize(func, role)
+        #if role: func = self._authorize(func, role)
         if auth: func = self._authenticate(func)
 
         self._service.add_url_rule(
