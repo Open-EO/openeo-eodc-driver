@@ -189,7 +189,7 @@ class Gateway:
 
         return AuthenticationHandler(self._res) #, self._rpc) #, oicd)
 
-    def _init_users_db(self):
+    def _init_users_db(self) -> SQLAlchemy:
         db_url = "postgresql://{0}:{1}@{2}:{3}/{4}".format(
             environ.get("DB_USER"),
             environ.get("DB_PASSWORD"),
@@ -197,7 +197,10 @@ class Gateway:
             environ.get("DB_PORT"),
             environ.get("DB_NAME")
         )
-        self._service.config.update({"SQLALCHEMY_DATABASE_URI": db_url})
+        self._service.config.update({
+            "SQLALCHEMY_DATABASE_URI": db_url,
+            "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+        })
         return SQLAlchemy(self._service)
 
     def _rpc_wrapper(self, f:Callable, is_async) -> Union[Callable, Response]:

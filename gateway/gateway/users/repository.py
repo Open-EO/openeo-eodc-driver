@@ -1,10 +1,11 @@
 import os
 from typing import List
 
-from sqlalchemy import exc
-from gateway.users.models import db, Users, IdentityProviders
+from gateway.users.models import db, Users, IdentityProviders, Profiles
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
+from sqlalchemy import exc
+
 
 def verify_auth_token(token):
     # Verify token
@@ -18,30 +19,40 @@ def verify_auth_token(token):
 
     # Verify user exists
     user = db.session.query(Users).filter(Users.id == data['id']).scalar()
-    
     return user.id
 
 
-def insert_identity_provider(id_openeo: str, issuer_url: str, scopes: List[str], title: str, description: str = None):
-    id_provider = IdentityProviders(id_openeo, issuer_url, scopes, title, description)
+def insert_into_db(obj):
     try:
-        db.session.add(id_provider)
+        db.session.add(obj)
         db.session.commit()
-    except exc.IntegrityError as e:
+    except exc.IntegrityError:
         db.session().rollback()
 
 
-def insert_users(auth_type: str, username: str = None, password: str = None, email: str = None,
+def insert_identity_provider(id_openeo: str, issuer_url: str, scopes: List[str], title: str, description: str = None):
+    identity_provider = IdentityProviders(id_openeo, issuer_url, scopes, title, description)
+    insert_into_db(identity_provider)
+
+
+def insert_profile(name: str, data_access: List[str]):
+    profile = Profiles(name, data_access)
+    insert_into_db(profile)
+
+
+def insert_users(auth_type: str, profile_name: str, username: str = None, password: str = None, email: str = None,
                  identity_provider: str = None):
     identity_provider_id = get_identity_provider_id(identity_provider)
-    user = Users(auth_type, username, password, email, identity_provider_id)
-    try:
-        db.session.add(user)
-        db.session.commit()
-    except exc.IntegrityError as e:
-        db.session().rollback()
+    profile_id = get_profile_id(profile_name)
+
+    user = Users(auth_type, profile_id, username, password, email, identity_provider_id)
+    insert_into_db(user)
 
 
 def get_identity_provider_id(identity_provider: str = None):
     if identity_provider:
         return db.session.query(IdentityProviders.id).filter(IdentityProviders.id_openeo == identity_provider).scalar()
+
+
+def get_profile_id(profile_name: str):
+    return db.session.query(Profiles.id).filter(Profiles.name == profile_name).scalar()

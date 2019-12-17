@@ -4,8 +4,7 @@ from datetime import datetime
 from typing import List
 from uuid import uuid4
 
-from itsdangerous import (TimedJSONWebSignatureSerializer
-                          as Serializer)
+from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer)
 from passlib.apps import custom_app_context as pwd_context
 
 from gateway import gateway
@@ -31,17 +30,20 @@ class Users(db.Model):
 
     id = db.Column(db.String, primary_key=True)
     auth_type = db.Column(db.Enum(AuthType), nullable=False)
-    username = db.Column(db.Text)
+    role = db.Column(db.Text, nullable=False, default='user')
+    username = db.Column(db.Text, unique=True)
     password_hash = db.Column(db.Text)
-    email = db.Column(db.Text)
-    identity_provider_id = db.Column(db.Integer, db.ForeignKey('identity_providers.id'))
+    email = db.Column(db.Text, unique=True)
+    identity_provider_id = db.Column(db.String, db.ForeignKey('identity_providers.id'))
+    profile_id = db.Column(db.String, db.ForeignKey('profiles.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    def __init__(self, auth_type: str, username: str = None, password: str = None, email: str = None,
+    def __init__(self, auth_type: str, profile_id: str, username: str = None, password: str = None, email: str = None,
                  identity_provider_id: str = None):
         self.id = 'us-' + str(uuid4())
         self.auth_type = AUTH_TYPE_MAPPER[auth_type]
+        self.profile_id = profile_id
         self.username = username
         self.hash_password(password)
         self.email = email
@@ -66,7 +68,7 @@ class IdentityProviders(db.Model):
 
     __tablename__ = 'identity_providers'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String, primary_key=True)
     id_openeo = db.Column(db.String, nullable=False)
     issuer_url = db.Column(db.Text, nullable=False)
     scopes = db.Column(db.Text, nullable=False)
@@ -74,8 +76,25 @@ class IdentityProviders(db.Model):
     description = db.Column(db.Text)
 
     def __init__(self, id_openeo: str, issuer_url: str, scopes: List[str], title: str, description: str = None):
+        self.id = 'ip-' + str(uuid4())
         self.id_openeo = id_openeo
         self.issuer_url = issuer_url
         self.scopes = ','.join(scopes)
         self.title = title
         self.description = description
+
+
+class Profiles(db.Model):
+    """ Base model for a user profile """
+
+    __tablename__ = 'profiles'
+
+    # To be extended as needed
+    id = db.Column(db.String, primary_key=True)
+    name = db.Column(db.Text, nullable=False, unique=True)
+    data_access = db.Column(db.Text, nullable=False)
+
+    def __init__(self, name: str, data_access: str):
+        self.id = 'pr-' + str(uuid4())
+        self.name = name
+        self.data_access = data_access
