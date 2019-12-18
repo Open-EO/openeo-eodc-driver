@@ -30,9 +30,7 @@ class Gateway:
         # Decorators
         self._validate = self._spec.validate
         self._validate_custom = self._spec.validate_custom
-        #self._authenticate = self._auth.oidc
         self._authenticate = self._auth.validate_token
-        #self._authorize = self._auth.check_role
 
         # Add custom error handler
         self._service.register_error_handler(404, self._parse_error_to_json)
@@ -73,7 +71,7 @@ class Gateway:
         CORS(self._service, resources=resources)
 
     def add_endpoint(self, route: str, func: Callable, methods: list=["GET"], auth: bool=False,
-        role: str=None, validate: bool=False, validate_custom: bool=False, rpc: bool=True, is_async: bool=False):
+        role: str='user', validate: bool=False, validate_custom: bool=False, rpc: bool=True, is_async: bool=False):
         """Adds an endpoint to the API, pointing to a Remote Procedure Call (RPC) of a microservice or a
         local function. Serval decorators can be added to enable authentication, authorization and input
         validation.
@@ -98,8 +96,7 @@ class Gateway:
             func = self._validate(func)
         elif validate_custom:
             func = self._validate_custom(func)
-        #if role: func = self._authorize(func, role)
-        if auth: func = self._authenticate(func)
+        if auth: func = self._authenticate(func, role)
 
         self._service.add_url_rule(
             route,
@@ -352,12 +349,15 @@ class Gateway:
         """
         
         from gateway.users.repository import insert_users
+        
+        if 'role' not in kwargs:
+            kwargs['role'] = 'user'
 
-        if 'username' in kwargs and 'password' in kwargs:
-            insert_users(auth_type='basic', username=kwargs['username'], password=kwargs['password'])
+        if 'username' in kwargs and 'password' in kwargs and 'profile_name' in kwargs:
+            insert_users(auth_type='basic', profile_name=kwargs['profile_name'], role=kwargs['role'], username=kwargs['username'], password=kwargs['password'])
             out_field = kwargs['username']
-        elif 'email' in kwargs and 'identity_provider' in kwargs:
-            insert_users(auth_type='oidc', email=kwargs['email'], identity_provider=kwargs['identity_provider'])
+        elif 'email' in kwargs and 'identity_provider' in kwargs and 'profile_name' in kwargs:
+            insert_users(auth_type='oidc', profile_name=kwargs['profile_name'], role=kwargs['role'], email=kwargs['email'], identity_provider=kwargs['identity_provider'])
             out_field = kwargs['email']
                 
         out_data = {}
