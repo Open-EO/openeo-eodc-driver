@@ -20,7 +20,7 @@ def upgrade():
     op.create_table(
         'profiles',
         sa.Column('id', sa.String, primary_key=True),
-        sa.Column('name', sa.Text, nullable=False),
+        sa.Column('name', sa.Text, nullable=False, unique=True),
         sa.Column('data_access', sa.Text, nullable=False),
     )
     op.add_column(
