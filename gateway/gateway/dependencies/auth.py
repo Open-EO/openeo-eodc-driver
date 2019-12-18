@@ -24,8 +24,8 @@ class AuthenticationHandler:
         def decorator(*args, **kwargs):
             try:
                 token = self._parse_auth_header(request)
-                user_id, verified, authorized = self._verify_token(token, role)
-                if user_id and verified and authorized:
+                user_id = self._verify_token(token, role)
+                if user_id:
                     return func(user_id=user_id)
             except Exception as exc:
                 return self._res.error(exc)
@@ -106,9 +106,10 @@ class AuthenticationHandler:
         user_id, user_verified = basic_token(token)
         if not user_id:
             user_id, user_verified = oidc_token(token)
-        user_authorized = self._verify_user_role(user_id, role=role)
+        if role=='admin':
+            user_authorized = self._verify_user_role(user_id, role=role)
         
-        return user_id, user_verified, user_authorized
+        return user_id
 
 
     def _verify_user(self, user_email: str) -> str:
