@@ -1,14 +1,15 @@
 """ Gateway """
 
-from sys import exit
 from os import environ
-from flask import Flask, g
+from sys import exit
+from typing import Union, Callable
+
+from flask import Flask
 from flask.ctx import AppContext
 from flask.wrappers import Response
 from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
-#from flask_oidc import OpenIDConnect
-from typing import Union, Callable
+from flask_sqlalchemy import SQLAlchemy
 
 from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException
 
@@ -24,12 +25,12 @@ class Gateway:
         self._res = self._init_response()
         self._spec = self._init_specs()
         self._auth = self._init_auth()
+        self._user_db = self._init_users_db()
 
         # Decorators
         self._validate = self._spec.validate
-        #self._authenticate = self._auth.oidc
-        self._authenticate = self._auth.oidc_token
-        self._authorize = self._auth.check_role
+        self._validate_custom = self._spec.validate_custom
+        self._authenticate = self._auth.validate_token
 
         # Add custom error handler
         self._service.register_error_handler(404, self._parse_error_to_json)
@@ -56,6 +57,9 @@ class Gateway:
 
         return ctx, self._rpc
 
+    def get_user_db(self):
+        return self._user_db
+
     def set_cors(self, resources: dict = {r"/*": {"origins": "*"}}):
         """Initializes the CORS header. The header rules/resources are passed using a dictonary.
         FOr more information visit: https://flask-cors.readthedocs.io/en/latest/
@@ -67,7 +71,7 @@ class Gateway:
         CORS(self._service, resources=resources)
 
     def add_endpoint(self, route: str, func: Callable, methods: list=["GET"], auth: bool=False,
-        role: str=None, validate: bool=False, rpc: bool=True, is_async: bool=False):
+        role: str='user', validate: bool=False, validate_custom: bool=False, rpc: bool=True, is_async: bool=False):
         """Adds an endpoint to the API, pointing to a Remote Procedure Call (RPC) of a microservice or a
         local function. Serval decorators can be added to enable authentication, authorization and input
         validation.
@@ -88,9 +92,11 @@ class Gateway:
         methods = [method.upper() for method in methods]
 
         if rpc: func = self._rpc_wrapper(func, is_async)
-        if validate: func = self._validate(func)
-        if role: func = self._authorize(func, role)
-        if auth: func = self._authenticate(func)
+        if validate:
+            func = self._validate(func)
+        elif validate_custom:
+            func = self._validate_custom(func)
+        if auth: func = self._authenticate(func, role)
 
         self._service.add_url_rule(
             route,
@@ -180,6 +186,20 @@ class Gateway:
 
         return AuthenticationHandler(self._res) #, self._rpc) #, oicd)
 
+    def _init_users_db(self) -> SQLAlchemy:
+        db_url = "postgresql://{0}:{1}@{2}:{3}/{4}".format(
+            environ.get("DB_USER"),
+            environ.get("DB_PASSWORD"),
+            environ.get("DB_HOST"),
+            environ.get("DB_PORT"),
+            environ.get("DB_NAME")
+        )
+        self._service.config.update({
+            "SQLALCHEMY_DATABASE_URI": db_url,
+            "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+        })
+        return SQLAlchemy(self._service)
+
     def _rpc_wrapper(self, f:Callable, is_async) -> Union[Callable, Response]:
         """The RPC decorator function to handle repsonsed and exception when communicating
         with the services. This method is a single aggregated endpoint to handle the service
@@ -250,16 +270,6 @@ class Gateway:
         return self._res.parse({"code": 200})
 
 
-    def send_openid_connect_discovery(self) -> Response:
-        """Redirects to the OpenID Connect discovery document.
-
-        Returns:
-            Response -- Redirect to the OpenID Connect discovery document
-        """
-
-        return self._res.redirect(environ.get("OPENID_DISCOVERY"))
-
-
     def send_openapi(self) -> Response:
         """Returns the parsed OpenAPI specification as JSON
 
@@ -287,16 +297,3 @@ class Gateway:
                 code=exc.code,
                 service="gateway",
                 internal=False))
-
-
-    def get_user_info(self, user_id: str) -> Response:
-        """Returns info about the (logged in) user.
-
-        Returns:
-            Response -- 200 HTTP code
-        """
-        user_info = {}
-        user_info['user_id'] = user_id
-
-        return self._res.parse({"code": 200, "data": user_info})
-

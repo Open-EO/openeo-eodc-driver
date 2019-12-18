@@ -87,6 +87,8 @@ paths:
 
   /credentials/oidc:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1credentials~1oidc
+  /credentials/basic:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1credentials~1basic
   /me:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1me
 
@@ -150,7 +152,24 @@ paths:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/client_error
         5XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/server_error
-
+  /users_mng/users:
+    description: >-
+      **Note:** This is an extension of the EODC API!
+    post:
+      responses:
+        '200': successfully created user on database
+  /users_mng/user_profiles:
+    description: >-
+      **Note:** This is an extension of the EODC API!
+    post:
+      responses:
+        '200': successfully created user profile on database
+  /users_mng/oidc_providers:
+    description: >-
+      **Note:** This is an extension of the EODC API!
+    post:
+      responses:
+        '200': successfully created Identity Provider on database
   /openapi:
     get:
       summary: OpenAPI v3.0.1 specification

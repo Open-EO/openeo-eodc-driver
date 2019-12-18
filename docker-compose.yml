@@ -37,6 +37,16 @@ services:
       env_file:
         - ./envs/processes.env
 
+  users_db:
+    image: postgres
+    container_name: openeo-users-db
+    restart: always
+    hostname: users_db
+    volumes:
+        - /srv/openeo/data/users_db_data:/var/lib/postgresql/data
+    env_file:
+      - ./envs/users.env
+
   openeo-gateway:
     image: openeo-gateway
     build: ./gateway
@@ -49,6 +59,7 @@ services:
       - ./envs/rabbitmq.env
       - ./envs/gateway.env
       - ./envs/oidc.env
+      - ./envs/users.env
     volumes:
       - ./gateway:/usr/src/app
       - files-data:/usr/src/files

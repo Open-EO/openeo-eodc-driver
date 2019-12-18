@@ -9,6 +9,7 @@ from requests import get
 from typing import Callable, Any
 from re import match
 import uuid
+import base64
 
 from .response import APIException
 
@@ -85,6 +86,34 @@ class OpenAPISpecParser:
             if len(method_diff) > 0:
                 raise OpenAPISpecException("The gateway or specification is missing the HTTP method(s) '{0}' at endpoint '{1}'".format(str(method_diff), status_endpoint))               
     
+    def validate_custom(self, f:Callable) -> Callable:
+        """
+        Passes the **kwargs onward.
+        
+        Arguments:
+            f {Callable} -- The function to be wrapped
+        
+        Returns:
+            Callable -- The validator decorator
+        """
+        
+        def decorator(**kwargs):
+            
+            if not request.json:
+                params = {}
+            else:
+                params = request.json
+            
+            # Only needed /credentials/basic endpoint (needed dataa are in headers, not in data)
+            if 'Authorization' in request.headers and 'Basic' in request.headers['Authorization']:
+                encoded = request.headers['Authorization'].split(' ')[1]
+                decoded = base64.b64decode(encoded).decode('utf8')
+                params['username'], params['password'] = decoded.split(':')
+            
+            return f(**params)
+        
+        return decorator
+        
     def validate(self, f:Callable) -> Callable:
         """Creates a validator decorator for the input parameters in the query and path of HTTP requests 
         and the request bodies of e.g. POST requests.
@@ -96,11 +125,11 @@ class OpenAPISpecParser:
             Callable -- The validator decorator
         """
 
-        def get_parameter_specs():
-            # Get the OpenAPI parameter specifications for the route and method
-            req_path = str(request.url_rule).replace("<","{").replace(">","}")
-            req_method = request.method.lower()
-            route_specs = self._route(req_path)
+        def get_parameter_specs(req_path, req_method, route_specs):
+            # # Get the OpenAPI parameter specifications for the route and method
+            # req_path = str(request.url_rule).replace("<","{").replace(">","}")
+            # req_method = request.method.lower()
+            # route_specs = self._route(req_path)
 
             # Check if parameters requried in request specification
             in_root = route_specs.keys() & {"parameters"}
@@ -185,7 +214,12 @@ class OpenAPISpecParser:
             }
 
             try:
-                has_params, specs, required = get_parameter_specs()
+                # Get the OpenAPI parameter specifications for the route and method
+                req_path = str(request.url_rule).replace("<","{").replace(">","}")
+                req_method = request.method.lower()
+                route_specs = self._route(req_path)
+                
+                has_params, specs, required = get_parameter_specs(req_path, req_method, route_specs)
 
                 if not has_params:
                     return f(user_id=user_id)
@@ -350,6 +384,6 @@ class OpenAPISpecParser:
             if oe_route == route:
                 return methods
 
-        raise OpenAPISpecException("Specification of route '{0}' " \
-                                   "does not exist".format(route))
+        # raise OpenAPISpecException("Specification of route '{0}' " \
+        #                            "does not exist".format(route))
     
