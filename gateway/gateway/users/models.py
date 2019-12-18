@@ -39,11 +39,12 @@ class Users(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    def __init__(self, auth_type: str, profile_id: str, username: str = None, password: str = None, email: str = None,
+    def __init__(self, auth_type: str, profile_id: str, role: str, username: str = None, password: str = None, email: str = None,
                  identity_provider_id: str = None):
         self.id = 'us-' + str(uuid4())
         self.auth_type = AUTH_TYPE_MAPPER[auth_type]
         self.profile_id = profile_id
+        self.role = role
         self.username = username
         self.hash_password(password)
         self.email = email

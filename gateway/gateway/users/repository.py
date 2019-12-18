@@ -13,13 +13,20 @@ def verify_auth_token(token):
     try:
         data = s.loads(token)
     except SignatureExpired:
-        return None  # valid token, but expired
+        return None, None  # valid token, but expired
     except BadSignature:
-        return None  # invalid token
+        return None, None  # invalid token
 
     # Verify user exists
     user = db.session.query(Users).filter(Users.id == data['id']).scalar()
-    return user.id
+    if user:
+        user_id = user.id
+        user_verified = True
+    else:
+        user_id = None
+        user_verified = False
+
+    return user_id, user_verified
 
 
 def insert_into_db(obj):
@@ -40,12 +47,12 @@ def insert_profile(name: str, data_access: List[str]):
     insert_into_db(profile)
 
 
-def insert_users(auth_type: str, profile_name: str, username: str = None, password: str = None, email: str = None,
+def insert_users(auth_type: str, profile_name: str, role:str = 'user', username: str = None, password: str = None, email: str = None,
                  identity_provider: str = None):
     identity_provider_id = get_identity_provider_id(identity_provider)
     profile_id = get_profile_id(profile_name)
 
-    user = Users(auth_type, profile_id, username, password, email, identity_provider_id)
+    user = Users(auth_type, profile_id, role, username, password, email, identity_provider_id)
     insert_into_db(user)
 
 
