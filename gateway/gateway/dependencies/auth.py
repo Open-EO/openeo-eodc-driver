@@ -20,50 +20,17 @@ class AuthenticationHandler:
     def __init__(self, response_handler: ResponseParser):
         self._res = response_handler
 
-    def validate_token(self, func):
+    def validate_token(self, func, role):
         def decorator(*args, **kwargs):
             try:
                 token = self._parse_auth_header(request)
-                user_id = verify_token(token)
-                if user_id:
-                    decorated_function = func(user_id=user_id)
-                    return decorated_function
-                else:
-                    raise APIException(
-                        msg="The email address of user {0} is not verified by the identity provider."\
-                            .format(user_id),
-                        code=401,
-                        service="gateway",
-                        internal=False)
+                user_id, verified, authorized = self._verify_token(token, role)
+                if user_id and verified and authorized:
+                    return func(user_id=user_id)
             except Exception as exc:
                 return self._res.error(exc)
         return decorator
 
-    # def check_role(self, f, role):
-    #     def decorator(user_id=None):
-    #         try:
-    #             token = self._parse_auth_header(request)
-    #             roles = self._get_roles(token)
-    # 
-    #             if role not in roles:
-    #                 raise APIException(
-    #                     msg="The user {0} is not authorized to access this resources."\
-    #                         .format(user_id),
-    #                     code=403,
-    #                     service="gateway",
-    #                     internal=False)
-    # 
-    #             return f(user_id=user_id)
-    #         except Exception as exc:
-    #             return self._res.error(exc)
-    #     return decorator
-    # 
-    # def _get_roles(self, token):
-    #     roles = []
-    #     if token:
-    #         token_decode = decode(token, algorithms=['HS256'], verify=False)
-    #         roles = token_decode["resource_access"]["openeo"]["roles"]
-    #     return roles
 
     def _parse_auth_header(self, req: Request) -> Union[str, Exception]:
         """Parses and returns the bearer token. Raises an AuthenticationException if the Authorization
@@ -95,84 +62,116 @@ class AuthenticationHandler:
         return token_split[1]
 
 
-def verify_token(token):
-    
-    def basic_token(token):
+    def _verify_token(self, token: str, role: str) -> str:
+        
+        def basic_token(token):
+            """
+            
+            """
+            
+            from gateway.users.repository import verify_auth_token
+            
+            return verify_auth_token(token)
+            
+        def oidc_token(token):
+            """
+            
+            """
+
+            token_verified = None
+            token_header = jwt.get_unverified_header(token)
+            token_unverified = jwt.decode(token, verify=False)
+            user_verified, user_id = self._verify_user(token_unverified['email'])
+            issuer_verified = self._verify_oidc_issuer(token_unverified['iss']) # + "/.well-known/openid-configuration")
+
+            if user_verified and issuer_verified:
+                jwks = self._get_auth_jwks(token_unverified['iss'] + "/.well-known/openid-configuration")
+
+                for key in jwks['keys']:
+                    if key['kid'] == token_header['kid']:
+                        public_key = rsa_pem_from_jwk(key)
+
+                token_verified = jwt.decode(token,
+                                            public_key,
+                                            verify=True,
+                                            algorithms=token_header['alg'],
+                                            audience=token_unverified['azp'],
+                                            issuer=token_unverified['iss'])
+            if token_verified and user_id:
+                return user_id, user_verified
+            else:
+                return None
+            
+        # TODO from version > 0.4.2 the token will contain basic or oidc and no "brute force" approach will be needed
+        user_id, user_verified = basic_token(token)
+        if not user_id:
+            user_id, user_verified = oidc_token(token)
+        user_authorized = self._verify_user_role(user_id, role=role)
+        
+        return user_id, user_verified, user_authorized
+
+
+    def _verify_user(self, user_email: str) -> str:
+        """
+
         """
         
-        """
+        from gateway.users.models import db, Users
         
-        from gateway.users.repository import verify_auth_token
-        
-        return verify_auth_token(token)
-        
-    def oidc_token(token):
-        token_verified = None
-        token_header = jwt.get_unverified_header(token)
-        token_unverified = jwt.decode(token, verify=False)
-
-        user_verified, user_id = verify_user(token_unverified['email'])
-        issuer_verified = verify_oidc_issuer(token_unverified['iss']) # + "/.well-known/openid-configuration")
-
-        if user_verified and issuer_verified:
-            jwks = get_auth_jwks(token_unverified['iss'] + "/.well-known/openid-configuration")
-
-            for key in jwks['keys']:
-                if key['kid'] == token_header['kid']:
-                    public_key = rsa_pem_from_jwk(key)
-
-            token_verified = jwt.decode(token,
-                                        public_key,
-                                        verify=True,
-                                        algorithms=token_header['alg'],
-                                        audience=token_unverified['azp'],
-                                        issuer=token_unverified['iss'])
-
-        if token_verified['email_verified'] and user_id:
-            return user_id
+        user_id = None
+        verify_flag = user_email == db.session.query(Users.email).filter(Users.email == user_email).scalar()
+        if verify_flag:
+            user_id = db.session.query(Users.id).filter(Users.email == user_email).scalar()
         else:
-            return None
+            raise APIException(
+                msg="The email address of user {0} is not verified by the Identity Provider."\
+                    .format(user_id),
+                code=401,
+                service="gateway",
+                internal=False)
         
-    # TODO from version > 0.4.2 the token will contain basic or oidc and no "brute force" approach will be needed
-    user_id = basic_token(token)
-    if not user_id:
-        user_id = oidc_token(token)
-    
-    return user_id
+        return verify_flag, user_id
+        
+
+    def _verify_user_role(self, user_id: str, role: str) -> bool:
+        """
+        
+        """
+        
+        from gateway.users.models import db, Users
+        
+        user_authorized = role == db.session.query(Users.role).filter(Users.id == user_id).scalar()
+        
+        if not user_authorized:
+            raise APIException(
+            msg="The user {0} is not authorized."\
+                .format(user_id),
+            code=403,
+            service="gateway",
+            internal=False)
+        else:
+            return user_authorized
 
 
-def verify_user(user_email):
-    """
 
-    """
-    
-    from gateway.users.models import db, Users
-    
-    user_id = None
-    verify_flag = user_email == db.session.query(Users.email).filter(Users.email == user_email).scalar()
-    if verify_flag:
-        user_id = db.session.query(Users.id).filter(Users.email == user_email).scalar()
-    
-    return verify_flag, user_id
+    def _verify_oidc_issuer(self, issuer: str) -> bool:
+        """
 
-def verify_oidc_issuer(issuer):
-    """
-
-    """
-    
-    from gateway.users.models import db, IdentityProviders
-    
-    return issuer == db.session.query(IdentityProviders.issuer_url).filter(IdentityProviders.issuer_url == issuer).scalar()
+        """
+        
+        from gateway.users.models import db, IdentityProviders
+        
+        return issuer == db.session.query(IdentityProviders.issuer_url).filter(IdentityProviders.issuer_url == issuer).scalar()
 
 
-def get_auth_jwks(oidc_well_known_url):
-    
-    jwks = None    
-    response = requests.get(oidc_well_known_url)
-    if response.status_code == 200:
-        jwks_uri = response.json()['jwks_uri']
-        response = requests.get(jwks_uri)
+    def _get_auth_jwks(self, oidc_well_known_url: str) -> dict:
+        
+        jwks = None    
+        response = requests.get(oidc_well_known_url)
         if response.status_code == 200:
-            jwks = response.json()
-    
-    return jwks
+            jwks_uri = response.json()['jwks_uri']
+            response = requests.get(jwks_uri)
+            if response.status_code == 200:
+                jwks = response.json()
+        
+        return jwks
