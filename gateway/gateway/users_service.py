@@ -1,10 +1,14 @@
+
+
 from flask.wrappers import Response
+from gateway.users.repository import insert_users, insert_identity_provider
+
 
 class UsersService:
     """
     
     """
-    
+
     def __init__(self, response_parser):
         self._res = response_parser # this comes from the Gateway instance
 
@@ -13,9 +17,7 @@ class UsersService:
         """
         Add Basic or OIDC user to database.
         """
-        
-        from gateway.users.repository import insert_users
-        
+                
         if 'role' not in kwargs:
             kwargs['role'] = 'user'
 
@@ -36,8 +38,7 @@ class UsersService:
         """
         Add Identity provider to database for OIDC authentication.
         """
-    
-        from gateway.users.repository import insert_identity_provider
+        
         insert_identity_provider(id_openeo=id_openeo, issuer_url=issuer_url, scopes=['openid', 'email'], title=title, description=description)
         out_data = {}
         out_data['message'] = f"Identity provider '{id_openeo}' added to database."

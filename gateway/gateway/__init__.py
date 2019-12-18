@@ -1,12 +1,14 @@
 """ Initialize the Gateway """
 
 from .gateway import Gateway
-from .auth_service import AuthService
-from .users_service import UsersService
-
+# Firs tinitialize Gateway app (bofre other imports)
 gateway = Gateway()
 gateway.set_cors()
 
+from .auth_service import AuthService
+from .users_service import UsersService
+
+# Initialize non-RPC services
 auth_service = AuthService(response_parser=gateway._res)
 users_service = UsersService(response_parser=gateway._res)
 
