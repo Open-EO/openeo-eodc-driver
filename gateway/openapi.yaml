@@ -158,6 +158,12 @@ paths:
     post:
       responses:
         '200': successfully created user on database
+  /users_mng/user_profiles:
+    description: >-
+      **Note:** This is an extension of the EODC API!
+    post:
+      responses:
+        '200': successfully created user profile on database
   /users_mng/oidc_providers:
     description: >-
       **Note:** This is an extension of the EODC API!
