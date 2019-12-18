@@ -2,11 +2,13 @@
 
 from .gateway import Gateway
 from .auth_service import AuthService
+from .users_service import UsersService
 
 gateway = Gateway()
 gateway.set_cors()
 
 auth_service = AuthService(response_parser=gateway._res)
+users_service = UsersService(response_parser=gateway._res)
 
 # Get application context and map RPCs to endpoints
 ctx, rpc = gateway.get_rpc_context()
@@ -81,9 +83,9 @@ with ctx:
     # /subscription
     
     # Users Management # NB these endpoints are extentions of the openEO API
-    gateway.add_endpoint("/users_mng/users", func=gateway.add_user, auth=True, rpc=False, validate_custom=True, methods=["POST"], role="admin")
+    gateway.add_endpoint("/users_mng/users", func=users_service.add_user, auth=True, rpc=False, validate_custom=True, methods=["POST"], role="admin")
     #gateway.add_endpoint("/users_mng/users", func=gateway.delete_user, auth=True, rpc=False, validate_custom=True, methods=["DELETE"], role="admin") # TODO
-    gateway.add_endpoint("/oidc_providers", func=gateway.add_identity_provider, auth=False, rpc=False, validate_custom=True, methods=["POST"], role="admin")
+    gateway.add_endpoint("/oidc_providers", func=users_service.add_identity_provider, auth=False, rpc=False, validate_custom=True, methods=["POST"], role="admin")
     #gateway.add_endpoint("/oidc_providers", func=gateway.delete_identity_provider, auth=False, rpc=False, validate_custom=True, methods=["DELETE"], role="admin") # TODO
 
 

@@ -152,7 +152,7 @@ paths:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/client_error
         5XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/server_error
-  /users:
+  /users_mng/users:
     description: >-
       **Note:** This is an extension of the EODC API!
     post:
