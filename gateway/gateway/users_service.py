@@ -1,7 +1,8 @@
 
 
+from typing import List
 from flask.wrappers import Response
-from gateway.users.repository import insert_users, insert_identity_provider
+from gateway.users.repository import insert_users, insert_profile, insert_identity_provider
 
 
 class UsersService:
@@ -34,6 +35,33 @@ class UsersService:
         return self._res.parse({"code": 200, "data": out_data})
         
     
+    def delete_user(self, **kwargs) -> Response:
+        """
+        Delete Basic or OIDC user from database.
+        """
+        pass
+    
+    
+    def add_user_profile(self, name: str, data_access: str) -> Response:
+        """
+        Add user profile to database.
+        """
+        
+        insert_profile(name=name, data_access=data_access)
+        
+        out_data = {}
+        out_data['message'] = f"Profile '{name}' added to database."
+        
+        return self._res.parse({"code": 200, "data": out_data})
+    
+    
+    def delete_user_profile(self, name: str) -> Response:
+        """
+        Delete user profile from database.
+        """
+        pass
+
+
     def add_identity_provider(self, id_openeo: str, issuer_url: str, scopes: list, title: str, description: str = None) -> Response:
         """
         Add Identity provider to database for OIDC authentication.
@@ -44,3 +72,10 @@ class UsersService:
         out_data['message'] = f"Identity provider '{id_openeo}' added to database."
     
         return self._res.parse({"code": 200, "data": out_data})
+    
+    
+    def delete_identity_provider(self, issuer_url: str) -> Response:
+        """
+        Delete Identity provider from database.
+        """
+        pass

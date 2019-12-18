@@ -42,7 +42,7 @@ def insert_identity_provider(id_openeo: str, issuer_url: str, scopes: List[str],
     insert_into_db(identity_provider)
 
 
-def insert_profile(name: str, data_access: List[str]):
+def insert_profile(name: str, data_access:str):
     profile = Profiles(name, data_access)
     insert_into_db(profile)
 
