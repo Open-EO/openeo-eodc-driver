@@ -1,9 +1,12 @@
 """ Initialize the Gateway """
 
 from .gateway import Gateway
+from .auth_service import AuthService
 
 gateway = Gateway()
 gateway.set_cors()
+
+auth_service = AuthService(response_parser=gateway._res)
 
 # Get application context and map RPCs to endpoints
 ctx, rpc = gateway.get_rpc_context()
@@ -32,9 +35,9 @@ with ctx:
     gateway.add_endpoint("/processes", func=rpc.processes.create, auth=True, validate=True, methods=["POST"], role="admin") # NB extension of openEO API
 
     # Account Management
-    gateway.add_endpoint("/credentials/oidc", func=gateway.send_openid_connect_discovery, rpc=False)
-    gateway.add_endpoint("/credentials/basic", func=gateway.get_basic_token, rpc=False, validate_custom=True)
-    gateway.add_endpoint("/me", func=gateway.get_user_info, auth=True, rpc=False)
+    gateway.add_endpoint("/credentials/oidc", func=auth_service.send_openid_connect_discovery, rpc=False)
+    gateway.add_endpoint("/credentials/basic", func=auth_service.get_basic_token, rpc=False, validate_custom=True)
+    gateway.add_endpoint("/me", func=auth_service.get_user_info, auth=True, rpc=False)
 
     # File Management
     gateway.add_endpoint("/files/<user_id>", func=rpc.files.get_all, auth=True, validate=True)
@@ -77,9 +80,12 @@ with ctx:
     # /services/<service_id> delete
     # /subscription
     
-    # Users Management
-    gateway.add_endpoint("/oidc_providers", func=gateway.add_identity_provider, auth=False, rpc=False, validate_custom=True, methods=["POST"])
-    gateway.add_endpoint("/users", func=gateway.add_user, auth=True, rpc=False, validate_custom=True, methods=["POST"], role="admin")
+    # Users Management # NB these endpoints are extentions of the openEO API
+    gateway.add_endpoint("/users_mng/users", func=gateway.add_user, auth=True, rpc=False, validate_custom=True, methods=["POST"], role="admin")
+    #gateway.add_endpoint("/users_mng/users", func=gateway.delete_user, auth=True, rpc=False, validate_custom=True, methods=["DELETE"], role="admin") # TODO
+    gateway.add_endpoint("/oidc_providers", func=gateway.add_identity_provider, auth=False, rpc=False, validate_custom=True, methods=["POST"], role="admin")
+    #gateway.add_endpoint("/oidc_providers", func=gateway.delete_identity_provider, auth=False, rpc=False, validate_custom=True, methods=["DELETE"], role="admin") # TODO
+
 
 # Validate if the gateway was setup as defined by the OpenAPI specification
 gateway.validate_api_setup()
