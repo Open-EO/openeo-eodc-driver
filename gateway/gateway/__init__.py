@@ -79,7 +79,7 @@ with ctx:
     
     # Users Management
     gateway.add_endpoint("/oidc_providers", func=gateway.add_identity_provider, auth=False, rpc=False, validate_custom=True, methods=["POST"])
-    gateway.add_endpoint("/users", func=gateway.add_user, auth=False, rpc=False, validate_custom=True, methods=["POST"])
+    gateway.add_endpoint("/users", func=gateway.add_user, auth=True, rpc=False, validate_custom=True, methods=["POST"], role="admin")
 
 # Validate if the gateway was setup as defined by the OpenAPI specification
 gateway.validate_api_setup()
