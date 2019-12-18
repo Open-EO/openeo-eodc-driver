@@ -87,8 +87,8 @@ with ctx:
     # Users Management # NB these endpoints are extentions of the openEO API
     gateway.add_endpoint("/users_mng/users", func=users_service.add_user, auth=True, rpc=False, validate_custom=True, methods=["POST"], role="admin")
     #gateway.add_endpoint("/users_mng/users", func=gateway.delete_user, auth=True, rpc=False, validate_custom=True, methods=["DELETE"], role="admin") # TODO
-    gateway.add_endpoint("/oidc_providers", func=users_service.add_identity_provider, auth=False, rpc=False, validate_custom=True, methods=["POST"], role="admin")
-    #gateway.add_endpoint("/oidc_providers", func=gateway.delete_identity_provider, auth=False, rpc=False, validate_custom=True, methods=["DELETE"], role="admin") # TODO
+    gateway.add_endpoint("/users_mng/oidc_providers", func=users_service.add_identity_provider, auth=True, rpc=False, validate_custom=True, methods=["POST"], role="admin")
+    #gateway.add_endpoint("/oidc_providers", func=gateway.delete_identity_provider, auth=True, rpc=False, validate_custom=True, methods=["DELETE"], role="admin") # TODO
 
 
 # Validate if the gateway was setup as defined by the OpenAPI specification
