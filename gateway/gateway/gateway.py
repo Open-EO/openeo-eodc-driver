@@ -68,7 +68,7 @@ class Gateway:
             resources {dict} -- The resource description (default: {{r"/*": {"origins": "*"}}})
         """
 
-        CORS(self._service, resources=resources)
+        CORS(self._service, resources=resources, vary_header=False, supports_credentials=True)
 
     def add_endpoint(self, route: str, func: Callable, methods: list=["GET"], auth: bool=False,
         role: str='user', validate: bool=False, validate_custom: bool=False, rpc: bool=True, is_async: bool=False):
@@ -88,7 +88,10 @@ class Gateway:
             rpc {bool} -- Setting up a RPC or local function (default: {True})
             is_async {bool} -- Flags if the function should be executed asynchronously (default: {False})
         """
-
+        
+        # Method OPTIONS needed for CORS
+        if "OPTIONS" not in methods:
+            methods.append("OPTIONS")
         methods = [method.upper() for method in methods]
 
         if rpc: func = self._rpc_wrapper(func, is_async)
