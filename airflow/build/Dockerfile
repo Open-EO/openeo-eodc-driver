@@ -6,7 +6,7 @@ RUN echo "deb http://http.us.debian.org/debian unstable main non-free contrib" >
     echo "deb-src http://http.us.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list
 RUN apt-get update -y
 RUN apt-get install -y gdal-bin libgdal-dev git ssh && apt-get install -f
-RUN pip install --upgrade pip
+#RUN pip install --upgrade pip # uncomment when this issue is fixed: https://github.com/pypa/pip/issues/7217
 RUN pip install GDAL==$(gdal-config --version) --global-option=build_ext --global-option="-I/usr/include/gdal"
 RUN mkdir /root/.ssh
 COPY deploy.key /root/.ssh/id_rsa
@@ -15,7 +15,7 @@ RUN chmod 600 /root/.ssh/id_rsa
 RUN ssh-keyscan git.eodc.eu >> /root/.ssh/known_hosts
 WORKDIR /tmp
 ## To be removed when geopathfinder uses pyScaffold 3.x and can be installed as a dependency of eoDataReaders
-RUN git clone -b eodatareaders_extension https://github.com/TUW-GEO/geopathfinder.git
+RUN git clone https://github.com/TUW-GEO/geopathfinder.git
 WORKDIR /tmp/geopathfinder
 RUN /bin/bash -c "python3 setup.py install"
 WORKDIR /tmp
