@@ -1,8 +1,9 @@
 """ Capabilities Discovery """
 from nameko.rpc import rpc
+import logging
 
 service_name = "capabilities"
-
+LOGGER = logging.getLogger('standardlog')
 
 class ServiceException(Exception):
     """ServiceException raises if an exception occured while processing the
@@ -48,6 +49,7 @@ class CapabilitiesService:
     def get_versions(self, user_id: str=None):
         """Lists OpenEO API versions available at the back-end.
         """
+        LOGGER.info('Get Versions Requested')
         try:
             return {
                 "status": "success",
@@ -70,6 +72,7 @@ class CapabilitiesService:
         """Lists output formats available at the back-end.
         """
         try:
+            LOGGER.info('Output formats Requested')
             default_out = {
                 "GTiff": {
                   "gis_data_types": [

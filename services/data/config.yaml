@@ -2,11 +2,18 @@ AMQP_URI: !env_var "pyamqp://${RABBIT_USER}:${RABBIT_PASSWORD}@${RABBIT_HOST:127
 max_workers: 10
 parent_calls_tracked: 10
 
-# LOGGING:
-#     version: 1
-#     handlers:
-#         console:
-#             class: logging.StreamHandler
-#     root:
-#         level: DEBUG
-#         handlers: [console] 
+LOGGING:
+  version: 1
+  handlers:
+    console:
+      class: logging.StreamHandler
+    filelogger:
+      class: logging.handlers.RotatingFileHandler
+      filename: log.log
+  loggers:
+    standardlog:
+      handlers:
+        - filelogger
+  root:
+    level: DEBUG
+    handlers: [console]

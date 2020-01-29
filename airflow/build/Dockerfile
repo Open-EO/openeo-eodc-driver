@@ -15,7 +15,7 @@ RUN chmod 600 /root/.ssh/id_rsa
 RUN ssh-keyscan git.eodc.eu >> /root/.ssh/known_hosts
 WORKDIR /tmp
 ## To be removed when geopathfinder uses pyScaffold 3.x and can be installed as a dependency of eoDataReaders
-RUN git clone -b eodatareaders_extension https://github.com/TUW-GEO/geopathfinder.git
+RUN git clone -b eodr_hotfix https://github.com/TUW-GEO/geopathfinder.git
 WORKDIR /tmp/geopathfinder
 RUN /bin/bash -c "python3 setup.py install"
 WORKDIR /tmp
