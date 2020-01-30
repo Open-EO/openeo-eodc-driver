@@ -5,10 +5,9 @@ parent_calls_tracked: 10
 LOGGING:
   version: 1
   handlers:
-    console:
-      class: logging.StreamHandler
+    mainlogger:
+      class: logging.NullHandler
       formatter: default
-      level: INFO
     filelogger:
       class: logging.handlers.RotatingFileHandler
       filename: /usr/src/logs/data.log
@@ -16,13 +15,20 @@ LOGGING:
       maxBytes: 1000000
       formatter: default
       level: DEBUG
+    console:
+      class: logging.StreamHandler
+      formatter: default
+      level: INFO
   loggers:
     standardlog:
       handlers:
         - filelogger
+        - console
   formatters:
     default:
       format: '[%(asctime)s %(levelname)-8s%(filename)15s:%(lineno)d]%(funcName)25s() - %(message)s'
       datefmt: '%Y-%m-%d %H:%M:%S'
   root:
-    handlers: [console]
+    handlers: 
+      - mainlogger
+    level: DEBUG
