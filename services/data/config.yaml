@@ -7,13 +7,22 @@ LOGGING:
   handlers:
     console:
       class: logging.StreamHandler
+      formatter: default
+      level: INFO
     filelogger:
       class: logging.handlers.RotatingFileHandler
-      filename: log.log
+      filename: /usr/src/logs/data.log
+      backupCount: 3
+      maxBytes: 1000000
+      formatter: default
+      level: DEBUG
   loggers:
     standardlog:
       handlers:
         - filelogger
+  formatters:
+    default:
+      format: '[%(asctime)s %(levelname)-8s%(filename)15s:%(lineno)d]%(funcName)25s() - %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
   root:
-    level: DEBUG
     handlers: [console]
