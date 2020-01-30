@@ -6,4 +6,4 @@ until nc -z ${RABBIT_HOST} ${RABBIT_PORT}; do
 done
 
 echo "$(date) - Started gateway"
-python3 manage.py prod -b $HOST:$GATEWAY_PORT -w $NO_WORKERS -t $TIMEOUT
+gunicorn -c /usr/src/app/gunicorncfg.py wsgi:app
