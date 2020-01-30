@@ -20,6 +20,7 @@ class ServiceException(Exception):
         self._msg = msg
         self._internal = internal
         self._links = links
+        LOGGER.exception(msg, exc_info=True)
 
     def to_dict(self) -> dict:
         """Serializes the object to a dict.
@@ -27,7 +28,6 @@ class ServiceException(Exception):
         Returns:
             dict -- The serialized exception
         """
-
         return {
             "status": "error",
             "service": self._service,
@@ -49,7 +49,6 @@ class CapabilitiesService:
     def get_versions(self, user_id: str=None):
         """Lists OpenEO API versions available at the back-end.
         """
-        LOGGER.info('Get Versions Requested')
         try:
             return {
                 "status": "success",
@@ -72,7 +71,6 @@ class CapabilitiesService:
         """Lists output formats available at the back-end.
         """
         try:
-            LOGGER.info('Output formats Requested')
             default_out = {
                 "GTiff": {
                   "gis_data_types": [
