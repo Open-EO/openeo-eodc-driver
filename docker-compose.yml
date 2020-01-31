@@ -65,6 +65,7 @@ services:
       - files-data:/usr/src/files
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
       - $OIDC_DIR:/usr/src/oidc
+      - $LOG_DIR:/usr/src/logs
     environment:
       VIRTUAL_HOST: $VIRTUAL_HOST
       VIRTUAL_PORT: $VIRTUAL_PORT
@@ -203,4 +204,4 @@ volumes:
   eo-discovery-cache:
   files-data:
 
-#     # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
+# Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
