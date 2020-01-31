@@ -230,7 +230,7 @@ class JobService:
             # Create Apache Airflow DAG file
             job_folder = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + "jobs" + os.path.sep + job_id
             WriteAirflowDag(job_id, user_id, process_graph, job_folder, user_email=None, job_description=description)
-
+            
             return {
                 "status": "success",
                 "code": 201,
@@ -353,7 +353,6 @@ class JobService:
                                            internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         return True, None
-
     def update_job_status(self, job_id: str):
         """
         Get job status from airflow db and updates jobs db.
