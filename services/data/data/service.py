@@ -96,8 +96,7 @@ class DataService:
         try:
             collection_id = self.arg_parser.parse_product(collection_id)
             product_record = self.csw_session.get_product(collection_id)
-            response = CollectionSchema().dump(product_record).data
-            
+            response = CollectionSchema().dump(product_record).data            
             # Add properties
             json_file = os.path.join(os.path.dirname(__file__), "dependencies", "jsons", collection_id + ".json")
             if json_file:

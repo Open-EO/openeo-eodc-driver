@@ -1,6 +1,5 @@
 """ AuthenticationHandler """
 
-
 import os
 from flask import request
 from flask.wrappers import Request, Response
@@ -153,7 +152,7 @@ class AuthenticationHandler:
         else:
             return user_authorized
 
-
+          
 
     def _verify_oidc_issuer(self, issuer: str) -> bool:
         """
