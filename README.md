@@ -101,9 +101,20 @@ insert into users (id, auth_type, role, email, profile_id, identity_provider_id,
 Note that the `identity_provider_id` matches the only one created above, and the `profile_id` matches the one of `profile_1` above.
 
 
+#### Add collections and processes
+
+Currently, no collection and no process are available yet at the endpoints `/collections` and `/processes`.
+
+Copy the `sample-auth` file to `auth` and fill the back-end URL and user credential (user with admin rights). Then run the following to add collections (sourced from the CSW server) and processes to the back-end:
+
+```
+source auth
+python api_setup.py
+```
+
 #### Bring down web app and services
 
-Run the following docker compose from the main folder:
+In order to bring down the API, run the following docker compose from the main folder:
 
 ```
 docker-compose down
