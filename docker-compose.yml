@@ -66,11 +66,6 @@ services:
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
       - $OIDC_DIR:/usr/src/oidc
     environment:
-      VIRTUAL_HOST: $VIRTUAL_HOST
-      VIRTUAL_PORT: $VIRTUAL_PORT
-      LETSENCRYPT_HOST: $VIRTUAL_HOST
-      LETSENCRYPT_EMAIL: $LETSENCRYPT_EMAIL
-      LETSENCRYPT_TEST: $LETSENCRYPT_TEST
       OPENEO_TMP_DIR: /usr/src/files/tmp
       OIDC_DIR: /usr/src/oidc
     ports:
