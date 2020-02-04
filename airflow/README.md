@@ -2,7 +2,7 @@
 
 ## Edit Environment variables
 
-Copy `sample.env` to `.env` and update the file as needed. This file is included in the `.gitignore` by default. Do not change this.
+Copy `/airflow/sample.env` to `/airflow/.env` and update the file as needed. This file is included in the `.gitignore` by default. Do not change this.
 
 ### Build the Docker Image
 
