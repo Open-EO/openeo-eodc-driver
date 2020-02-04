@@ -1,8 +1,8 @@
 # openEO EODC Driver
 
-## Information
+- version: 0.4.x
 
-- version: 0.4
+## Information
 
 This repository contains a fully dockerized implementation of the openEO API (openeo.org), written in Python. The web app implementation is based on Flask, while openEO functionalities are implemented as micro-services with Nameko.
 
@@ -28,10 +28,9 @@ Copy the `sample.env` file and the `/sample-envs` folder to to `.env` and `/envs
 - `envs/users.env`
 
 
-#### A small caveat
-
-
 #### Bring up web app and services
+
+**Small caveat**: one service in the API docker-compose (eodatareaders_rpc) depends on the docker image in `/airflow/build`, so that one must be built first (see instructions [here](./airflow/README.md)). This will change as soon as possible.
 
 Run the following docker compose from the main folder:
 
@@ -39,20 +38,12 @@ Run the following docker compose from the main folder:
 docker-compose up -d
 ```
 
-This uses the `docker-compose.yml`.
+which uses the `docker-compose.yml` file.
 
+#### Bring down web app and services
 
-## Build and start the containers
+Run the following docker compose from the main folder:
 
-To create the images and start the docker containers use the `run.sh` script.
-The script will check if image dependencies are met, build necessary images and start the containers.
-
-After the script completes succesfully it will create an empty `.init` file. This is needed in case
-you want to use the `run.sh` script the image build process is skipped.
-
-- Make the script executable and run it.
-
-```bash
-sudo chmod +x run.sh
-./run.sh
+```
+docker-compose down
 ```
