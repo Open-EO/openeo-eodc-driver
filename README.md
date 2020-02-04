@@ -40,6 +40,67 @@ docker-compose up -d
 
 which uses the `docker-compose.yml` file.
 
+#### Set up all databases with Alembic
+
+A number of databases are set up with Alembic, namely one for users, one for process graphs and one for jobs. Make sure that the API is up and run the following command to initialize all databases:
+
+```
+bash init_dbs.sh
+```
+
+#### Add admin user
+
+At least one admin user must exist in the users database, to allow using the API functionalities via the endpoints. This user must be added manually to the database. In order to do so, you need to connecto to the gateway container and run a sequence of commands.
+
+```
+docker exec -it openeo-users-db bash
+```
+
+Once in the container, connect to the database:
+
+```
+psql -U $DB_USER -p $DB_PORT -h localhost $DB_NAME
+```
+
+Before adding user, user profiles must be inserted as well as identity providers (for OpenIDConnect).
+
+The following create two user profiles (`profile_1`, `profile_2`), with different data access. The specific profile name and fields in the data access depend on the implementation.
+
+```
+insert into profiles (id, name, data_access) values ('pr-19144eb0-ecde-4821-bc8b-714877203c85', 'profile_1', 'basic,pro');
+insert into profiles (id, name, data_access) values ('pr-c36177bf-b544-473f-a9ee-56de7cece055', 'profile_2', 'basic');
+```
+
+Identity providers can be added with the following command:
+
+```
+insert into identity_providers (id, id_openeo, issuer_url, scopes, title, description) values ('ip-c462aab2-fdbc-4e56-9aa1-67a437275f5e', 'google', 'https://accounts.google.com', 'openid,email', 'Google', 'Identity Provider supported in this back-end.');
+```
+
+Finally, users can be added to the users database. In order to add a user for Basic auth, one first needs to create a hashed password. Execute the following in a Python console.
+
+```
+from passlib.apps import custom_app_context as pwd_context
+print(pwd_context.encrypt("my-secure-password"))
+```
+
+Then back on the databse command line, run the following replacing `hash-password-goes-here` with the output of the previous command (leave it wrapped in single quotes):
+
+```
+insert into users (id, auth_type, role, username, password_hash, profile_id, created_at, updated_at) values ('us-3eb63b58-9a04-4098-84d7-xxxxxxxxxxxx', 'basic', 'admin', 'my-username', 'hash-password-goes-here', 'pr-c36177bf-b544-473f-a9ee-56de7cece055', '2019-12-18 10:45:18.000000', '2019-12-18 10:45:18.000000');
+```
+
+A user for Basic auth with admin rights is now inserted in the database. Note that the  `profile_id` matches the one of `profile_2` above.
+
+The following command creates a user with admin rights for OpenIDConnect auth:
+
+```
+insert into users (id, auth_type, role, email, profile_id, identity_provider_id, created_at, updated_at) values ('us-3eb63b58-9a04-4098-84d7-yyyyyyyyyyyy', 'oidc', 'admin', 'my.email@gmail.com', 'pr-19144eb0-ecde-4821-bc8b-714877203c85', 'ip-c462aab2-fdbc-4e56-9aa1-67a437275f5e', '2019-12-18 10:45:18.000000', '2019-12-18 10:45:18.000000');
+```
+
+Note that the `identity_provider_id` matches the only one created above, and the `profile_id` matches the one of `profile_1` above.
+
+
 #### Bring down web app and services
 
 Run the following docker compose from the main folder:
