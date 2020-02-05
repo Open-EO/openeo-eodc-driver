@@ -2,5 +2,5 @@ alembic==0.9.9
 jsonschema==2.6.0
 marshmallow==2.15.3
 nameko-sqlalchemy==1.4.0
-psycopg2
+psycopg2==2.7.4
 git+git://github.com/Open-EO/openeo-pg-parser-python.git#egg=openeo-pg-parser-python
