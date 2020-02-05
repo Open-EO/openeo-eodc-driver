@@ -27,7 +27,6 @@ def add_processes(backend_url, auth_header):
 def add_collections(backend_url, auth_header):
     
     response = requests.post(backend_url + "/collections", headers=auth_header)
-    import pdb; pdb.set_trace()
 
 
 if __name__ == '__main__':
