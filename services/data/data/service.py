@@ -3,6 +3,7 @@
 
 import os
 import json
+import logging
 from typing import Union
 from nameko.rpc import rpc
 
@@ -12,7 +13,7 @@ from .dependencies.arg_parser import ArgParserProvider, ValidationError
 
 
 service_name = "data"
-
+LOGGER = logging.getLogger('standardlog')
 
 class ServiceException(Exception):
     """ServiceException raises if an exception occured while processing the 
@@ -28,6 +29,7 @@ class ServiceException(Exception):
         self._msg = msg
         self._internal = internal
         self._links = links
+        LOGGER.exception(msg, exc_info=True)
 
     def to_dict(self) -> dict:
         """Serializes the object to a dict.

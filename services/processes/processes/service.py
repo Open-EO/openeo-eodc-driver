@@ -3,6 +3,7 @@
 import os
 import requests
 import json
+import logging
 
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
@@ -15,6 +16,8 @@ from .dependencies import NodeParser, Validator
 from jsonschema import ValidationError
 from openeo_pg_parser_python.validate_process_graph import validate_graph 
 
+service_name = "processes"
+LOGGER = logging.getLogger('standardlog')
 
 class ServiceException(Exception):
     """ServiceException raises if an exception occured while processing the
@@ -31,6 +34,7 @@ class ServiceException(Exception):
         self._msg = msg
         self._internal = internal
         self._links = links
+        LOGGER.exception(msg, exc_info=True)
 
     def to_dict(self) -> dict:
         """Serializes the object to a dict.
@@ -54,7 +58,7 @@ class ProcessesService:
     """Discovery of processes that are available at the back-end.
     """
 
-    name = "processes"
+    name = service_name
 
     @rpc
     def create(self, user_id: str=None, **process_args):
