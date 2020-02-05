@@ -6,23 +6,19 @@ RUN echo "deb http://http.us.debian.org/debian unstable main non-free contrib" >
     echo "deb-src http://http.us.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list
 RUN apt-get update -y
 RUN apt-get install -y gdal-bin libgdal-dev git ssh && apt-get install -f
-RUN pip install --upgrade pip
+RUN pip install --upgrade pip # uncomment when this issue is fixed: https://github.com/pypa/pip/issues/7217
 RUN pip install GDAL==$(gdal-config --version) --global-option=build_ext --global-option="-I/usr/include/gdal"
+# Fix pandas version must be >=0.25 and <1.0.0
+RUN pip uninstall -y pandas && pip install pandas==0.25
+# Install eoDataReaders
 RUN mkdir /root/.ssh
 COPY deploy.key /root/.ssh/id_rsa
 RUN touch /root/.ssh/known_hosts
 RUN chmod 600 /root/.ssh/id_rsa
 RUN ssh-keyscan git.eodc.eu >> /root/.ssh/known_hosts
 WORKDIR /tmp
-## To be removed when geopathfinder uses pyScaffold 3.x and can be installed as a dependency of eoDataReaders
-RUN git clone -b eodr_hotfix https://github.com/TUW-GEO/geopathfinder.git
-WORKDIR /tmp/geopathfinder
-RUN /bin/bash -c "python3 setup.py install"
-WORKDIR /tmp
-##
 RUN git clone -b reduce-hack git+ssh://git@git.eodc.eu/eodc/eoDataReaders.git
 WORKDIR /tmp/eoDataReaders
-# RUN git checkout 2c3c838c7824fe8804b7633e35e5949ed149579a
 RUN /bin/bash -c "python3 setup.py install"
 RUN apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
