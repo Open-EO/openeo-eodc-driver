@@ -17,7 +17,7 @@ Next a step-by-step explanation how to set it up. (All following steps assume th
     cp sample-envs/pycsw.env envs/pycsw.env
     ```
     (Make sure the envs folder exists already, if not create if first ``mkdir envs``)  
-    Then set username, password and database name in ``envs/pycsw.env``
+    Then set username, password and database name in ``envs/pycsw.env``. Additionally, change the server url from `http://localhost/pycsw/csw.py` to `http://pycsw:8000/pycsw/csw.py`.
 
 1. **Pycsw Config**: Copy ``csw/sample_pycsw.cfg`` to ``csw/pycsw.cfg``
     ```bash
