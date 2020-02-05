@@ -64,16 +64,10 @@ services:
       - ./gateway:/usr/src/app
       - files-data:/usr/src/files
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
-      - $OIDC_DIR:/usr/src/oidc
+      - upload-tmp-dir:/usr/src/files/tmp
       - $LOG_DIR:/usr/src/logs
     environment:
-      VIRTUAL_HOST: $VIRTUAL_HOST
-      VIRTUAL_PORT: $VIRTUAL_PORT
-      LETSENCRYPT_HOST: $VIRTUAL_HOST
-      LETSENCRYPT_EMAIL: $LETSENCRYPT_EMAIL
-      LETSENCRYPT_TEST: $LETSENCRYPT_TEST
-      OPENEO_TMP_DIR: /usr/src/files/tmp
-      OIDC_DIR: /usr/src/oidc
+      UPLOAD_TMP_DIR: /usr/src/files/tmp
     ports:
       - 3000:3000
 
@@ -203,5 +197,6 @@ volumes:
   process-api-data:
   eo-discovery-cache:
   files-data:
+  upload-tmp-dir:
 
 # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)

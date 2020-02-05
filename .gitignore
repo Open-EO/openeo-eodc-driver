@@ -18,4 +18,4 @@ csw/xml/*
 csw/pycsw.cfg
 csw/file_list.json
 udf/openeo-python-udf/
-gunicorncfg.py
+auth
