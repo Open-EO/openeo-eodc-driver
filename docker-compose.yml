@@ -65,6 +65,7 @@ services:
       - files-data:/usr/src/files
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
       - upload-tmp-dir:/usr/src/files/tmp
+      - $LOG_DIR:/usr/src/logs
     environment:
       UPLOAD_TMP_DIR: /usr/src/files/tmp
     ports:
@@ -83,6 +84,7 @@ services:
       - ./envs/rabbitmq.env
     volumes:
       - ./services/capabilities:/usr/src/app
+      - $LOG_DIR:/usr/src/logs
 
   openeo-data:
     build: ./services/data
@@ -101,6 +103,7 @@ services:
     volumes:
       - eo-discovery-cache:/usr/src/cache
       - ./services/data:/usr/src/app
+      - $LOG_DIR:/usr/src/logs
 
   openeo-processes:
     build: ./services/processes
@@ -120,6 +123,7 @@ services:
     volumes:
       - process-api-data:/usr/src/api
       - ./services/processes:/usr/src/app
+      - $LOG_DIR:/usr/src/logs
 
   openeo-jobs:
     build: ./services/jobs
@@ -142,6 +146,7 @@ services:
       - ./services/jobs:/usr/src/app
       - $AIRFLOW_DAGS:/usr/src/dags/
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
+      - $LOG_DIR:/usr/src/logs
     
   openeo-eodatareaders:
       build: ./services/eodatareaders_rpc
@@ -163,6 +168,7 @@ services:
           - $DATA_FOLDER:$DATA_FOLDER
           - ./services/eodatareaders_rpc:/usr/src/app
           - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
+          - $LOG_DIR:/usr/src/logs
 
   openeo-files:
     build: ./services/files
@@ -180,6 +186,7 @@ services:
     volumes:
       - files-data:/usr/src/files
       - ./services/files:/usr/src/app
+      - $LOG_DIR:/usr/src/logs
 
 networks:
   default:
@@ -192,4 +199,4 @@ volumes:
   files-data:
   upload-tmp-dir:
 
-    # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
+# Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)

@@ -3,3 +3,34 @@ DB_URIS:
     !env_var "process_graphs:Base": postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
 
 AMQP_URI: !env_var "pyamqp://${RABBIT_USER}:${RABBIT_PASSWORD}@${RABBIT_HOST}:${RABBIT_PORT}"
+
+LOGGING:
+  version: 1
+  handlers:
+    mainlogger:
+      class: logging.NullHandler
+      formatter: default
+    filelogger:
+      class: logging.handlers.RotatingFileHandler
+      filename: /usr/src/logs/processes.log
+      backupCount: 3
+      maxBytes: 1000000
+      formatter: default
+      level: DEBUG
+    console:
+      class: logging.StreamHandler
+      formatter: default
+      level: INFO
+  loggers:
+    standardlog:
+      handlers:
+        - filelogger
+        - console
+  formatters:
+    default:
+      format: '[%(asctime)s %(levelname)-8s%(filename)15s:%(lineno)d]%(funcName)25s() - %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+  root:
+    handlers: 
+      - mainlogger
+    level: DEBUG
