@@ -28,7 +28,6 @@
 #
 # =================================================================
 
-import os
 import datetime
 
 from pycsw.core import util
@@ -94,9 +93,16 @@ def write_record(result, esn, context, url=None):
 
 
 def format_time(timestr):
-    if timestr == 'None':
-        return None
+    # Always return a string so it can be concatenated
+    if not timestr:
+        return ''
 
-    timeobj = datetime.datetime.strptime(timestr, '%Y-%m-%dT%H:%M:%S.%f')
+    # Get time obj. based on two expected time formats
+    # (with time for single dataset / only date for complete data product)
+    for fmt in ('%Y-%m-%dT%H:%M:%S.%f', '%Y-%m-%d'):
+        try:
+            timeobj = datetime.datetime.strptime(timestr, fmt)
+        except ValueError:
+            return ''
     date_time = timeobj.strftime("%Y-%m-%dT%H:%M:%SZ")
     return date_time
