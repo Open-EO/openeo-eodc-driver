@@ -144,11 +144,12 @@ services:
     environment:
       AIRFLOW_DAGS: /usr/src/dags/
       SYNC_RESULTS_FOLDER: /usr/src/sync-results
+      VIRTUAL_HOST: $VIRTUAL_HOST
     volumes:
       - ./services/jobs:/usr/src/app
       - $AIRFLOW_DAGS:/usr/src/dags/
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
-    
+      - files-data:/usr/src/files
   openeo-eodatareaders:
       build: ./services/eodatareaders_rpc
       image: openeo-eodatareaders
