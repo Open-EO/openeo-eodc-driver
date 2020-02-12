@@ -97,7 +97,7 @@ services:
       - openeo-base
     env_file:
       - ./envs/rabbitmq.env
-      - ./envs/data.env
+      - ./envs/csw.env
     environment:
       CACHE_PATH: /usr/src/cache
     volumes:
@@ -138,7 +138,7 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/jobs.env
-      - ./envs/data.env
+      - ./envs/csw.env
     environment:
       AIRFLOW_DAGS: /usr/src/dags/
       SYNC_RESULTS_FOLDER: /usr/src/sync-results
@@ -159,7 +159,7 @@ services:
         - openeo-gateway
       env_file:
         - ./envs/rabbitmq.env
-        - ./envs/data.env
+        - ./envs/csw.env
         - ./envs/eodatareaders.env
       environment:
         SYNC_RESULTS_FOLDER: /usr/src/sync-results
