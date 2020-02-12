@@ -98,6 +98,7 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/csw.env
+      - ./envs/gateway.env
     environment:
       CACHE_PATH: /usr/src/cache
     volumes:
