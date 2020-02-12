@@ -1,8 +1,9 @@
 """ EO Data Discovery """
 # TODO: Adding paging with start= maxRecords= parameter for record requesting 
 
-import json
 import os
+import json
+import logging
 from typing import Union
 
 from nameko.rpc import rpc
@@ -12,7 +13,7 @@ from .dependencies.csw import CSWSession
 from .schemas import CollectionSchema, CollectionsSchema
 
 service_name = "data"
-
+LOGGER = logging.getLogger('standardlog')
 
 class ServiceException(Exception):
     """ServiceException raises if an exception occured while processing the 
@@ -21,13 +22,14 @@ class ServiceException(Exception):
     """
 
     def __init__(self, code: int, user_id: str, msg: str,
-                 internal: bool = True, links: list = None):
+                 internal: bool = True, links: list = []):
         self._service = service_name
         self._code = code
         self._user_id = user_id
         self._msg = msg
         self._internal = internal
-        self._links = links if links else []
+        self._links = links
+        LOGGER.exception(msg, exc_info=True)
 
     def to_dict(self) -> dict:
         """Serializes the object to a dict.

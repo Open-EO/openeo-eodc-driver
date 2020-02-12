@@ -2,6 +2,7 @@
 
 import os
 import glob
+import logging
 from subprocess import Popen
 from uuid import uuid4
 from nameko.rpc import rpc
@@ -11,7 +12,7 @@ from eodc_openeo_bindings.write_basic_job import write_basic_job
 
 
 service_name = "eodatareaders_rpc"
-
+LOGGER = logging.getLogger('standardlog')
 
 class ServiceException(Exception):
     """ServiceException raises if an exception occured while processing the
@@ -29,6 +30,7 @@ class ServiceException(Exception):
         self._msg = msg
         self._internal = internal
         self._links = links
+        LOGGER.exception(msg, exc_info=True)
 
     def to_dict(self) -> dict:
         """Serializes the object to a dict.

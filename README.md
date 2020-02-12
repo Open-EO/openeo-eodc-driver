@@ -1,128 +1,121 @@
 # openEO EODC Driver
 
+- version: 0.4.x
+
 ## Information
 
-- version: 0.4
+This repository contains a fully dockerized implementation of the openEO API (openeo.org), written in Python. The web app implementation is based on Flask, while openEO functionalities are implemented as micro-services with Nameko.
 
-## NGINX Proxy and Letsencrypt Setup
+Additionally, three docker-compose files implement a CSW server for data access (`/csw`), an Apache Airflow workflow management platform coupled to a Celery cluster for data processing (`/airflow`), and UDF Services for the R and Python languages (`/udf`). The whole setup can be installed on a laptop to simplify development, but each service can run on independent (set of) machines.
 
-This setup uses an NGINX Proxy in combination with Docker Gen and LetsEncrypt to auto create and renew SSL certificates for https.
+## Start the API
 
-- NGINX Proxy Docker image: https://github.com/jwilder/nginx-proxy
-- Letsencrypt NGINX Docker Companion: https://github.com/JrCs/docker-letsencrypt-nginx-proxy-companion
+In order to start the API web app and its micro-services, a simple docker-compose up is needed. However some environment variables must be set first.
 
-Copy `sample.env` to `.env` and adjust the environment variables. These variables are needed for the NGINX proxy and LetsEncrypt NGINX Proxy Companion to work.
-Do not add `.env`to a git repository! (added to `.gitgnore` by default - don't change this!)
+#### Set environment variables
 
-```bash
-VIRTUAL_HOST=example.com # Your domain
-VIRTUAL_PORT=3000 # Gateway port. Default 3000
-LETSENCRYPT_HOST= example.com # Your domain (has to be the same as VIRTUAL_HOST)
-LETSENCRYPT_EMAIL=example@example.com
-LETSENCRYPT_TEST='false' # set to true in development environment
-PROJECT_NAME=openeo-openshift-driver # name this after project folder  
+Copy the `sample.env` file and the `/sample-envs` folder to to `.env` and `/envs`, respectively. The latter are included in the `.gitignore` by default. Do not change this. Variables in the `.env`file are used in `docker-compose.yml` when bringing up the project, while variables in the individual env files in `/envs` are available within each respective container. The following is the list of files to updte:
+
+- `.env`
+- `envs/data.env`
+- `envs/eodatareaders.env`: do not change the content in this env file
+- `envs/gateway.env`
+- `envs/jobs.env`
+- `envs/oidc.env`
+- `envs/processes.env`
+- `envs/pycsw.env`
+- `envs/rabbitmq.env`
+- `envs/users.env`
+
+
+#### Bring up web app and services
+
+**Small caveat**: one service in the API docker-compose (eodatareaders_rpc) depends on the docker image in `/airflow/build`, so that one must be built first (see instructions [here](./airflow/README.md)). This will change as soon as possible.
+
+Run the following docker compose from the main folder:
+
+```
+docker-compose up -d
 ```
 
-## Environment variables
+which uses the `docker-compose.yml` file.
 
-Each container has its own environment file.
+#### Set up all databases with Alembic
 
-- Copy the `sample-envs` directory to `./envs`
-- Adjust each environment file accordingly
-- Make sure to use secure and unique credentials!
-- Do not add `./envs`to a git repository! (added to `.gitgnore` by default - don't change this!)
+A number of databases are set up with Alembic, namely one for users, one for process graphs and one for jobs. Make sure that the API is up and run the following command to initialize all databases:
 
-## Persistent data
-
-- NGINX config files and SSL certs are bind mounted to the host at `/srv/nginx/data/`.
-- PostgreSQL databases are bind mounted to `/srv/openeo/data/jobs_db_data`and `/srv/openeo/data/processes_db_data`.
-
-It is a good idea to mount a seperate logical volume to the `/srv` directory of the Docker host.
-
-## MTU Settings in OpenStack
-
-A common problem running docker in OpenStack and possibly other virtualization infrastructure is that the attached network interfaces do not have the default MTU of 1500.
-In this case you have to change the default Docker MTU from 1500 to e.g. 1450
-
-Should you be running docker on OpenStack follow these steps: 
-
-- Use your editor of choice and edit `/etc/docker/daemon.json`
-- If the file does not exist, create it.
-
-```bash
-sudo vim /etc/docker/daemon.json
+```
+bash init_dbs.sh
 ```
 
-- Paste the following lines.
+#### Add admin user
 
-```json
-{
-    "mtu": 1450
-}
+At least one admin user must exist in the users database, to allow using the API functionalities via the endpoints. This user must be added manually to the database. In order to do so, you need to connecto to the gateway container and run a sequence of commands.
+
+```
+docker exec -it openeo-users-db bash
 ```
 
-- Restart Docker
+Once in the container, connect to the database:
 
-```bash
-sudo systemctl restart docker
+```
+psql -U $DB_USER -p $DB_PORT -h localhost $DB_NAME
 ```
 
-- Edit `docker-compose.nginx.yml` and uncomment the driver options.
+Before adding user, user profiles must be inserted as well as identity providers (for OpenIDConnect).
 
-```yml
-networks:
-  proxy:
-    driver: bridge
-#   Custom MTU overide needed for OpenStack environment only.
-    driver_opts: 
-        com.docker.network.driver.mtu: 1400
+The following create two user profiles (`profile_1`, `profile_2`), with different data access. The specific profile name and fields in the data access depend on the implementation.
+
+```
+insert into profiles (id, name, data_access) values ('pr-19144eb0-ecde-4821-bc8b-714877203c85', 'profile_1', 'basic,pro');
+insert into profiles (id, name, data_access) values ('pr-c36177bf-b544-473f-a9ee-56de7cece055', 'profile_2', 'basic');
 ```
 
-## Build and start the containers
+Identity providers can be added with the following command:
 
-To create the images and start the docker containers use the `run.sh` script.
-The script will check if image dependencies are met, build necessary images and start the containers.
-
-After the script completes succesfully it will create an empty `.init` file. This is needed in case
-you want to use the `run.sh` script the image build process is skipped.
-
-- Make the script executable and run it.
-
-```bash
-sudo chmod +x run.sh
-./run.sh
+```
+insert into identity_providers (id, id_openeo, issuer_url, scopes, title, description) values ('ip-c462aab2-fdbc-4e56-9aa1-67a437275f5e', 'google', 'https://accounts.google.com', 'openid,email', 'Google', 'Identity Provider supported in this back-end.');
 ```
 
+Finally, users can be added to the users database. In order to add a user for Basic auth, one first needs to create a hashed password. Execute the following in a Python console.
+
+```
+from passlib.apps import custom_app_context as pwd_context
+print(pwd_context.encrypt("my-secure-password"))
+```
+
+Then back on the databse command line, run the following replacing `hash-password-goes-here` with the output of the previous command (leave it wrapped in single quotes):
+
+```
+insert into users (id, auth_type, role, username, password_hash, profile_id, created_at, updated_at) values ('us-3eb63b58-9a04-4098-84d7-xxxxxxxxxxxx', 'basic', 'admin', 'my-username', 'hash-password-goes-here', 'pr-c36177bf-b544-473f-a9ee-56de7cece055', '2019-12-18 10:45:18.000000', '2019-12-18 10:45:18.000000');
+```
+
+A user for Basic auth with admin rights is now inserted in the database. Note that the  `profile_id` matches the one of `profile_2` above.
+
+The following command creates a user with admin rights for OpenIDConnect auth:
+
+```
+insert into users (id, auth_type, role, email, profile_id, identity_provider_id, created_at, updated_at) values ('us-3eb63b58-9a04-4098-84d7-yyyyyyyyyyyy', 'oidc', 'admin', 'my.email@gmail.com', 'pr-19144eb0-ecde-4821-bc8b-714877203c85', 'ip-c462aab2-fdbc-4e56-9aa1-67a437275f5e', '2019-12-18 10:45:18.000000', '2019-12-18 10:45:18.000000');
+```
+
+Note that the `identity_provider_id` matches the only one created above, and the `profile_id` matches the one of `profile_1` above.
 
 
+#### Add collections and processes
 
+Currently, no collection and no process are available yet at the endpoints `/collections` and `/processes`.
 
+Copy the `sample-auth` file to `auth` and fill the back-end URL and user credential (user with admin rights). Then run the following to add collections (sourced from the CSW server) and processes to the back-end:
 
+```
+source auth
+python api_setup.py
+```
 
+#### Bring down web app and services
 
+In order to bring down the API, run the following docker compose from the main folder:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```
+docker-compose down
+```

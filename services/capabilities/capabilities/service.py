@@ -1,8 +1,9 @@
 """ Capabilities Discovery """
 from nameko.rpc import rpc
+import logging
 
 service_name = "capabilities"
-
+LOGGER = logging.getLogger('standardlog')
 
 class ServiceException(Exception):
     """ServiceException raises if an exception occured while processing the
@@ -19,6 +20,7 @@ class ServiceException(Exception):
         self._msg = msg
         self._internal = internal
         self._links = links
+        LOGGER.exception(msg, exc_info=True)
 
     def to_dict(self) -> dict:
         """Serializes the object to a dict.
@@ -26,7 +28,6 @@ class ServiceException(Exception):
         Returns:
             dict -- The serialized exception
         """
-
         return {
             "status": "error",
             "service": self._service,

@@ -193,11 +193,11 @@ class OpenAPISpecParser:
                     internal=False)
 
         def get_file_data():
-            if not path.exists(environ.get("OPENEO_TMP_DIR")):
-                mkdir(environ.get("OPENEO_TMP_DIR"))
+            if not path.exists(environ.get("UPLOAD_TMP_DIR")):
+                mkdir(environ.get("UPLOAD_TMP_DIR"))
 
             # Create a tmp file where the binary data is stored > does not need to be passed over the rabbit
-            temp_file = path.join(environ.get("OPENEO_TMP_DIR"), str(uuid.uuid4()))
+            temp_file = path.join(environ.get("UPLOAD_TMP_DIR"), str(uuid.uuid4()))
             with open(temp_file, 'wb') as file:
                 file.write(request.data)
             request.data = None

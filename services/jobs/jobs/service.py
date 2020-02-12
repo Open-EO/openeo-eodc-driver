@@ -1,6 +1,7 @@
 """ Job Management """
 
 import os
+import logging
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
 
@@ -11,6 +12,7 @@ from .dependencies.airflow_conn import Airflow
 
 
 service_name = "jobs"
+LOGGER = logging.getLogger('standardlog')
 
 
 class ServiceException(Exception):
@@ -29,6 +31,7 @@ class ServiceException(Exception):
         self._msg = msg
         self._internal = internal
         self._links = links
+        LOGGER.exception(msg, exc_info=True)
 
     def to_dict(self) -> dict:
         """Serializes the object to a dict.
