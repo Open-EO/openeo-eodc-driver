@@ -313,7 +313,7 @@ class JobService:
                 job_data = JobSchemaShort().dump(job).data
                 job_data['links'] = []
                 for filepath in output['data']['file_list']:
-                    filename = os.path.join(os.environ.get("VIRTUAL_HOST"),
+                    filename = os.path.join(os.environ.get("GATEWAY_URL"),
                                             "downloads", user_id, job_id, filepath.split(os.path.sep)[-1])
                     job_data['links'].append({
                                                 "href": filename,
