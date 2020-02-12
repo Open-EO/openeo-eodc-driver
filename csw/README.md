@@ -29,7 +29,11 @@ Next a step-by-step explanation how to set it up. (All following steps assume th
     url fits the before set username, password and database. Do not change database host or port as they have to fit
     configurations set in the docker-compose.
 
-1. **Input Metadata (XML)**: Create a folder ``csw/xml`` and a file ``csw/file_list.json`` with content as in ``sample_file_list.json``. The run ``python create_xmls.py`` from within the csw folder. This will create one .xml file per file specififed in file_list.json (for an example see the ``sample-xml`` folder).
+1. **Input Metadata (XML)**: Create a folder ``csw/xml`` and a file ``csw/file_list.json`` with content as in ``sample_file_list.json``.
+    The run ``python create_xmls.py`` from within the csw folder. This will create one .xml file per file specififed in
+    file_list.json (for an example see the ``sample-xml`` folder). Make sure to also insert records for your parentidentifers
+    otherwise no collections can be created. You can find an example in the ``sample_file_list.json`` (last record). In
+    this case no parentidentifier has be be specified.
     ```bash
     mkdir csw/xml
     cd csw

@@ -5,7 +5,7 @@ from marshmallow import Schema, fields
 class ExtentSchema(Schema):
     """ Schema for Extent """
     spatial = fields.List(fields.Float(), required=True)
-    temporal = fields.List(fields.String(), required=True, missing=None)
+    temporal = fields.List(fields.String(), required=True)
 
 class ProvidersSchema(Schema):
     """ Schema for Provider """

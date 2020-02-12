@@ -1,8 +1,8 @@
-''' Module that contains caching functions '''
+""" Module that contains caching functions """
 
-from datetime import datetime, timedelta
 from json import dumps, loads
 from os import path
+
 
 def cache_json(records: list, path_to_cache: str):
     """Stores the output to a json file with the id if single record or
@@ -20,6 +20,7 @@ def cache_json(records: list, path_to_cache: str):
     with open(path_to_cache, 'w') as f:
         f.write(json_dump)
 
+
 def get_json_cache(path_to_cache: str) -> list:
     """Fetches the item(s) from the json cache
 
@@ -35,6 +36,7 @@ def get_json_cache(path_to_cache: str) -> list:
     except FileNotFoundError:
         data = []
     return data
+
 
 def get_cache_path(cache_path_dir: str, product: str=None, series: bool=False) -> str:
     """Get the path of the cache depending on whether series or

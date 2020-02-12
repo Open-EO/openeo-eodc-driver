@@ -1,24 +1,25 @@
 """ CSW Session """
 
-from os import environ, path
-from requests import post
 from json import loads, dumps
-from datetime import datetime, timedelta
+from os import environ, path, makedirs
+from typing import Union, Tuple
 from xml.dom.minidom import parseString
-from nameko.extensions import DependencyProvider
 
-from ..models import Collection, Collections
-from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin, xml_end, xml_bbox
+from nameko.extensions import DependencyProvider
+from requests import post
+
 from .bands import BandsExtractor
 from .cache import cache_json, get_cache_path, get_json_cache
 from .links import LinkHandler
+from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin, xml_end, xml_bbox
+from ..models import Collection, Collections
 
 
-class CWSError(Exception):
-    ''' CWSError raises if a error occures while querying the CSW server. '''
+class CSWError(Exception):
+    """ CWSError raises if a error occurs while querying the CSW server. """
 
-    def __init__(self, msg: str=""):
-        super(CWSError, self).__init__(msg)
+    def __init__(self, msg: str = ""):
+        super(CSWError, self).__init__(msg)
 
 
 class CSWHandler:
@@ -34,7 +35,13 @@ class CSWHandler:
         self.bands_extractor = BandsExtractor()
         self.link_handler = LinkHandler(service_uri)
 
-    def get_all_products(self) -> list:
+        self._create_path(self.cache_path)
+
+    def _create_path(self, cur_path: str):
+        if not path.isdir(cur_path):
+            makedirs(cur_path)
+
+    def get_all_products(self) -> Collections:
         """Returns all products available at the back-end.
 
         Returns:
@@ -60,7 +67,7 @@ class CSWHandler:
 
         return collections
 
-    def get_product(self, data_id: str) -> dict:
+    def get_product(self, data_id: str) -> Collection:
         """Returns information about a specific product.
 
         Arguments:
@@ -85,18 +92,20 @@ class CSWHandler:
 
         return collection
 
-    def refresh_cache(self, use_cache: bool=False):
+    def refresh_cache(self, use_cache: bool = False):
         """ Refreshes the cache
 
         Keyword Arguments:
-            use_cache {bool} -- Specifies whether to or not to refresh the cache. A bit redundant because submitted through an additional POST
+            use_cache {bool} -- Specifies whether to or not to refresh the cache.
+            A bit redundant because submitted through an additional POST
         """
         data = self._get_records(series=True, use_cache=use_cache)
         for collection in data:
-            refreshed = self._get_records(collection['id'], series=True, use_cache=use_cache)[0]
+            _ = self._get_records(collection['id'], series=True, use_cache=use_cache)[0]
 
-    def _get_records(self, product: str=None, bbox: list=None, start: str=None, end: str=None, series: bool=False, use_cache: bool=True) -> list:
-        """Parses the XML request for the CSW server and collects the responsed by the
+    def _get_records(self, product: str = None, bbox: list = None, start: str = None, end: str = None,
+                     series: bool = False, use_cache: bool = True) -> Union[list, CSWError]:
+        """Parses the XML request for the CSW server and collects the response by the
         batch triggered _get_single_records function.
 
         Keyword Arguments:
@@ -108,16 +117,55 @@ class CSWHandler:
             use_cache {bool} -- Specifies whether to use the
 
         Raises:
-            CWSError -- If a problem occures while communicating with the CSW server
+            CWSError -- If a problem occurs while communicating with the CSW server or no filter is provided
 
         Returns:
             list -- The records data
         """
+        all_records = []
+        path_to_cache = get_cache_path(self.cache_path, product, series)
 
-        # Parse the XML request by injecting the query data into the XML templates
-        output_schema='https://github.com/radiantearth/stac-spec'
+        # Caching to increase speed
+        # Create a request and cache the data for a day
+        if not use_cache:
 
-        xml_filters=[]
+            # Parse the XML request by injecting the query data into the XML templates
+            output_schema = "https://github.com/radiantearth/stac-spec"
+            cur_filter = self._get_csw_filter(product, bbox, start, end, series)
+
+            # While still data is available send requests to the CSW server (-1 if not more data is available)
+            record_next = 1
+            while int(record_next) > 0:
+                record_next, records = self._get_single_records(record_next, cur_filter, output_schema)
+                all_records += records
+            # additionally add the links to each record and collection
+            all_records = self.link_handler.get_links(all_records)
+            cache_json(all_records, path_to_cache)
+        else:
+            all_records = get_json_cache(path_to_cache)
+
+        return all_records
+
+    def _get_csw_filter(self, product: str = None, bbox: list = None, start: str = None, end: str = None,
+                        series: bool = False) -> Union[dict, CSWError]:
+        """
+        Create a CSW filter based on the given parameters.
+
+        Keyword Arguments:
+            product {str} -- The identifier of the product (default: {None})
+            bbox {list} -- The spatial extent of the records (default: {None})
+            start {str} -- The end date of the temporal extent (default: {None})
+            end {str} -- The end date of the temporal extent (default: {None})
+            series {bool} -- Specifier if series (products) or records are queried (default: {False})
+
+        Raises:
+            CWSError -- If no filter is provided
+
+        Returns:
+            str / list -- CSW filter
+        """
+
+        xml_filters = []
 
         if series:
             xml_filters.append(xml_series)
@@ -140,38 +188,19 @@ class CSWHandler:
             xml_filters.append(xml_bbox.format(bbox=bbox))
 
         if len(xml_filters) == 0:
-            return CWSError("Please provide fiters on the data (bounding box, start, end)")
+            return CSWError("Please provide filters on the data (e.g. product, bounding box, start, end)")
 
-        filter_parsed=""
         if len(xml_filters) == 1:
-            filter_parsed=xml_filters[0]
+            filter_parsed = xml_filters[0]
         else:
-            tmp_filter=""
+            tmp_filter = ""
             for xml_filter in xml_filters:
                 tmp_filter += xml_filter
-            filter_parsed=xml_and.format(children=tmp_filter)
+            filter_parsed = xml_and.format(children=tmp_filter)
 
-        # While still data is available send requests to the CSW server (-1 if not more data is available)
-        all_records=[]
-        record_next=1
+        return filter_parsed
 
-        # Create a request and cache the data for a day
-        # Caching to increase speed
-        path_to_cache = get_cache_path(self.cache_path, product, series)
-        if not use_cache:
-            while int(record_next) > 0:
-                record_next, records=self._get_single_records(
-                    record_next, filter_parsed, output_schema)
-                all_records += records
-            # additionally add the links to each record and collection
-            all_records = self.link_handler.get_links(all_records)
-            cache_json(all_records, path_to_cache)
-        else:
-            all_records = get_json_cache(path_to_cache)
-
-        return all_records
-
-    def _get_single_records(self, start_position: int, filter_parsed: dict, output_schema: str) -> list:
+    def _get_single_records(self, start_position: int, filter_parsed: dict, output_schema: str) -> Tuple[int, list]:
         """Sends a single request to the CSW server, requesting data about records or products.
 
         Arguments:
@@ -186,52 +215,49 @@ class CSWHandler:
             list -- The returned record or product data
         """
 
-        # Parse the XML by injecting iteration dependend variables
-        xml_request=xml_base.format(
+        # Parse the XML by injecting iteration depended variables
+        xml_request = xml_base.format(
             children=filter_parsed, output_schema=output_schema, start_position=start_position)
-        response=post(self.csw_server_uri, data=xml_request)
+        response = post(self.csw_server_uri, data=xml_request)
 
         # Response error handling
         if not response.ok:
             print("Server Error {0}: {1}".format(
                 response.status_code, response.text))
-            raise CWSError("Error while communicating with CSW server.")
+            raise CSWError("Error while communicating with CSW server.")
 
         if response.text.startswith("<?xml"):
-            xml=parseString(response.text)
+            xml = parseString(response.text)
             print("{0}".format(xml.toprettyxml()))
-            raise CWSError("Error while communicating with CSW server.")
+            raise CSWError("Error while communicating with CSW server.")
 
-        response_json=loads(response.text)
+        response_json = loads(response.text)
 
         if "ows:ExceptionReport" in response_json:
             print("{0}".format(dumps(response_json, indent=4, sort_keys=True)))
-            raise CWSError("Error while communicating with CSW server.")
+            raise CSWError("Error while communicating with CSW server.")
 
         # Get the response data
-        search_result=response_json["csw:GetRecordsResponse"]["csw:SearchResults"]
+        search_result = response_json["csw:GetRecordsResponse"]["csw:SearchResults"]
 
-        record_next=search_result["@nextRecord"]
-
+        record_next = search_result["@nextRecord"]
         if "gmd:MD_Metadata" in search_result:
-            records=search_result["gmd:MD_Metadata"]
+            records = search_result["gmd:MD_Metadata"]
         elif "csw:Record" in search_result:
-            records=search_result["csw:Record"]
+            records = search_result["csw:Record"]
         elif "collection" in search_result:
-            records=search_result["collection"]
+            records = search_result["collection"]
         else:
-            record_next=0
-            records=[]
+            records = []
 
         if not isinstance(records, list):
-            records=[records]
+            records = [records]
 
         return record_next, records
 
 
 class CSWSession(DependencyProvider):
-    """The CSWSession is the DependencyProvider of the CSWHandler.
-    """
+    """ The CSWSession is the DependencyProvider of the CSWHandler. """
 
     def get_dependency(self, worker_ctx: object) -> CSWHandler:
         """Return the instantiated object that is injected to a
@@ -244,4 +270,4 @@ class CSWSession(DependencyProvider):
             CSWHandler -- The instantiated CSWHandler object
         """
 
-        return CSWHandler(environ.get("CSW_SERVER"), environ.get("CACHE_PATH"), environ.get("SERVICE_URI"))
+        return CSWHandler(environ.get("CSW_SERVER"), environ.get("CACHE_PATH"), environ.get("GATEWAY_URL"))

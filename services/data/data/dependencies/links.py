@@ -1,5 +1,6 @@
-''' Module to create links for stac 0.6.2 compliance. 
-The values aren't currently in a db so the class LinkHandler handles creating them '''
+""" Module to create links for stac 0.6.2 compliance.
+The values aren't currently in a db so the class LinkHandler handles creating them """
+
 
 class LinkHandler:
 
@@ -34,7 +35,9 @@ class LinkHandler:
     def _get_source(self):
         pass
 
-    def get_links(self, records: list=[], collection: bool=False) -> list:
+    def get_links(self, records: list = None, collection: bool = False) -> list:
+        if not records:
+            records = []
         if not collection:
             for record in records:
                 links = [self._get_self_record(record), self._get_parent_record(), self._get_root_record()]
