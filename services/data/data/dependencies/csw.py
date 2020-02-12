@@ -270,4 +270,4 @@ class CSWSession(DependencyProvider):
             CSWHandler -- The instantiated CSWHandler object
         """
 
-        return CSWHandler(environ.get("CSW_SERVER"), environ.get("CACHE_PATH"), environ.get("SERVICE_URI"))
+        return CSWHandler(environ.get("CSW_SERVER"), environ.get("CACHE_PATH"), environ.get("GATEWAY_URL"))
