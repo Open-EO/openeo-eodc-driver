@@ -140,6 +140,7 @@ services:
       - ./envs/rabbitmq.env
       - ./envs/jobs.env
       - ./envs/csw.env
+      - ./envs/gateway.env
     environment:
       AIRFLOW_DAGS: /usr/src/dags/
       SYNC_RESULTS_FOLDER: /usr/src/sync-results
