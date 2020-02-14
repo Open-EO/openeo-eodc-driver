@@ -7,7 +7,7 @@ from nameko_sqlalchemy import DatabaseSession
 
 from .models import Base, Job, JobStatus
 from .schema import JobSchema, JobSchemaFull, JobSchemaShort
-from .dependencies.write_airflow_dag import WriteAirflowDag
+from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
 from .dependencies.airflow_conn import Airflow
 
 
@@ -232,8 +232,9 @@ class JobService:
             
             # Create Apache Airflow DAG file
             job_folder = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + "jobs" + os.path.sep + job_id
-            WriteAirflowDag(job_id, user_id, process_graph, job_folder, user_email=None, job_description=description)
-
+            writer = AirflowDagWriter(job_id, user_id, process_graph_json=process_graph, job_data=job_folder)
+            writer.write_and_move_job()
+            
             return {
                 "status": "success",
                 "code": 201,

@@ -28,7 +28,7 @@ class LinkHandler:
 
     def _get_self_collection(self):
         rel = 'self'
-        href = self.service_url + self.api_endpoint
+        href = self.service_url + '/' + self.api_endpoint
         link = {'href': href, 'rel': rel}
         return link
     
@@ -46,4 +46,3 @@ class LinkHandler:
         else:
             links = [self._get_self_collection()]
             return links
-

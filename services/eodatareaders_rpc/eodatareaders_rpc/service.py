@@ -8,7 +8,7 @@ from uuid import uuid4
 from nameko.rpc import rpc
 from collections import namedtuple
 
-from eodc_openeo_bindings.write_basic_job import write_basic_job
+from eodc_openeo_bindings.job_writer.basic_writer import BasicJobWriter
 
 
 service_name = "eodatareaders_rpc"
@@ -78,7 +78,7 @@ class EoDataReadersService:
             os.makedirs(job_folder)
             py_filepath = os.path.join(job_folder, 'jb-' + job_tmp_id + '.py')
 
-            output_format, output_folder = write_basic_job(process_graph, job_folder, python_filepath=py_filepath)
+            output_format, output_folder = BasicJobWriter(process_graph, job_folder, output_filepath=py_filepath).write_job()
             fmt = self.map_output_format(output_format)
 
             cmd = "python " + py_filepath
