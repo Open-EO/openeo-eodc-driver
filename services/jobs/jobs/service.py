@@ -2,6 +2,7 @@
 
 import os
 import logging
+from time import sleep
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
 
@@ -232,17 +233,36 @@ class JobService:
             
             # Create Apache Airflow DAG file
             job_folder = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + "jobs" + os.path.sep + job_id
-            writer = AirflowDagWriter(job_id, user_id, process_graph_json=process_graph, job_data=job_folder)
+            writer = AirflowDagWriter(job_id, user_id, process_graph_json=process_graph, job_data=job_folder, vrt_only=True)
             writer.write_and_move_job()
-            
-            return {
-                "status": "success",
-                "code": 201,
-                "headers": {
-                    "Location": "jobs/" + job_id,
-                    "OpenEO-Identifier": job_id
+
+            # Execute DAG to create vrt files
+            response = self.airflow.unpause_dag(job_id, unpause=True)
+            if not response.ok:
+                sleep(10)
+                response = self.airflow.unpause_dag(job_id, unpause=True)
+            # if response.ok:
+            #     while self.airflow.check_dag_status(job_id=job_id) != 'finished':
+            #         sleep(10)
+            #     #_, node_ids = writer.get_nodes()
+            #     writer.parallelize_task = True
+            #     writer.vrt_only = False
+            #     writer.write_and_move_job() 
+            # TODO does not work yet -> error: Exception: "from_node: dc_xyz" reference is wrong.
+            # this error comes from the pg-python-parser but why? tests in eodc-bindings work fine
+                
+                
+                return {
+                    "status": "success",
+                    "code": 201,
+                    "headers": {
+                        "Location": "jobs/" + job_id,
+                        "OpenEO-Identifier": job_id
+                    }
                 }
-            }
+            else:
+                return ServiceException(500, user_id, "Airflow error: " + response.text,
+                                        links=["#tag/Job-Management/paths/~1jobs/post"]).to_dict()
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
                                     links=["#tag/Job-Management/paths/~1jobs/post"]).to_dict()
@@ -256,8 +276,9 @@ class JobService:
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
                 raise Exception(response)
-
-            response = self.airflow.unpause_dag(job_id, unpause=True)
+            
+            response = self.airflow.trigger_dag(job_id)
+            #response = self.airflow.unpause_dag(job_id, unpause=True)
 
             # Update jobs database #TODO get this information from airflow database
             job.status = JobStatus.running
