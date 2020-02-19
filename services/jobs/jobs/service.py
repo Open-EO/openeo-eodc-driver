@@ -235,34 +235,34 @@ class JobService:
             job_folder = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + "jobs" + os.path.sep + job_id
             writer = AirflowDagWriter(job_id, user_id, process_graph_json=process_graph, job_data=job_folder, vrt_only=True)
             writer.write_and_move_job()
-
-            # Execute DAG to create vrt files
+            # unpause DAG so that it can be triggered in the process() method
             response = self.airflow.unpause_dag(job_id, unpause=True)
+            # the following is needed because in some cases (when??) one must wait a little longer to unpause a DAG
+            # maybe it takes some time before all relevant data are inserted in the internal airflow db?
             if not response.ok:
                 sleep(10)
                 response = self.airflow.unpause_dag(job_id, unpause=True)
-            # if response.ok:
-            #     while self.airflow.check_dag_status(job_id=job_id) != 'finished':
-            #         sleep(10)
-            #     #_, node_ids = writer.get_nodes()
-            #     writer.parallelize_task = True
-            #     writer.vrt_only = False
-            #     writer.write_and_move_job() 
-            # TODO does not work yet -> error: Exception: "from_node: dc_xyz" reference is wrong.
-            # this error comes from the pg-python-parser but why? tests in eodc-bindings work fine
-                
-                
-                return {
-                    "status": "success",
-                    "code": 201,
-                    "headers": {
-                        "Location": "jobs/" + job_id,
-                        "OpenEO-Identifier": job_id
-                    }
+            
+            # NB the following is a stab at creating parallelised DAGs
+            # it does not work because the vrt files created by the first DAG runs are on a different machine
+            # different approach: AirflowDagWriter must be exectued on the Airflow machine, but then thatmachine needs to have the PG for the current job
+            
+            # # Execute DAG to create vrt files
+            # while self.airflow.check_dag_status(job_id=job_id) != 'finished':
+            #     sleep(10)
+            # writer.parallelize_task = True
+            # writer.vrt_only = False
+            # writer.write_and_move_job() 
+            
+            return {
+                "status": "success",
+                "code": 201,
+                "headers": {
+                    "Location": "jobs/" + job_id,
+                    "OpenEO-Identifier": job_id
                 }
-            else:
-                return ServiceException(500, user_id, "Airflow error: " + response.text,
-                                        links=["#tag/Job-Management/paths/~1jobs/post"]).to_dict()
+            }
+
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
                                     links=["#tag/Job-Management/paths/~1jobs/post"]).to_dict()
