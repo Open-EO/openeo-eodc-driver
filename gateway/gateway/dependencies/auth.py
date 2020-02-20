@@ -65,9 +65,9 @@ class AuthenticationHandler:
         if not user_id:
             user_id = self._verify_oidc_token(token)
 
-        # TODO how to handle role?
-        # if role == 'admin':
-        #     user_authorized = self._verify_user_role(user_id, role=role)
+        if not role == 'user':
+            if not self._check_user_role(user_id, role=role):
+                user_id = None  # User does not have 'admin' role and is therefore not allowed to access the endpoint
 
         if not user_id:
             raise APIException(
@@ -131,7 +131,7 @@ class AuthenticationHandler:
                 internal=False)
         return user.id
 
-    def _verify_user_role(self, user_id: str, role: str) -> bool:
+    def _check_user_role(self, user_id: str, role: str) -> bool:
         """
         Check user has the given role.
         """
@@ -140,7 +140,7 @@ class AuthenticationHandler:
 
         if not role == db.session.query(Users.role).filter(Users.id == user_id).scalar():
             raise APIException(
-                msg=f"The user {user_id} is not authorized.",
+                msg=f"The user {user_id} is not authorized to perform this operation.",
                 code=403,
                 service="gateway",
                 internal=False)
