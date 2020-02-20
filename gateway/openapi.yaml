@@ -158,18 +158,27 @@ paths:
     post:
       responses:
         '200': successfully created user on database
+    delete:
+      responses:
+        '200': successfully deleted a user in the database
   /users_mng/user_profiles:
     description: >-
       **Note:** This is an extension of the EODC API!
     post:
       responses:
         '200': successfully created user profile on database
+    delete:
+      responses:
+        '200': successfully deleted a profile in the database
   /users_mng/oidc_providers:
     description: >-
       **Note:** This is an extension of the EODC API!
     post:
       responses:
         '200': successfully created Identity Provider on database
+    delete:
+      responses:
+        '200': successfully deleted a identity provider in the database
   /openapi:
     get:
       summary: OpenAPI v3.0.1 specification

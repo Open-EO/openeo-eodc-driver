@@ -70,7 +70,7 @@ class IdentityProviders(db.Model):
     __tablename__ = 'identity_providers'
 
     id = db.Column(db.String, primary_key=True)
-    id_openeo = db.Column(db.String, nullable=False)
+    id_openeo = db.Column(db.String, nullable=False, unique=True)
     issuer_url = db.Column(db.Text, nullable=False)
     scopes = db.Column(db.Text, nullable=False)
     title = db.Column(db.String, nullable=False, unique=True)

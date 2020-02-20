@@ -88,13 +88,13 @@ with ctx:
     # Users Management # NB these endpoints are extensions of the openEO API
     # Users
     gateway.add_endpoint("/users_mng/users", func=users_service.add_user, auth=True, rpc=False, validate_custom=True, methods=["POST"], role="admin")
-    #gateway.add_endpoint("/users_mng/users", func=gateway.delete_user, auth=True, rpc=False, validate_custom=True, methods=["DELETE"], role="admin") # TODO
+    gateway.add_endpoint("/users_mng/users", func=users_service.delete_user, auth=True, rpc=False, validate_custom=True, methods=["DELETE"], role="admin")
     # Profiles
     gateway.add_endpoint("/users_mng/user_profiles", func=users_service.add_user_profile, auth=True, rpc=False, validate_custom=True, methods=["POST"], role="admin")
-    #gateway.add_endpoint("/users_mng/user_profiles", func=users_service.delete_user_profile, auth=True, rpc=False, validate_custom=True, methods=["DELETE"], role="admin")
+    gateway.add_endpoint("/users_mng/user_profiles", func=users_service.delete_user_profile, auth=True, rpc=False, validate_custom=True, methods=["DELETE"], role="admin")
     # Identity Providers
     gateway.add_endpoint("/users_mng/oidc_providers", func=users_service.add_identity_provider, auth=True, rpc=False, validate_custom=True, methods=["POST"], role="admin")
-    #gateway.add_endpoint("/oidc_providers", func=gateway.delete_identity_provider, auth=True, rpc=False, validate_custom=True, methods=["DELETE"], role="admin") # TODO
+    gateway.add_endpoint("/users_mng/oidc_providers", func=users_service.delete_identity_provider, auth=True, rpc=False, validate_custom=True, methods=["DELETE"], role="admin")
 
 
 # Validate if the gateway was setup as defined by the OpenAPI specification
