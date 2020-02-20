@@ -48,7 +48,7 @@ class BBox:
             qgeom {any} -- The input bounding box representation
 
         Raises:
-            ValidationError -- If a error occures while parsing the spatial extent
+            ValidationError -- If a error occurs while parsing the spatial extent
 
         Returns:
             BBox -- The bounding box object

@@ -104,7 +104,7 @@ class OpenAPISpecParser:
             else:
                 params = request.json
             
-            # Only needed /credentials/basic endpoint (needed dataa are in headers, not in data)
+            # Only needed /credentials/basic endpoint (needed data are in headers, not in data)
             if 'Authorization' in request.headers and 'Basic' in request.headers['Authorization']:
                 encoded = request.headers['Authorization'].split(' ')[1]
                 decoded = base64.b64decode(encoded).decode('utf8')

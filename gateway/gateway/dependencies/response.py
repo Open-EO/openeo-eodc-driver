@@ -1,11 +1,12 @@
 """ ResponseParser, APIException """
 
-from flask import make_response, jsonify, send_file, request, redirect
-from flask.wrappers import Response
-from uuid import uuid4
-from typing import Union
 import os
 import shutil
+from typing import Union
+from uuid import uuid4
+
+from flask import make_response, jsonify, send_file, request, redirect
+from flask.wrappers import Response
 
 
 class APIException(Exception):
@@ -13,12 +14,13 @@ class APIException(Exception):
     or a HTTP error is send back by one of the services.
     """
     # TODO: links -> To exact Reference
-    # TODO: links -> Rertrieve own host name
+    # TODO: links -> Retrieve own host name
 
-    def __init__(self, msg: str=None, code: int=500, service: str=None,
-                 user_id: str=None, internal: bool=True,
-                 links: list=[""], **args):
+    def __init__(self, msg: str = None, code: int = 500, service: str = None,
+                 user_id: str = None, internal: bool = True,
+                 links: list = None, **args):
 
+        links = links if links else [""]
         self._id = uuid4()
         self._service = service
         self._user_id = user_id
@@ -37,12 +39,6 @@ class APIException(Exception):
             msg = "The request can't be fulfilled due to an error at the back-end."
         else:
             msg = "Something went wrong, but it's not clear what."
-
-        # if self._internal:
-        #     # TODO: Custom HTTP Code messages?
-        #     msg = "The request can't be fulfilled due to an error at the back-end."
-        # else:
-        #     msg = self._msg
 
         return {
             "id": self._id,
