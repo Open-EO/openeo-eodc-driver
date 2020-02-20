@@ -1,6 +1,7 @@
 from os import environ
 
 from gateway.dependencies.response import APIException
+from gateway.users.repository import db, Users
 
 
 class AuthService:
@@ -39,24 +40,20 @@ class AuthService:
         Returns:
             Dict -- User_id with access token
         """
-        from gateway.users.repository import db,  Users
-
         user = db.session.query(Users).filter(Users.username == username).scalar()
-        if user.verify_password(password):
-
-            out_data = {}
-            out_data["user_id"], out_data["token"] = user.generate_auth_token(expiration=600)
-            # support multiple versions: v0.4.2 needs "token", draft version needs "access_token"
-            out_data["access_token"] = out_data["token"]
-            return {
-                "status": "success",
-                "code": 200,
-                "data": out_data,
-            }
-        else:
+        if not user.verify_password(password):
             raise APIException(
                 msg=f"Incorrect credentials for user {username}.",
                 code=401,
                 service="gateway",
                 internal=False,
             )
+        out_data = {}
+        out_data["user_id"], out_data["token"] = user.generate_auth_token(expiration=600)
+        # support multiple versions: v0.4.2 needs "token", draft version needs "access_token"
+        out_data["access_token"] = out_data["token"]
+        return {
+            "status": "success",
+            "code": 200,
+            "data": out_data,
+        }

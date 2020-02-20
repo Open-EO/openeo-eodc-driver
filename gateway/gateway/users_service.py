@@ -47,6 +47,13 @@ class UsersService:
     def add_user(self, **kwargs) -> dict:
         """
         Add Basic or OIDC user to database.
+
+        Arguments:
+            kwargs {dict} -- The dictionary needed to add a user. Either [username, password, profile_name] > basic or
+                [email, identity_provider, profile_name] > OIDC needs to be provided
+
+        Returns:
+            dict -- Describes success / failure of process
         """
 
         if 'role' not in kwargs:
@@ -74,6 +81,13 @@ class UsersService:
     def delete_user(self, **kwargs) -> dict:
         """
         Delete Basic or OIDC user from database.
+
+        Arguments:
+            kwargs {dict} -- The dictionary needed to delete a user. Either [username] > basic or [email] > OIDC needs
+                to be provided
+
+        Returns:
+            dict -- Describes success / failure of process
         """
         if 'username' in kwargs:
             worked, exc = rep.delete_user_username(kwargs['username'])
@@ -95,6 +109,14 @@ class UsersService:
     def add_user_profile(self, name: str, data_access: str) -> dict:
         """
         Add user profile to database.
+
+        Arguments:
+            name {str} -- The name of the profile to add
+            data_access {str} -- The string describing the single data access levels separated by comma
+                (e.g. basic,projectA)
+
+        Returns:
+            dict -- Describes success / failure of process
         """
         worked, exc = rep.insert_profile(name, data_access)
         if not worked:
@@ -108,6 +130,12 @@ class UsersService:
     def delete_user_profile(self, name: str) -> dict:
         """
         Delete user profile from database.
+
+        Arguments:
+            name {str} -- The name of the profile to delete
+
+        Returns:
+            dict -- Describes success / failure of process
         """
         worked, exc = rep.delete_profile(name)
         if not worked:
@@ -122,6 +150,16 @@ class UsersService:
                               description: str = None) -> dict:
         """
         Add Identity provider to database for OIDC authentication.
+
+        Arguments:
+            id_openeo {str} -- The OpenEO ID of the identity provider to add
+            issuer_url {str} -- The issuer url
+            title {str} -- A descriptive title
+            scopes {list} -- A list of scopes to request when this identity provider is used (e.g. [openid, email])
+            description {str} -- A short description (e.g.: for which group this identity provider may be useful)
+
+        Returns:
+            dict -- Describes success / failure of process
         """
         worked, exc = rep.insert_identity_provider(id_openeo=id_openeo, issuer_url=issuer_url, scopes=scopes,
                                                    title=title, description=description)
@@ -137,6 +175,12 @@ class UsersService:
     def delete_identity_provider(self, id_openeo: str) -> dict:
         """
         Delete Identity provider from database.
+
+        Arguments:
+            id_openeo {str} -- The OpenEO ID of the identity provider to delete
+
+        Returns:
+            dict -- Describes success / failure of process
         """
         worked, exc = rep.delete_identity_provider(id_openeo)
         if not worked:
@@ -145,5 +189,5 @@ class UsersService:
         return {
             "status": "success",
             "code": 200,
-            "data": {"message": f"Identity provider"}
+            "data": {"message": f"Identity provider {id_openeo} successfully deleted."}
         }

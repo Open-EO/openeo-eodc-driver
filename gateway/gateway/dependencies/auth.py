@@ -1,11 +1,11 @@
 """ AuthenticationHandler """
 
-from typing import Union, Optional
+from typing import Union, Optional, Callable
 
 import jwt
 import requests
 from flask import request
-from flask.wrappers import Request
+from flask.wrappers import Request, Response
 
 from .jwksutils import rsa_pem_from_jwk
 from .response import ResponseParser, APIException
@@ -19,7 +19,17 @@ class AuthenticationHandler:
     def __init__(self, response_handler: ResponseParser):
         self._res = response_handler
 
-    def validate_token(self, func, role):
+    def validate_token(self, func: Callable, role: str) -> Union[Callable, Response]:
+        """
+        Decorator authenticate a user.
+
+        Arguments:
+            func {Callable} -- The wrapped function
+            role {str} -- The required role to execute the function (user / admin)
+
+        Returns:
+            Union[Callable, Response] -- Returns the decorator function or a HTTP error
+        """
         def decorator(*args, **kwargs):
             try:
                 token = self._parse_auth_header(request)
@@ -59,6 +69,19 @@ class AuthenticationHandler:
         return token_split[1]
 
     def _verify_token(self, token: str, role: str) -> str:
+        """
+        Verify the supplied token either as basic or OIDC token.
+
+        Arguments:
+            token {str} -- The authentication token (basic / OIDC)
+            role: {str} -- The required role to execute the function (user / admin)
+
+        Raises:
+            APIException -- If the token is not valid or the user does not have the required role
+
+        Returns:
+            str -- The user_id corresponding to the token
+        """
 
         # TODO from version > 0.4.2 the token will contain basic or oidc and no "brute force" approach will be needed
         user_id = self._verify_basic_token(token)
@@ -69,6 +92,7 @@ class AuthenticationHandler:
             if not self._check_user_role(user_id, role=role):
                 user_id = None  # User does not have 'admin' role and is therefore not allowed to access the endpoint
 
+        # Only needed in case basic token is invalid and therefore tried as OIDC token (should be fixed with >0.4.2)
         if not user_id:
             raise APIException(
                 msg='Invalid token. User could not be authenticated.',
@@ -80,6 +104,12 @@ class AuthenticationHandler:
     def _verify_basic_token(self, token) -> Optional[str]:
         """
         Verifies a basic token.
+
+        Arguments:
+            token {str} -- The basic authentication token
+
+        Returns:
+            str -- The user_id corresponding to the token
         """
         from gateway.users.repository import verify_auth_token
         return verify_auth_token(token)[0]
@@ -87,6 +117,12 @@ class AuthenticationHandler:
     def _verify_oidc_token(self, token) -> Optional[str]:
         """
         Verifies OIDC token.
+
+        Arguments:
+            token {str} -- The OIDC authentication token (currently an ID-token is required)
+
+        Returns:
+            str -- The user_id corresponding to the token
         """
 
         token_header = jwt.get_unverified_header(token)
@@ -112,13 +148,21 @@ class AuthenticationHandler:
                               audience=token_unverified['azp'],
                               issuer=token_unverified['iss']):
                 raise APIException(
-                    msg="Invalid OIDC token (cannot be decoded). User cannot be authenticated."
-                )
+                    msg="Invalid OIDC token (cannot be decoded). User cannot be authenticated.",
+                    code=401,
+                    service="gateway",
+                    internal=False)
             return user_id
 
     def _get_user_id_from_email(self, user_email: str) -> str:
         """
         Checks the email exists in the database and gets the corresponding user_id.
+
+        Arguments:
+            user_email {str} -- The user's email address
+
+        Returns:
+            str -- The user_id corresponding to the email
         """
         from gateway.users.models import db, Users
 
@@ -134,6 +178,16 @@ class AuthenticationHandler:
     def _check_user_role(self, user_id: str, role: str) -> bool:
         """
         Check user has the given role.
+
+        Arguments:
+            user_id {str} -- The user's id
+            role {str} -- The required to role
+
+        Raises:
+            APIException -- If the user does not have the reuqired role
+
+        Returns:
+            bool -- Whether the user has the required role
         """
 
         from gateway.users.models import db, Users
@@ -146,15 +200,24 @@ class AuthenticationHandler:
                 internal=False)
         return True
 
-    def _check_oidc_issuer_exists(self, issuer: str) -> bool:
+    def _check_oidc_issuer_exists(self, issuer_url: str) -> bool:
         """
         Checks the given issuer_url exists in the database.
+
+        Arguments:
+            issuer_url {str} -- The issuer_url to check
+
+        Raises:
+            APIException -- If the issuer_url is not supported
+
+        Returns:
+            str -- Whether the issuer_url is supported
         """
         from gateway.users.models import db, IdentityProviders
-        identity_provider = db.session.query(IdentityProviders).filter(IdentityProviders.issuer_url == issuer).first()
+        identity_provider = db.session.query(IdentityProviders).filter(IdentityProviders.issuer_url == issuer_url).first()
         if not identity_provider:
             raise APIException(
-                msg="The given issuer url is not supported.",
+                msg=f"The given issuer url '{issuer_url}' is not supported.",
                 code=401,
                 service="gateway",
                 internal=False)
