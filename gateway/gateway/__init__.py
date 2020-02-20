@@ -1,7 +1,8 @@
 """ Initialize the Gateway """
 
 from .gateway import Gateway
-# Firs tinitialize Gateway app (bofre other imports)
+
+# Firs initialise Gateway app (before other imports)
 gateway = Gateway()
 gateway.set_cors()
 
@@ -9,17 +10,17 @@ from .auth_service import AuthService
 from .users_service import UsersService
 
 # Initialize non-RPC services
-auth_service = AuthService(response_parser=gateway._res)
-users_service = UsersService(response_parser=gateway._res)
+auth_service = AuthService()
+users_service = UsersService()
 
 # Get application context and map RPCs to endpoints
 ctx, rpc = gateway.get_rpc_context()
 with ctx:
 
     # System endpoints
-    gateway.add_endpoint("/health", func=gateway.send_health_check, rpc=False) # NB extension of openEO API
-    gateway.add_endpoint("/openapi", func=gateway.send_openapi, rpc=False) # NB extension of openEO API
-    gateway.add_endpoint("/redoc", func=gateway.send_redoc, rpc=False) # NB extension of openEO API
+    gateway.add_endpoint("/health", func=gateway.send_health_check, rpc=False)  # NB extension of openEO API
+    gateway.add_endpoint("/openapi", func=gateway.send_openapi, rpc=False)  # NB extension of openEO API
+    gateway.add_endpoint("/redoc", func=gateway.send_redoc, rpc=False)  # NB extension of openEO API
 
     # Capabilities
     gateway.add_endpoint("/", func=gateway.send_index, rpc=False)
@@ -84,7 +85,7 @@ with ctx:
     # /services/<service_id> delete
     # /subscription
     
-    # Users Management # NB these endpoints are extentions of the openEO API
+    # Users Management # NB these endpoints are extensions of the openEO API
     # Users
     gateway.add_endpoint("/users_mng/users", func=users_service.add_user, auth=True, rpc=False, validate_custom=True, methods=["POST"], role="admin")
     #gateway.add_endpoint("/users_mng/users", func=gateway.delete_user, auth=True, rpc=False, validate_custom=True, methods=["DELETE"], role="admin") # TODO

@@ -70,8 +70,9 @@ class Gateway:
 
         CORS(self._service, resources=resources, vary_header=False, supports_credentials=True)
 
-    def add_endpoint(self, route: str, func: Callable, methods: list=["GET"], auth: bool=False,
-        role: str='user', validate: bool=False, validate_custom: bool=False, rpc: bool=True, is_async: bool=False):
+    def add_endpoint(self, route: str, func: Callable, methods: list = ["GET"], auth: bool = False,
+                     role: str = 'user', validate: bool = False, validate_custom: bool = False, rpc: bool = True,
+                     is_async: bool = False):
         """Adds an endpoint to the API, pointing to a Remote Procedure Call (RPC) of a microservice or a
         local function. Serval decorators can be added to enable authentication, authorization and input
         validation.
@@ -88,18 +89,20 @@ class Gateway:
             rpc {bool} -- Setting up a RPC or local function (default: {True})
             is_async {bool} -- Flags if the function should be executed asynchronously (default: {False})
         """
-        
+
         # Method OPTIONS needed for CORS
         if "OPTIONS" not in methods:
             methods.append("OPTIONS")
         methods = [method.upper() for method in methods]
 
-        if rpc: func = self._rpc_wrapper(func, is_async)
+        # Use either rpc or local wrapper to handle responses and exceptions
+        func = self._rpc_wrapper(func, is_async) if rpc else self._local_wrapper(func)
         if validate:
             func = self._validate(func)
         elif validate_custom:
             func = self._validate_custom(func)
-        if auth: func = self._authenticate(func, role)
+        if auth:
+            func = self._authenticate(func, role)
 
         self._service.add_url_rule(
             route,
@@ -139,12 +142,12 @@ class Gateway:
 
         self._service.config.update({
             "NAMEKO_AMQP_URI":
-            "pyamqp://{0}:{1}@{2}:{3}".format(
-                environ.get("RABBIT_USER"),
-                environ.get("RABBIT_PASSWORD"),
-                environ.get("RABBIT_HOST"),
-                environ.get("RABBIT_PORT")
-            ),
+                "pyamqp://{0}:{1}@{2}:{3}".format(
+                    environ.get("RABBIT_USER"),
+                    environ.get("RABBIT_PASSWORD"),
+                    environ.get("RABBIT_HOST"),
+                    environ.get("RABBIT_PORT")
+                ),
         })
 
         rpc = FlaskPooledClusterRpcProxy()
@@ -184,10 +187,7 @@ class Gateway:
         }
         self._service.config.update(oidc_config)
 
-        # oicd = OpenIDConnect()
-        # oicd.init_app(self._service)
-
-        return AuthenticationHandler(self._res) #, self._rpc) #, oicd)
+        return AuthenticationHandler(self._res)
 
     def _init_users_db(self) -> SQLAlchemy:
         db_url = "postgresql://{0}:{1}@{2}:{3}/{4}".format(
@@ -203,8 +203,8 @@ class Gateway:
         })
         return SQLAlchemy(self._service)
 
-    def _rpc_wrapper(self, f:Callable, is_async) -> Union[Callable, Response]:
-        """The RPC decorator function to handle repsonsed and exception when communicating
+    def _rpc_wrapper(self, f: Callable, is_async) -> Union[Callable, Response]:
+        """The RPC decorator function handles responses and exception when communicating
         with the services. This method is a single aggregated endpoint to handle the service
         communications.
 
@@ -231,13 +231,36 @@ class Gateway:
                 return self._res.error(exc)
         return decorator
 
+    def _local_wrapper(self, f: Callable) -> Union[Callable, Response]:
+        """The local decorator function handles responses and exception for non-RPC functions.
 
-    def send_index(self) -> Response:
+        Arguments:
+            f {Callable} -- The wrapped function
+
+        Returns:
+            Union[Callable, Response] -- Returns the decorator function or a HTTP error
+        """
+        def local_decorator(**arguments):
+            try:
+                local_response = f(**arguments)
+
+                if local_response["status"] == "error":
+                    return self._res.error(local_response)
+                elif local_response["status"] == "redirect":
+                    return self._res.redirect(local_response["url"])
+                return self._res.parse(local_response)
+
+            except Exception as exc:
+                return self._res.error(exc)
+
+        return local_decorator
+
+    def send_index(self) -> dict:
         """The function returns a JSON object containing the available routes and
         HTTP methods as defined in the OpenAPI specification.
 
         Returns:
-            Response -- JSON object contains the API capabilities
+            Dict -- JSON object contains the API capabilities
         """
         # TODO: Index endpoint should be own rpc endpoint to be more generic
         # TODO: Implement billing plans
@@ -260,38 +283,48 @@ class Gateway:
             "endpoints": endpoints
         }
 
-        return self._res.parse({"code": 200, "data": capabilities})
+        return {
+            "status": "success",
+            "code": 200,
+            "data": capabilities,
+        }
 
-
-    def send_health_check(self) -> Response:
+    def send_health_check(self) -> dict:
         """Returns the the sanity check
 
         Returns:
-            Response -- 200 HTTP code
+            Dict -- 200 HTTP code
         """
 
-        return self._res.parse({"code": 200})
+        return {
+            "status": "success",
+            "code": 200,
+        }
 
-
-    def send_openapi(self) -> Response:
+    def send_openapi(self) -> dict:
         """Returns the parsed OpenAPI specification as JSON
 
         Returns:
-            Response -- JSON object containing the OpenAPI specification
+            Dict -- JSON object containing the OpenAPI specification
         """
 
-        return self._res.parse({"code": 200, "data": self._spec.get()})
+        return {
+            "status": "success",
+            "code": 200,
+            "data": self._spec.get(),
+        }
 
-
-    def send_redoc(self) -> Response:
+    def send_redoc(self) -> dict:
         """Returns the ReDoc clients
 
         Returns:
-            Response -- The HTML file containing the ReDoc client setup
+            Dict -- The HTML file containing the ReDoc client setup
         """
 
-        return self._res.parse({"html": "redoc.html"})
-
+        return {
+            "status": "success",
+            "html": "redoc.html",
+        }
 
     def _parse_error_to_json(self, exc):
         return self._res.error(
