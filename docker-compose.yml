@@ -64,7 +64,6 @@ services:
       - ./gateway:/usr/src/app
       - files-data:/usr/src/files
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
-      - upload-tmp-dir:/usr/src/files/tmp
       - $LOG_DIR:/usr/src/logs
     environment:
       UPLOAD_TMP_DIR: /usr/src/files/tmp
@@ -200,6 +199,5 @@ volumes:
   process-api-data:
   eo-discovery-cache:
   files-data:
-  upload-tmp-dir:
 
 # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
