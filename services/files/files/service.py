@@ -1,15 +1,17 @@
 """ Files Management """
 
-import os
 import glob
 import logging
+import os
+import re
+from typing import List, Optional, Tuple
+
 from nameko.rpc import rpc
 from werkzeug.security import safe_join
-from typing import List, Optional
-import re
 
 service_name = "files"
 LOGGER = logging.getLogger('standardlog')
+
 
 class ServiceException(Exception):
     """ServiceException raises if an exception occurs while processing the
@@ -66,9 +68,10 @@ class FilesService:
 
     files_folder = "files"
     jobs_folder = "jobs"
+    result_folder = "results"
 
     @rpc
-    def download(self, user_id: str, path: str, source_dir: str = 'files'):
+    def download(self, user_id: str, path: str, source_dir: str = 'files') -> dict:
         """The request will ask the back-end to get the job using the job_id.
 
         Arguments:
@@ -88,15 +91,15 @@ class FilesService:
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=["files/" + user_id]).to_dict()
+            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
             
     @rpc
-    def download_result(self, user_id: str, job_id: str, path: str):
+    def download_result(self, user_id: str, job_id: str, path: str) -> dict:
         """
         
         """
         try:
-            complete_path = os.path.join(self.get_user_folder(user_id), "jobs", job_id, "result", path)
+            complete_path = os.path.join(self.get_user_folder(user_id), "jobs", job_id, self.result_folder, path)
             
             return {
                 "status": "success",
@@ -106,11 +109,10 @@ class FilesService:
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=["files/" + user_id]).to_dict()
-
+            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
     @rpc
-    def delete(self, user_id: str, path: str):
+    def delete(self, user_id: str, path: str) -> dict:
         """The request will ask the back-end to delete the file at the given path.
 
         Arguments:
@@ -127,10 +129,10 @@ class FilesService:
                 "code": 204
             }
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=["/files/" + user_id]).to_dict()
+            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
     @rpc
-    def get_all(self, user_id: str):
+    def get_all(self, user_id: str) -> dict:
         """The request will ask the back-end to get all available files for the given user.
 
         Arguments:
@@ -155,15 +157,15 @@ class FilesService:
                 "code": 200,
                 "data": {
                     "files": file_list,
-                    "links": ["/files/" + user_id]
+                    "links": [],
                 }
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=["/files/" + user_id]).to_dict()
+            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
     @rpc
-    def upload(self, user_id: str, path: str, tmp_path: str):
+    def upload(self, user_id: str, path: str, tmp_path: str) -> dict:
         """The request will ask the back-end to create a new job using the description send in the request body.
 
         Arguments:
@@ -188,12 +190,12 @@ class FilesService:
                 "code": 200,
                 "data": {
                     "path": complete_path[len(self.get_user_folder(user_id)) + 1:],
-                    "size": self.sizeof_fmt(os.path.getsize(complete_path))
+                    "size": self.sizeof_fmt(os.path.getsize(complete_path)),
                 }
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=["/files/" + user_id]).to_dict()
+            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
             
             
     @rpc
@@ -202,7 +204,7 @@ class FilesService:
         Returns a list of output files produced by a job.
         """
         try:            
-            file_list = glob.glob(os.path.join(self.get_user_folder(user_id=user_id), 'jobs', job_id, 'result', '*'))
+            file_list = glob.glob(os.path.join(self.get_user_folder(user_id=user_id), 'jobs', job_id, self.result_folder, '*'))
             if file_list:
                 response = {
                     "status": "success",
@@ -251,53 +253,60 @@ class FilesService:
             job_id {str} -- The identifier for the job
         """
         _, jobs_dir = self.setup_user_folder(user_id)
-        to_create = os.path.join(jobs_dir, job_id + os.path.sep + "results")
+        to_create = os.path.join(jobs_dir, job_id, self.result_folder)
+        if not os.path.exists(to_create):
+            os.makedirs(to_create)
 
-        if os.path.exists(to_create):
-            shutil.rmtree(to_create)
-        os.makedirs(to_create)
-
-    def authorize_file(self, user_id: str, path: str, source_dir: str = 'files'):
+    def authorize_file(self, user_id: str, path: str, source_dir: str = 'files') -> Tuple[bool, Optional[dict], Optional[str]]:
         """
         Returns Exception if path is invalid or points to a directory.
 
         Arguments:
             user_id {str} -- The identifier of the user
             path {str} -- The file path to the requested file
+
+        Returns
+            Tuple[bool, Optional[dict], Optional[str]] -- if authorized, error, complete path
         """
 
         # check pattern
         complete_path = self.get_allowed_path(user_id, path.split('/'), source_dir=source_dir)
         if not complete_path:
-            return False, FileOperationUnsupported(404, user_id, "{0}: This path is not valid.".format(path),
-                                                   internal=False, links=["/files/" + user_id]).to_dict(), None
+            return False, FileOperationUnsupported(404, user_id, f"{path}: This path is not valid.",
+                                                   internal=False, links=[]).to_dict(), None
 
         if os.path.isdir(complete_path):
-            return False, FileOperationUnsupported(400, user_id, "{0}: Must be a file, no directory.".format(path),
-                                                   internal=False, links=["/files/" + user_id]).to_dict(), None
+            return False, FileOperationUnsupported(400, user_id, f"{path}: Must be a file, no directory.",
+                                                   internal=False, links=[]).to_dict(), None
         return True, None, complete_path
 
-    def authorize_existing_file(self, user_id: str, path: str, source_dir: str = 'files'):
+    def authorize_existing_file(self, user_id: str, path: str, source_dir: str = 'files') -> Tuple[bool, Optional[dict], Optional[str]]:
         """
         Returns Exception if path is invalid, points to a directory or does not exist.
 
         Arguments:
             user_id {str} -- The identifier of the user
             path {str} -- The file path to the requested file
+
+        Returns:
+            Tuple[bool, Optional[dict], Optional[str]] -- if authorized, error, complete path
         """
         valid, err, complete_path = self.authorize_file(user_id, path, source_dir=source_dir)
         if valid:
             # check existence
             if not os.path.exists(complete_path):
-                return False, FileOperationUnsupported(404, user_id, "{0}: No such file or directory.".format(path),
-                                                       internal=False, links=["/files/" + user_id]).to_dict(), None
+                return False, FileOperationUnsupported(404, user_id, f"{path}: No such file or directory.",
+                                                       internal=False, links=[]).to_dict(), None
         return valid, err, complete_path
 
     def get_allowed_path(self, user_id: str, parts: List[str], source_dir: str = 'files') -> Optional[str]:
-        """ Checks if file has an allowed extension
+        """ Checks if file matches allowed pattern.
 
         Arguments:
             parts {List[str]} -- List of all directories and the filename
+
+        Returns:
+            Optional[str] -- The path, if it is allowed otherwise None
         """
         files_dir, jobs_dir = self.setup_user_folder(user_id)
         if source_dir == 'files':
