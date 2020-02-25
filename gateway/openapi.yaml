@@ -136,14 +136,14 @@ paths:
   /jobs/{job_id}/estimate:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1jobs~1{job_id}~1estimate
 
-  /files/{user_id}:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1files~1{user_id}
-  /files/{user_id}/{path}:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1files~1{user_id}~1{path}
+  /files:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files
+  /files/{path}:
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files~1{path}
       
-  /downloads/{user_id}/{job_id}/{path}:
+  /downloads/{job_id}/{path}:
     parameters: 
-      - $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1files~1{user_id}
+      - $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files
     get:
       responses:
         '200':

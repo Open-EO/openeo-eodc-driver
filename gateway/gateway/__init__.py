@@ -45,13 +45,11 @@ with ctx:
     gateway.add_endpoint("/me", func=auth_service.get_user_info, auth=True, rpc=False)
 
     # File Management
-    gateway.add_endpoint("/files/<user_id>", func=rpc.files.get_all, auth=True, validate=True)
-    gateway.add_endpoint("/files/<user_id>/<path>", func=rpc.files.download, auth=True, validate=True)
-    gateway.add_endpoint("/files/<user_id>/<path>", func=rpc.files.upload, auth=True, validate=True, methods=["PUT"])
-    gateway.add_endpoint("/files/<user_id>/<path>", func=rpc.files.delete, auth=True, validate=True, methods=["DELETE"])
-    gateway.add_endpoint("/downloads/<user_id>/<job_id>/<path>", func=rpc.files.download_result, auth=True, validate=True)
-    # /files/<user_id>/<path> delete
-    # /subscription
+    gateway.add_endpoint("/files", func=rpc.files.get_all, auth=True, validate=True)
+    gateway.add_endpoint("/files/<path>", func=rpc.files.download, auth=True, validate=True)
+    gateway.add_endpoint("/files/<path>", func=rpc.files.upload, auth=True, validate=True, methods=["PUT"])
+    gateway.add_endpoint("/files/<path>", func=rpc.files.delete, auth=True, validate=True, methods=["DELETE"])
+    gateway.add_endpoint("/downloads/<job_id>/<path>", func=rpc.files.download_result, auth=True, validate=True)
 
     # Process Graph Management
     gateway.add_endpoint("/validation", func=rpc.process_graphs.validate, auth=True, validate=True, methods=["POST"])
