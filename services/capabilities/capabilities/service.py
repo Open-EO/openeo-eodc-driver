@@ -67,10 +67,20 @@ class CapabilitiesService:
             return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
 
     @rpc
-    def get_output_formats(self, user_id: str=None):
+    def get_file_formats(self, user_id: str=None):
         """Lists output formats available at the back-end.
         """
+        # TODO get this information from config
         try:
+            default_in = {
+                "GTiff": {
+                    "gis_data_types": [
+                        "raster"
+                    ],
+                    "parameters": {}
+                },
+            }
+
             default_out = {
                 "GTiff": {
                   "gis_data_types": [
@@ -94,7 +104,10 @@ class CapabilitiesService:
             return {
                 "status": "success",
                 "code": 200,
-                "data": default_out,
+                "data": {
+                    "output": default_out,
+                    "input": default_in,
+                },
             }
         except Exception as exp:
             return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()

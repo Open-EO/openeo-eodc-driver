@@ -25,7 +25,7 @@ with ctx:
     # Capabilities
     gateway.add_endpoint("/", func=gateway.send_index, rpc=False)
     gateway.add_endpoint("/.well-known/openeo", func=rpc.capabilities.get_versions, auth=False, validate=True)
-    gateway.add_endpoint("/output_formats", func=rpc.capabilities.get_output_formats, auth=False, validate=True)
+    gateway.add_endpoint("/file_formats", func=rpc.capabilities.get_file_formats, auth=False, validate=True)
     gateway.add_endpoint("/udf_runtimes", func=rpc.capabilities.get_udfs, auth=False, validate=True)
     gateway.add_endpoint("/service_types", func=rpc.capabilities.get_service_types, auth=False, validate=True)
 
@@ -63,7 +63,7 @@ with ctx:
     gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.process_graphs.delete, auth=True, validate=True, methods=["DELETE"])
 
     # Job Management
-    # /output_formats -> implemented under 'Capabilities'
+    # /file_formats -> implemented under 'Capabilities'
     gateway.add_endpoint("/result", func=rpc.eodatareaders_rpc.process_sync, auth=True, validate=True, methods=["POST"])
     gateway.add_endpoint("/jobs", func=rpc.jobs.get_all, auth=True, validate=True)
     gateway.add_endpoint("/jobs", func=rpc.jobs.create, auth=True, validate=True, methods=["POST"])

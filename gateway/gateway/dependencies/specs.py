@@ -1,5 +1,5 @@
 """ OpenAPISpecParser, OpenAPISpecException """
-
+import json
 from os import path, environ, mkdir
 from pathlib import Path
 from flask import request
@@ -352,7 +352,12 @@ class OpenAPISpecParser:
                 response = get(url)
                 if not response.status_code == 200:
                     raise OpenAPISpecException("Spec File '{0}' does not exist!".format(url))
-                self._specs_cache[url] = response.json()
+                try:
+                    self._specs_cache[url] = response.json()
+                except json.JSONDecodeError:
+                    # openEO 1.0.0 uses yaml instead of json for reference specs
+                    # TODO once each endpoint uses 1.0.0 the file should be directly loaded as yaml
+                    self._specs_cache[url] = load(response.text)
 
             ref = self._specs_cache[url]
             element = self._specs_cache[url]
