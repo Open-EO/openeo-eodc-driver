@@ -17,6 +17,45 @@ info:
   license:
     name: Apache 2.0
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+  x-backend_version: 1.0.0
+  x-stac_version: 0.6.2
+  x-stac_id: 'x.x.x'  # needs to be added
+  x-production: true  # for openEO 1.0.0 false may make sense
+  # billing?
+  x-file_formats:
+    input:
+      - name: GTiff
+        title: GeoTiff
+        gis_data_types:
+          - raster
+    output:
+      - name: GTiff
+        title: GeoTiff
+        gis_data_types:
+          - raster
+      - name: png
+        title: PNG
+        gis_data_types:
+          - raster
+      - name: jpeg
+        title: JPEG
+        gis_data_types:
+          - raster
+
+  x-udf:
+    - name: Python
+      default: 3.6
+      versions:
+        - 3.6:
+            libraries:
+                numpy:
+                  version: 1.18.1
+                  links:
+                    href: https://docs.scipy.org/doc/
+                    rel: about
+
+# add service types
+
 externalDocs:
   description: EODC API Description
   url: 'https://openeo.eodc.eu/redoc'
@@ -42,15 +81,15 @@ tags:
 
 paths:
   /:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1
   /.well-known/openeo:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1.well-known~1openeo
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1.well-known~1openeo
   /file_formats:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1file_formats
   /udf_runtimes:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1udf_runtimes
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1udf_runtimes
   /service_types:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1service_types
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1service_types
 
   /collections:
     get:

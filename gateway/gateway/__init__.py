@@ -23,11 +23,12 @@ with ctx:
     gateway.add_endpoint("/redoc", func=gateway.send_redoc, rpc=False)  # NB extension of openEO API
 
     # Capabilities
-    gateway.add_endpoint("/", func=gateway.send_index, rpc=False)
-    gateway.add_endpoint("/.well-known/openeo", func=rpc.capabilities.get_versions, auth=False, validate=True)
-    gateway.add_endpoint("/file_formats", func=rpc.capabilities.get_file_formats, auth=False, validate=True)
-    gateway.add_endpoint("/udf_runtimes", func=rpc.capabilities.get_udfs, auth=False, validate=True)
-    gateway.add_endpoint("/service_types", func=rpc.capabilities.get_service_types, auth=False, validate=True)
+    gateway.add_endpoint("/", func=rpc.capabilities.send_index, auth=False, validate=True, parse_spec=True)
+    gateway.add_endpoint("/.well-known/openeo", func=rpc.capabilities.get_versions, auth=False, validate=True, parse_spec=True)
+    gateway.add_endpoint("/file_formats", func=rpc.capabilities.get_file_formats, auth=False, validate=True, parse_spec=True)
+    # gateway.add_endpoint("/conformance", func=rpc.capabilities)
+    gateway.add_endpoint("/udf_runtimes", func=rpc.capabilities.get_udfs, auth=False, validate=True, parse_spec=True)
+    gateway.add_endpoint("/service_types", func=rpc.capabilities.get_service_types, auth=False, validate=True, parse_spec=True)
 
     # EO Data Discovery
     gateway.add_endpoint("/collections", func=rpc.data.get_all_products, auth=False, validate=True)

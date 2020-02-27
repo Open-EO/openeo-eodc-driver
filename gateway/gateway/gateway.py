@@ -70,9 +70,9 @@ class Gateway:
 
         CORS(self._service, resources=resources, vary_header=False, supports_credentials=True)
 
-    def add_endpoint(self, route: str, func: Callable, methods: list = ["GET"], auth: bool = False,
+    def add_endpoint(self, route: str, func: Callable, methods: list = None, auth: bool = False,
                      role: str = 'user', validate: bool = False, validate_custom: bool = False, rpc: bool = True,
-                     is_async: bool = False):
+                     is_async: bool = False, parse_spec: bool = False):
         """Adds an endpoint to the API, pointing to a Remote Procedure Call (RPC) of a microservice or a
         local function. Serval decorators can be added to enable authentication, authorization and input
         validation.
@@ -84,19 +84,27 @@ class Gateway:
         Keyword Arguments:
             methods {list} -- The allowed HTTP methods (default: {["GET"]})
             auth {bool} -- Activate authentication (default: {False})
-            admin {bool} -- Activate authorization (default: {False})
+            role {str} -- User role, e.g.: admin (default: {user})
             validate {bool} -- Activate input validation (default: {False})
+            validate_custom {bool} -- Activate custom input validation, enable parameter parsing (default: {False})
             rpc {bool} -- Setting up a RPC or local function (default: {True})
             is_async {bool} -- Flags if the function should be executed asynchronously (default: {False})
+            parse_spec {bool} -- Flag if the function should get the openapi specs (default: {False})
         """
 
+        if not methods:
+            methods = ["GET"]
         # Method OPTIONS needed for CORS
         if "OPTIONS" not in methods:
             methods.append("OPTIONS")
         methods = [method.upper() for method in methods]
 
-        # Use either rpc or local wrapper to handle responses and exceptions
-        func = self._rpc_wrapper(func, is_async) if rpc else self._local_wrapper(func)
+        if parse_spec:
+            api_spec = self._spec.get()
+            func = self._rpc_wrapper(func, is_async, api_spec=api_spec) if rpc else self._local_wrapper(func, api_spec=api_spec)
+        else:
+            # Use either rpc or local wrapper to handle responses and exceptions
+            func = self._rpc_wrapper(func, is_async) if rpc else self._local_wrapper(func)
         if validate:
             func = self._validate(func)
         elif validate_custom:
@@ -203,7 +211,7 @@ class Gateway:
         })
         return SQLAlchemy(self._service)
 
-    def _rpc_wrapper(self, f: Callable, is_async) -> Union[Callable, Response]:
+    def _rpc_wrapper(self, f: Callable, is_async, **kwargs) -> Union[Callable, Response]:
         """The RPC decorator function handles responses and exception when communicating
         with the services. This method is a single aggregated endpoint to handle the service
         communications.
@@ -218,7 +226,7 @@ class Gateway:
 
         def decorator(**arguments):
             try:
-                rpc_response = f.call_async(**arguments) if is_async else f(**arguments)
+                rpc_response = f.call_async(**arguments, **kwargs) if is_async else f(**arguments, **kwargs)
 
                 if is_async:
                     return self._res.parse({"code": 202}) # Fixed, since this currently just applies to POST /jobs/{job_id}/results
@@ -231,7 +239,7 @@ class Gateway:
                 return self._res.error(exc)
         return decorator
 
-    def _local_wrapper(self, f: Callable) -> Union[Callable, Response]:
+    def _local_wrapper(self, f: Callable, **kwargs) -> Union[Callable, Response]:
         """The local decorator function handles responses and exception for non-RPC functions.
 
         Arguments:
@@ -242,7 +250,7 @@ class Gateway:
         """
         def local_decorator(**arguments):
             try:
-                local_response = f(**arguments)
+                local_response = f(**arguments, **kwargs)
 
                 if local_response["status"] == "error":
                     return self._res.error(local_response)
@@ -254,40 +262,6 @@ class Gateway:
                 return self._res.error(exc)
 
         return local_decorator
-
-    def send_index(self) -> dict:
-        """The function returns a JSON object containing the available routes and
-        HTTP methods as defined in the OpenAPI specification.
-
-        Returns:
-            Dict -- JSON object contains the API capabilities
-        """
-        # TODO: Index endpoint should be own rpc endpoint to be more generic
-        # TODO: Implement billing plans
-
-        api_spec = self._spec.get()
-
-        endpoints = []
-        for path_name, methods in api_spec["paths"].items():
-            endpoint = {"path": path_name, "methods": []}
-            for method_name, _ in methods.items():
-                if method_name in ("get", "post", "patch", "put", "delete"):
-                    endpoint["methods"].append(method_name.upper())
-            endpoints.append(endpoint)
-
-        capabilities = {
-            "api_version": api_spec["info"]["version"],
-            "backend_version": "x.x.x", # TODO include backend version
-            "title": api_spec["info"]["title"],
-            "description": api_spec["info"]["description"],
-            "endpoints": endpoints
-        }
-
-        return {
-            "status": "success",
-            "code": 200,
-            "data": capabilities,
-        }
 
     def send_health_check(self) -> dict:
         """Returns the the sanity check
