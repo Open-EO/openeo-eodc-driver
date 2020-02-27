@@ -228,16 +228,6 @@ class OpenAPISpecParser:
 
                 # TODO validation
 
-                # for file management user_id is also passed as url param > has to match the user_id from the token
-                if parameters.get("user_id", None):
-                    if not parameters.pop("user_id") == user_id:
-                        return APIException(
-                            msg="The passed user_id has to match the token.",
-                            code=400,
-                            service="gateway",
-                            user_id=user_id,
-                            internal=False)
-
                 return f(user_id=user_id,  **parameters)
             except Exception as exc:
                 return self._res.error(exc)
