@@ -56,9 +56,8 @@ with ctx:
     gateway.add_endpoint("/validation", func=rpc.process_graphs.validate, auth=True, validate=True, methods=["POST"])
     # /result -> implemented under 'Job Management'
     gateway.add_endpoint("/process_graphs", func=rpc.process_graphs.get_all, auth=True, validate=True)
-    gateway.add_endpoint("/process_graphs", func=rpc.process_graphs.create, auth=True, validate=True, methods=["POST"])
     gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.process_graphs.get, auth=True, validate=True)
-    gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.process_graphs.modify, auth=True, validate=True, methods=["PATCH"])
+    gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.process_graphs.put, auth=True, validate=True, methods=["PUT"])
     gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.process_graphs.delete, auth=True, validate=True, methods=["DELETE"])
 
     # Job Management

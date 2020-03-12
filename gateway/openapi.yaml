@@ -158,11 +158,11 @@ paths:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/server_error
 
   /process_graphs/{process_graph_id}:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1process_graphs~1{process_graph_id}
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1process_graphs~1{process_graph_id}
   /process_graphs:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1process_graphs
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1process_graphs
   /validation:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1validation
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1validation
 
   /jobs:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1jobs

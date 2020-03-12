@@ -1,0 +1,91 @@
+{
+  "categories": ["catA", "catB", "catC"],
+  "deprecated": false,
+  "description": "Computes the Enhanced Vegetation Index (EVI). It is computed with the following formula: `2.5 * (NIR - RED) / (1 + NIR + 6*RED + -7.5*BLUE)`.",
+  "experimental": false,
+  "id": "evi",
+  "parameters":
+  [
+    {
+      "default": null,
+      "deprecated": false,
+      "description": "Value from the red band.",
+      "experimental": false,
+      "name": "red",
+      "optional": false,
+      "schema":
+      [
+        {
+          "maxItems": null,
+          "maximum": null,
+          "minItems": 0.0,
+          "minimum": null,
+          "parameters": [],
+          "pattern": null,
+          "subtype": null,
+          "type": ["number"]
+        }
+      ]
+    },
+    {
+      "default": null,
+      "deprecated": false,
+      "description": "Value from the blue band.",
+      "experimental": false,
+      "name": "blue",
+      "optional": false,
+      "schema":
+      [
+        {
+          "maxItems": null,
+          "maximum": null,
+          "minItems": 0.0,
+          "minimum": null,
+          "parameters": [],
+          "pattern": null,
+          "subtype": null,
+          "type": ["number"]
+        }
+      ]
+    },
+    {
+      "default": null,
+      "deprecated": false,
+      "description": "Value from the near infrared band.",
+      "experimental": false,
+      "name": "nir",
+      "optional": false,
+      "schema":
+      [
+        {
+          "maxItems": null,
+          "maximum": null,
+          "minItems": 0.0,
+          "minimum": null,
+          "parameters": [],
+          "pattern": null,
+          "subtype": null,
+          "type": ["number"]
+        }
+      ]
+    }
+  ],
+  "returns":
+  {
+    "description": "Computed EVI.",
+    "schema":
+    [
+      {
+        "maxItems": null,
+        "maximum": null,
+        "minItems": 0.0,
+        "minimum": null,
+        "parameters": [],
+        "pattern": null,
+        "subtype": null,
+        "type": ["number"]
+      }
+    ]
+  },
+  "summary": "Enhanced Vegetation Index"
+}
