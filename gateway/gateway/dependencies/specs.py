@@ -32,7 +32,7 @@ class OpenAPISpecParser:
     _specs_cache = {}
 
     def __init__(self, response_handler):
-        self.ref_control = []
+        self.url_stack = []
         self._parse_specs()
         self._res = response_handler
     
@@ -325,13 +325,8 @@ class OpenAPISpecParser:
         Returns:
             dict -- The paresed dict containing all resolved references
         """
-        # There are case where objects can be stored recursively within themselves. In such a case the same ref url is
-        # reevaluated over and over again. To prevent endless recursion a dict {'recursive': ''} is returned when the
-        # same url is consecutively requested for more then 5 times.
-        # It is not enough to check the last url only as there are situations where the same url is evaluated twice
-        # within two different recursion cycles directly after each other.
-        self.ref_control.append(in_url)
-        if len(self.ref_control) > 4 and all([self.ref_control[-i] == in_url for i in [1, 2, 3]]):
+        self.url_stack.insert(0, in_url)
+        if self._is_repeated_recursion():
             return {'recursive': ''}
 
         url_split = in_url.split("#")
@@ -372,9 +367,46 @@ class OpenAPISpecParser:
                 element = element[p]
         
         element = self._map_type(type(element))(element, ref)
+        del self.url_stack[0]
         return element
-    
-    def _route(self, route:str) -> dict:
+
+    def _is_repeated_recursion(self) -> bool:
+        """
+        Checks that call each other continuously.
+
+        There are both case where objects can be stored recursively within themselves and where objects call each other
+        mutually. To prevent endless recursion a dict {'recursive': ''} is returned when the same url pattern is
+        detected within a recursion stack.
+
+        Returns:
+            bool -- Whether last url is part of an already existing url stack
+        """
+
+        new_url = self.url_stack[0]
+        pattern = [new_url]
+        for i, cur_url in enumerate(self.url_stack):
+
+            if i == 0:
+                continue
+            if i > len(self.url_stack) / 2:
+                return False
+
+            if cur_url == new_url:
+                p_len = len(pattern)
+                # check for self calling objects
+                if p_len == 1:
+                    return True
+
+                # Check for more complex patterns (several object together create a circle)
+                for stack_url, pattern_url in zip(self.url_stack[i+1: i+p_len], pattern[1:]):
+                    if not stack_url == pattern_url:
+                        pattern.append(cur_url)  # pattern not yet found, continue with next stack elem
+                        break
+                    return True  # pattern found in stack -> same recursion cycle happened already
+            else:
+                pattern.append(cur_url)  # not the same as new_url -> cannot be start of repeating pattern
+
+    def _route(self, route: str) -> dict:
         """Returns the OpenAPI specification for the requested route.
         
         Arguments:
