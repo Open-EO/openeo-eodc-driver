@@ -4,12 +4,12 @@ from os import path, environ, mkdir
 from pathlib import Path
 from flask import request
 from werkzeug.exceptions import BadRequest
-from yaml import load
 from requests import get
 from typing import Callable, Any
 from re import match
 import uuid
 import base64
+from yaml import full_load
 
 from .response import APIException
 
@@ -243,8 +243,8 @@ class OpenAPISpecParser:
             raise OpenAPISpecException("Spec File '{0}' does not exist!".format(self._openapi_file))
         
         with open(self._openapi_file, "r") as yaml_file:
-            specs = load(yaml_file)
-        
+            specs = full_load(yaml_file)
+
         self._specs = self._parse_dict(specs, specs)
         self._specs_cache = {}
 
@@ -351,7 +351,7 @@ class OpenAPISpecParser:
                 except json.JSONDecodeError:
                     # openEO 1.0.0 uses yaml instead of json for reference specs
                     # TODO once each endpoint uses 1.0.0 the file should be directly loaded as yaml
-                    self._specs_cache[url] = load(response.text)
+                    self._specs_cache[url] = full_load(response.text)
 
             ref = self._specs_cache[url]
             element = self._specs_cache[url]
