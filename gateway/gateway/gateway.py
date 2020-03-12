@@ -177,7 +177,6 @@ class Gateway:
         Returns:
             OpenAPISpecParser -- The instantiated OpenAPISpecParser object
         """
-
         return OpenAPISpecParser(self._res)
 
     def _init_auth(self) -> AuthenticationHandler:

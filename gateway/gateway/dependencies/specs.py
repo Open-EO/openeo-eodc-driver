@@ -1,14 +1,15 @@
 """ OpenAPISpecParser, OpenAPISpecException """
+import base64
 import json
+import uuid
 from os import path, environ, mkdir
 from pathlib import Path
-from flask import request
-from werkzeug.exceptions import BadRequest
-from requests import get
-from typing import Callable, Any
 from re import match
-import uuid
-import base64
+from typing import Callable, Any
+
+from flask import request
+from requests import get
+from werkzeug.exceptions import BadRequest
 from yaml import full_load
 
 from .response import APIException
@@ -23,7 +24,7 @@ class OpenAPISpecException(Exception):
 
 class OpenAPISpecParser:
     """The OpenAPISpecParser parses the OpenAPI v3 specifcations that are referred in JSON files.
-    The specifications can be queried for definitions of routes. 
+    The specifications can be queried for definitions of routes.
     """
 
     root_dir = Path(__file__).parent.parent.parent
@@ -35,16 +36,16 @@ class OpenAPISpecParser:
         self.url_stack = []
         self._parse_specs()
         self._res = response_handler
-    
+
     def get(self):
         """Returns the OpenAPI specification
         """
 
         return self._specs
-    
-    def validate_api(self, endpoints:object):
+
+    def validate_api(self, endpoints: object):
         """Validated if the input endpoints and the available HTTP options
-        of the API are consistent to the OpenAPI specification of the Flask 
+        of the API are consistent to the OpenAPI specification of the Flask
         API gateway.
 
         Arguments:
@@ -73,66 +74,69 @@ class OpenAPISpecParser:
                     method = method.lower()
                     if method in allowed_methods:
                         status[endpoint].append(method)
-        
+
         # Check if the target matches the status
         difference = set(target.keys()).symmetric_difference(status.keys())
 
         if len(difference) > 0:
-            raise OpenAPISpecException("The gateway or specification is missing the endpoint(s) '{0}'".format(str(difference)))
+            raise OpenAPISpecException(
+                "The gateway or specification is missing the endpoint(s) '{0}'".format(str(difference)))
 
         for status_endpoint, status_methods in status.items():
             target_methods = target[status_endpoint]
 
             method_diff = set(target_methods).symmetric_difference(status_methods)
             if len(method_diff) > 0:
-                raise OpenAPISpecException("The gateway or specification is missing the HTTP method(s) '{0}' at endpoint '{1}'".format(str(method_diff), status_endpoint))               
-    
-    def validate_custom(self, f:Callable) -> Callable:
+                raise OpenAPISpecException(
+                    "The gateway or specification is missing the HTTP method(s) '{0}' at endpoint '{1}'".format(
+                        str(method_diff), status_endpoint))
+
+    def validate_custom(self, f: Callable) -> Callable:
         """
         Passes the **kwargs onward.
-        
+
         Arguments:
             f {Callable} -- The function to be wrapped
-        
+
         Returns:
             Callable -- The validator decorator
         """
-        
+
         def decorator(**kwargs):
-            
+
             if not request.json:
                 params = {}
             else:
                 params = request.json
-            
+
             # Only needed /credentials/basic endpoint (needed data are in headers, not in data)
             if 'Authorization' in request.headers and 'Basic' in request.headers['Authorization']:
                 encoded = request.headers['Authorization'].split(' ')[1]
                 decoded = base64.b64decode(encoded).decode('utf8')
                 params['username'], params['password'] = decoded.split(':')
-            
+
             return f(**params)
-        
+
         return decorator
-        
-    def validate(self, f:Callable) -> Callable:
-        """Creates a validator decorator for the input parameters in the query and path of HTTP requests 
+
+    def validate(self, f: Callable) -> Callable:
+        """Creates a validator decorator for the input parameters in the query and path of HTTP requests
         and the request bodies of e.g. POST requests.
-        
+
         Arguments:
             f {Callable} -- The function to be wrapped
-        
+
         Returns:
             Callable -- The validator decorator
         """
 
-        def get_parameter_specs(req_path, req_method, route_specs):
-            # # Get the OpenAPI parameter specifications for the route and method
-            # req_path = str(request.url_rule).replace("<","{").replace(">","}")
-            # req_method = request.method.lower()
-            # route_specs = self._route(req_path)
+        def get_parameter_specs():
+            # Get the OpenAPI parameter specifications for the route and method
+            req_path = str(request.url_rule).replace("<", "{").replace(">", "}")
+            req_method = request.method.lower()
+            route_specs = self._route(req_path)
 
-            # Check if parameters requried in request specification
+            # Check if parameters required in request specification
             in_root = route_specs.keys() & {"parameters"}
             in_method = route_specs[req_method].keys() & {"parameters", "requestBody"}
 
@@ -161,7 +165,8 @@ class OpenAPISpecParser:
                         elif content.get("application/octet-stream"):
                             body = content["application/octet-stream"]["schema"]
                         else:
-                            raise Exception("Input format {0} is currently not supported".format(', '.join(content.keys())))
+                            raise Exception(
+                                "Input format {0} is currently not supported".format(', '.join(content.keys())))
                         if "required" in body:
                             param_required += body["required"]
                         if "properties" in body:
@@ -186,7 +191,7 @@ class OpenAPISpecParser:
                     else:
                         parameters = {**parameters, **request.get_json()}
                 return parameters
-            except BadRequest as exp:
+            except BadRequest:
                 raise APIException(
                     msg="Error while parsing JSON in payload. Please make sure the JSON is valid.",
                     code=400,
@@ -205,33 +210,17 @@ class OpenAPISpecParser:
             return {"tmp_path": temp_file}
 
         def decorator(user_id=None, **kwargs):
-
-            type_map = {
-                "integer": lambda x: int(x),
-                "float": lambda x: float(x),
-                "double": lambda x: float(x),
-                "boolean": lambda x: bool(x),
-                "string": lambda x: str(x)
-            }
-
             try:
-                # Get the OpenAPI parameter specifications for the route and method
-                req_path = str(request.url_rule).replace("<","{").replace(">","}")
-                req_method = request.method.lower()
-                route_specs = self._route(req_path)
-                
-                has_params, specs, required = get_parameter_specs(req_path, req_method, route_specs)
-
+                has_params, specs, required = get_parameter_specs()
                 if not has_params:
                     return f(user_id=user_id)
 
                 parameters = get_parameters()
-
                 # TODO validation
-
-                return f(user_id=user_id,  **parameters)
+                return f(user_id=user_id, **parameters)
             except Exception as exc:
                 return self._res.error(exc)
+
         return decorator
 
     def _parse_specs(self):
@@ -241,20 +230,20 @@ class OpenAPISpecParser:
 
         if not path.isfile(self._openapi_file):
             raise OpenAPISpecException("Spec File '{0}' does not exist!".format(self._openapi_file))
-        
+
         with open(self._openapi_file, "r") as yaml_file:
             specs = full_load(yaml_file)
 
         self._specs = self._parse_dict(specs, specs)
         self._specs_cache = {}
 
-    def _map_type(self, in_type:Any) -> Callable:
-        """Maps the input types to the corresponding functions and 
+    def _map_type(self, in_type: Any) -> Callable:
+        """Maps the input types to the corresponding functions and
         returns a lambda function that can be called.
-        
+
         Arguments:
             in_type {Any} -- The input value type
-        
+
         Returns:
             Callable -- The mapped lambda function
         """
@@ -265,17 +254,17 @@ class OpenAPISpecParser:
         }
 
         return types.get(in_type, lambda value, ref: value)
-    
-    def _parse_dict(self, in_dict:dict, ref:dict) -> dict:
+
+    def _parse_dict(self, in_dict: dict, ref: dict) -> dict:
         """Parses the input dict by resolving all references §ref that may
         be in included in it.
 
         The function is recursive.
-        
+
         Arguments:
             in_dict {dict} -- The input dict
             ref {dict} -- The base reference schema
-        
+
         Returns:
             dict -- The parsed output dict
         """
@@ -293,16 +282,16 @@ class OpenAPISpecParser:
                 out_dict[key] = self._map_type(type(value))(value, ref)
         return out_dict
 
-    def _parse_list(self, in_list:list, ref:dict) -> list:
+    def _parse_list(self, in_list: list, ref: dict) -> list:
         """Parses a list object by iterating each element and parsing it
         based on its type.
 
         The function is recursive.
-        
+
         Arguments:
             in_list {list} -- The input list
             ref {dict} -- The base reference schema
-        
+
         Returns:
             list -- The parsed output list
         """
@@ -311,21 +300,21 @@ class OpenAPISpecParser:
         for value in in_list:
             out_list.append(self._map_type(type(value))(value, ref))
         return out_list
-    
-    def _parse_ref(self, in_url:str, ref:dict) -> dict:
+
+    def _parse_ref(self, in_url: str, ref: dict) -> dict:
         """Parses the references that are passed to the function. The reference
-        may point to the input base reference schema or an external schema. External 
+        may point to the input base reference schema or an external schema. External
         schemas are downloaded and parsed. Download schemas are cached to improve the
         processing speed.
 
         The function is recursive.
-        
+
         Arguments:
             in_url {str} -- The input URL
             ref {dict} -- The base reference schema
-        
+
         Returns:
-            dict -- The paresed dict containing all resolved references
+            dict -- The parsed dict containing all resolved references
         """
         self.url_stack.insert(0, in_url)
         if self._is_repeated_recursion():
@@ -337,14 +326,15 @@ class OpenAPISpecParser:
         # Parse encoded characters
         path = []
         for p_el in url_split[1].split("/"):
-            if p_el: path.append(p_el.replace('~0', '~').replace('~1', '/'))
-        
-        # If it is a local reference use base ref schema, selse dowload teh reference, if it is
-        # not included in the specification chache
+            if p_el:
+                path.append(p_el.replace('~0', '~').replace('~1', '/'))
+
+        # If it is a local reference use base ref schema, else download the reference, if it is
+        # not included in the specification cache
         if not url:
             element = ref
         else:
-            if not url in self._specs_cache:
+            if url not in self._specs_cache:
                 response = get(url)
                 if not response.status_code == 200:
                     raise OpenAPISpecException("Spec File '{0}' does not exist!".format(url))
@@ -357,17 +347,17 @@ class OpenAPISpecParser:
 
             ref = self._specs_cache[url]
             element = self._specs_cache[url]
-        
+
         # Find the referenced element and parse it recursively
         for p in path:
-            # Check for array refference e.g. /collections/parameters[0]
+            # Check for array reference e.g. /collections/parameters[0]
             if match(r"\w*\[\d+\]$", p):
                 p = p.split("[")
                 idx = int(p[1][:-1])
                 element = element[p[0]][idx]
             else:
                 element = element[p]
-        
+
         element = self._map_type(type(element))(element, ref)
         del self.url_stack[0]
         return element
@@ -410,10 +400,10 @@ class OpenAPISpecParser:
 
     def _route(self, route: str) -> dict:
         """Returns the OpenAPI specification for the requested route.
-        
+
         Arguments:
             route {str} -- The route (e.g. '/processes')
-        
+
         Returns:
             dict -- Returns the matching specification
         """
@@ -424,4 +414,3 @@ class OpenAPISpecParser:
 
         # raise OpenAPISpecException("Specification of route '{0}' " \
         #                            "does not exist".format(route))
-    

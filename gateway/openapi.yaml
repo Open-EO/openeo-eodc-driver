@@ -48,11 +48,11 @@ info:
       versions:
         - 3.6:
             libraries:
-                numpy:
-                  version: 1.18.1
-                  links:
-                    href: https://docs.scipy.org/doc/
-                    rel: about
+              numpy:
+                version: 1.18.1
+                links:
+                  href: https://docs.scipy.org/doc/
+                  rel: about
 
 # add service types
 
@@ -83,11 +83,11 @@ paths:
   /:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1
   /.well-known/openeo:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1.well-known~1openeo
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1.well-known~1openeo
   /file_formats:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1file_formats
   /udf_runtimes:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1udf_runtimes
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1udf_runtimes
   /service_types:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1service_types
 
@@ -120,7 +120,6 @@ paths:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/client_error
         5XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/server_error
-      
   /collections/{collection_id}:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1collections~1{collection_id}
 
@@ -137,7 +136,7 @@ paths:
     post:
       summary: Creates a new process.
       description: >-
-        The request will ask the back-end to create a new process using the desciption send in the request body.
+        The request will ask the back-end to create a new process using the description send in the request body.
         \n\n **Note:** This is an extension of the EODC API!
       tags:
         - Process Discovery
@@ -178,10 +177,10 @@ paths:
   /files:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files
   /files/{path}:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files~1{path}
-      
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files~1{path}
+
   /downloads/{job_id}/{path}:
-    parameters: 
+    parameters:
       - $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files
     get:
       responses:

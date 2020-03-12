@@ -77,7 +77,8 @@ class AuthenticationHandler:
             role: {str} -- The required role to execute the function (user / admin)
 
         Raises:
-            APIException -- If the token is not valid or the user does not have the required role
+            APIException -- If the token is not valid or the user does not have the required role or the token is not
+                structured correctly.
 
         Returns:
             str -- The user_id corresponding to the token
@@ -101,7 +102,7 @@ class AuthenticationHandler:
                 internal=False)
         return user_id
 
-    def _verify_basic_token(self, token) -> Optional[str]:
+    def _verify_basic_token(self, token: str) -> Optional[str]:
         """
         Verifies a basic token.
 
