@@ -32,6 +32,7 @@ class OpenAPISpecParser:
     _specs_cache = {}
 
     def __init__(self, response_handler):
+        self.ref_control = []
         self._parse_specs()
         self._res = response_handler
     
@@ -324,6 +325,14 @@ class OpenAPISpecParser:
         Returns:
             dict -- The paresed dict containing all resolved references
         """
+        # There are case where objects can be stored recursively within themselves. In such a case the same ref url is
+        # reevaluated over and over again. To prevent endless recursion a dict {'recursive': ''} is returned when the
+        # same url is consecutively requested for more then 5 times.
+        # It is not enough to check the last url only as there are situations where the same url is evaluated twice
+        # within two different recursion cycles directly after each other.
+        self.ref_control.append(in_url)
+        if len(self.ref_control) > 4 and all([self.ref_control[-i] == in_url for i in [1, 2, 3]]):
+            return {'recursive': ''}
 
         url_split = in_url.split("#")
         url = url_split[0]
