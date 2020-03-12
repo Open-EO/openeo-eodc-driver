@@ -287,6 +287,8 @@ class OpenAPISpecParser:
                 out_dict[key] = value
             elif key == "$ref" and isinstance(value, str):
                 return self._parse_ref(value, ref)
+            elif isinstance(key, str) and key.startswith('x-'):
+                out_dict[key[2:]] = self._map_type(type(value))(value, ref)
             else:
                 out_dict[key] = self._map_type(type(value))(value, ref)
         return out_dict
