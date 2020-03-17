@@ -222,7 +222,8 @@ class ProcessesGraphService:
             if not ids_equal:
                 return exception
 
-            validate = self.validate(user_id, process_graph_json)
+            process_graph_only = deepcopy(process_graph_args.get('process_graph'))
+            validate = self.validate(user_id, process_graph_only)
             if validate["status"] == "error":
                 return validate
 
