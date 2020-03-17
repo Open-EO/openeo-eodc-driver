@@ -155,7 +155,7 @@ class ProcessesGraphService:
             return {
                 "status": "success",
                 "code": 200,
-                "data": ProcessGraphFullSchema().dump(process_graph).data
+                "data": ProcessGraphFullSchema().dump(process_graph)
             }
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
@@ -199,7 +199,7 @@ class ProcessesGraphService:
                 "status": "success",
                 "code": 200,
                 "data": {
-                    "processes": ProcessGraphShortSchema(many=True).dump(process_graphs).data,
+                    "processes": ProcessGraphShortSchema(many=True).dump(process_graphs),
                     "links": [],
                 }
             }

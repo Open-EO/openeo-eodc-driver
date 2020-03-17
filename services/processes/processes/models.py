@@ -2,7 +2,6 @@
 # TODO: Further normalize models
 
 from datetime import datetime
-from uuid import uuid4
 
 from sqlalchemy import Column, String, TEXT, DateTime, JSON, Boolean, Enum, Float, CheckConstraint, ForeignKey, Integer
 from sqlalchemy.ext.declarative import declarative_base
@@ -101,10 +100,10 @@ class Schema(Base):
     min_items = Column(Float, default=0, nullable=True)
     max_items = Column(Float, nullable=True)
 
-    types = relationship('SchemaType', cascade='all, delete, delete-orphan')  # can also be a single one
+    types = relationship('SchemaType', cascade='all, delete, delete-orphan')
     enums = relationship('SchemaEnum', cascade='all, delete, delete-orphan')
     parameters = relationship('Parameter', foreign_keys='Parameter.schema_id', cascade='all, delete, delete-orphan')
-    items = relationship('Schema', foreign_keys='Schema.schema_id', cascade='all, delete, delete-orphan')  # can also be a single one
+    items = relationship('Schema', foreign_keys='Schema.schema_id', cascade='all, delete, delete-orphan')
 
     __table_args__ = (
         CheckConstraint(min_items >= 0, name='check_min_items_positive'),
@@ -125,7 +124,7 @@ class SchemaEnum(Base):
 
     __tablename__ = 'schema_enum'
 
-    id = Column(Integer, primary_key=True, default='se-' + str(uuid4()))
+    id = Column(Integer, primary_key=True)
     schema_id = Column(Integer, ForeignKey('schema.id'))
     name = Column(TEXT, nullable=False)
 
