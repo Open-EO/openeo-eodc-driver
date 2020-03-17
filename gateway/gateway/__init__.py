@@ -35,10 +35,6 @@ with ctx:
     gateway.add_endpoint("/collections/<collection_id>", func=rpc.data.get_product_detail, auth=False, validate=True)
     gateway.add_endpoint("/collections", func=rpc.data.refresh_cache, auth=True, validate=True, methods=["POST"], role="admin") # NB extension of openEO API
 
-    # Process Discovery
-    gateway.add_endpoint("/processes", func=rpc.processes.get_all, auth=False, validate=True)
-    gateway.add_endpoint("/processes", func=rpc.processes.create, auth=True, validate=True, methods=["POST"], role="admin") # NB extension of openEO API
-
     # Account Management
     gateway.add_endpoint("/credentials/oidc", func=auth_service.send_openid_connect_discovery, rpc=False)
     gateway.add_endpoint("/credentials/basic", func=auth_service.get_basic_token, rpc=False, validate_custom=True)
@@ -51,13 +47,16 @@ with ctx:
     gateway.add_endpoint("/files/<path>", func=rpc.files.delete, auth=True, validate=True, methods=["DELETE"])
     gateway.add_endpoint("/downloads/<job_id>/<path>", func=rpc.files.download_result, auth=True, validate=True)
 
+    # Process Discovery
+    gateway.add_endpoint("/processes", func=rpc.processes.get_all_predefined, auth=False, validate=True)
+    gateway.add_endpoint("/processes/<process_name>", func=rpc.processes.add_predefined, auth=True, validate=True, methods=["POST"], role="admin") # NB extension of openEO API
     # Process Graph Management
-    gateway.add_endpoint("/validation", func=rpc.process_graphs.validate, auth=True, validate=True, methods=["POST"])
+    gateway.add_endpoint("/validation", func=rpc.processes.validate, auth=True, validate=True, methods=["POST"])
+    gateway.add_endpoint("/process_graphs", func=rpc.processes.get_all_user_defined, auth=True, validate=True)
+    gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.processes.get_user_defined, auth=True, validate=True)
+    gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.processes.put_user_defined, auth=True, validate=True, methods=["PUT"])
+    gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.processes.delete, auth=True, validate=True, methods=["DELETE"])
     # /result -> implemented under 'Job Management'
-    gateway.add_endpoint("/process_graphs", func=rpc.process_graphs.get_all, auth=True, validate=True)
-    gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.process_graphs.get, auth=True, validate=True)
-    gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.process_graphs.put, auth=True, validate=True, methods=["PUT"])
-    gateway.add_endpoint("/process_graphs/<process_graph_id>", func=rpc.process_graphs.delete, auth=True, validate=True, methods=["DELETE"])
 
     # Job Management
     # /file_formats -> implemented under 'Capabilities'

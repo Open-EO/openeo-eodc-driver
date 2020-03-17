@@ -1,13 +1,15 @@
 from collections import Callable
 
-from .models import ProcessGraph, Parameter, Return, Category, Base, Schema, SchemaType, SchemaEnum, ExceptionCode, Link
+from .models import ProcessGraph, Parameter, Return, Category, Base, Schema, SchemaType, SchemaEnum, ExceptionCode, \
+    Link, ProcessDefinitionEnum
 
 
-def construct_process_graph(user_id: str, process_graph_json: dict) -> ProcessGraph:
+def construct_process_graph(user_id: str, process_graph_json: dict, process_definition: ProcessDefinitionEnum) -> ProcessGraph:
 
     db_process_graph = ProcessGraph(
         openeo_id=process_graph_json.get('id'),
         user_id=user_id,
+        process_definition=process_definition,
         summary=process_graph_json.get('summary'),
         description=process_graph_json.get('description'),
         deprecated=process_graph_json.get('deprecated', False),
@@ -41,9 +43,10 @@ def construct_process_graph(user_id: str, process_graph_json: dict) -> ProcessGr
 
 def add_single_or_multiple(item_name: str, dict_: dict, add_func: Callable, parent: Base):
     if item_name in dict_:
-        if isinstance(dict_[item_name], list):
-            for schema_type in dict_[item_name]:
-                parent = add_func(parent, schema_type)
+        item = dict_[item_name]
+        if isinstance(item, list):
+            for sub in item:
+                parent = add_func(parent, sub)
         else:
             parent = add_func(parent, dict_[item_name])
     return parent
@@ -63,9 +66,9 @@ def add_schema_type(parent: Base, schema_type: str):
     return parent
 
 
-def add_enum(parent: Base, enum: dict):
+def add_enum(parent: Base, enum: str):
     parent.enums.append(SchemaEnum(
-        name=enum.get('name'),
+        name=enum,
     ))
     return parent
 
@@ -85,8 +88,10 @@ def add_schema(parent: Base, schema: dict):
     if 'parameters' in schema:
         for param in schema['parameters']:
             db_schema = add_parameter(db_schema, param)
-    db_schema = add_single_or_multiple('type', schema, add_schema_type, db_schema)
-    db_schema = add_single_or_multiple('items', schema, add_schema, db_schema)
+    if 'type' in schema:
+        db_schema = add_single_or_multiple('type', schema, add_schema_type, db_schema)
+    if 'items' in schema:
+        db_schema = add_single_or_multiple('items', schema, add_schema, db_schema)
 
     parent.schemas.append(db_schema)
     return parent
@@ -101,12 +106,7 @@ def add_parameter(parent: Base, param: dict):
         experimental=param.get('experimental', False),
         default=str(param['default']) if 'default' in param else None,
     )
-    if 'schema' in param:
-        if isinstance(param['schema'], list):
-            for schema in param['schema']:
-                db_param = add_schema(db_param, schema)
-        if isinstance(param['schema'], dict):
-            db_param = add_schema(db_param, param['schema'])
+    db_param = add_single_or_multiple('schema', param['schema'], add_schema, db_param)
     parent.parameters.append(db_param)
     return parent
 
@@ -115,7 +115,7 @@ def add_return(parent: Base, returns: dict):
     db_return = Return(
         description=returns.get('description', None),
     )
-    db_return = add_schema(db_return, returns['schema'])
+    db_return = add_single_or_multiple('schema', returns, add_schema, db_return)
     parent.returns = db_return
     return parent
 

@@ -67,7 +67,7 @@ class SchemaSchema(BaseSchema):
     maximum = fields.Float(required=False)
     minItems = fields.Float(required=False, default=0, attribute='min_items')
     maxItems = fields.Float(required=False, attribute='max_items')
-    items = fields.List(fields.Nested(SchemaEnumSchema), required=False)
+    items = fields.List(fields.Nested(SchemaEnumSchema), attribute='schemas', required=False)
 
 
 class ReturnSchema(BaseSchema):
@@ -83,7 +83,7 @@ class ExceptionSchema(BaseSchema):
     description = fields.String(required=False)
     message = fields.String(required=True)
     http = fields.Integer(required=False, default=400)
-    error_code = fields.Integer(required=True)
+    error_code = fields.String(required=True)
 
 
 class LinkSchema(BaseSchema):

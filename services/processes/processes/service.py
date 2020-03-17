@@ -1,5 +1,4 @@
 """ Process Discovery """
-
 import json
 import logging
 import os
@@ -13,7 +12,7 @@ from nameko_sqlalchemy import DatabaseSession
 from openeo_pg_parser_python.validate_process_graph import validate_graph
 
 from .dependencies import NodeParser, Validator
-from .models import Base, ProcessGraph
+from .models import Base, ProcessGraph, ProcessDefinitionEnum
 from .repository import construct_process_graph
 from .schema import ProcessGraphShortSchema, ProcessGraphFullSchema
 
@@ -27,7 +26,7 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, service: str, code: int, user_id: str, msg: str, internal: bool=True, links: list=None):
+    def __init__(self, service: str, code: int, user_id: str, msg: str, internal: bool = True, links: list = None):
         if not links:
             links = []
         self._service = service
@@ -57,89 +56,17 @@ class ServiceException(Exception):
 
 
 class ProcessesService:
-    """Discovery of processes that are available at the back-end.
-    """
-
-    name = service_name
-
-    @rpc
-    def create(self, user_id: str = None, **process_args) -> dict:
-        """The request will ask the back-end to create get process from GitHub using the name send in the request body.
-
-        Keyword Arguments:
-            user_id {str} -- The identifier of the user (default: {None})
-
-        Example:
-            /processes POST is only reachable for admin users > authentication token needed in header!
-            The POST body needs to be a dict: {'process-name': {'additional_key': 'value'}}
-            Currently process-name has to be process defined within OpenEO
-            > see: https://raw.githubusercontent.com/Open-EO/openeo-processes/
-            The additional key-value pairs can also have complex structures. They will be added at the top-level of the
-            json file.
-        """
-        process_args_str = ', '.join(process_args.keys())
-        try:
-            for process_name, process_extension in process_args.items():
-                process_ext = process_name + '.json'
-                response = requests.get(os.environ.get('PROCESSES_GITHUB_URL') + process_ext)
-                with open(os.path.join(os.environ.get('PROCESS_API_DIR'), process_ext), 'w+') as f:
-                    process_json = json.loads(response.content)
-                    process_json.update(process_extension)
-                    json.dump(process_json, f)
-
-            return {
-                "status": "success",
-                "code": 201,
-                "headers": {"Location": "/processes"},
-                "service_data": ' ,'.join(process_args_str)
-            }
-
-        except Exception as exp:
-            return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
-
-    @rpc
-    def get_all(self, user_id: str = None) -> dict:
-        """The request asks the back-end for available processes and returns detailed process descriptions.
-
-        Keyword Arguments:
-            user_id {str} -- The identifier of the user (default: {None})
-        """
-
-        try:
-            process_list = []
-            for filename in os.listdir(os.environ.get('PROCESS_API_DIR')):
-                if os.path.splitext(filename)[-1] == '.json':
-                    process_path = os.path.join(os.environ.get('PROCESS_API_DIR'), filename)
-                    with open(process_path, 'r') as f:
-                        process_list.append(json.load(f))
-
-            return_data = {
-                "processes": process_list,
-                "links": []  # TODO add links
-            }
-            return {
-                "status": "success",
-                "code": 200,
-                "data": return_data
-            }
-
-        except Exception as exp:
-            return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
-
-
-class ProcessesGraphService:
     """Management of stored process graphs.
     """
 
-    name = "process_graphs"
+    name = service_name
     db = DatabaseSession(Base)
-    process_service = RpcProxy("processes")
     data_service = RpcProxy("data")
     validator = Validator()
     node_parser = NodeParser()
 
     @rpc
-    def get(self, user_id: str, process_graph_id: str) -> dict:
+    def get_user_defined(self, user_id: str, process_graph_id: str) -> dict:
         """The request will ask the back-end to get the process graph using the process_graph_id.
 
         Keyword Arguments:
@@ -147,7 +74,10 @@ class ProcessesGraphService:
             process_graph_id {str} -- The id of the process graph
         """
         try:
-            process_graph = self.db.query(ProcessGraph).filter_by(openeo_id=process_graph_id).first()
+            process_graph = self.db.query(ProcessGraph) \
+                .filter_by(openeo_id=process_graph_id) \
+                .filter_by(process_definition=ProcessDefinitionEnum.user_defined) \
+                .first()
             valid, response = self._exist_and_authorize(user_id, process_graph_id, process_graph)
             if not valid:
                 return response
@@ -187,14 +117,41 @@ class ProcessesGraphService:
                                     links=[]).to_dict()
 
     @rpc
-    def get_all(self, user_id: str) -> dict:
+    def get_all_predefined(self, user_id: str = None) -> dict:
+        """The request asks the back-end for available predefined processes and returns detailed process descriptions.
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user (default: {None})
+        """
+
+        try:
+            process_graphs = self.db.query(ProcessGraph) \
+                .filter_by(process_definition=ProcessDefinitionEnum.predefined) \
+                .order_by(ProcessGraph.created_at).all()
+            return {
+                "status": "success",
+                "code": 200,
+                "data": {
+                    "processes": ProcessGraphFullSchema(many=True).dump(process_graphs),
+                    "links": []
+                }
+            }
+
+        except Exception as exp:
+            return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
+
+    @rpc
+    def get_all_user_defined(self, user_id: str) -> dict:
         """The request will ask the back-end to get all available process graphs for the given user.
 
         Keyword Arguments:
             user_id {str} -- The identifier of the user
         """
         try:
-            process_graphs = self.db.query(ProcessGraph).filter_by(user_id=user_id).order_by(ProcessGraph.created_at).all()
+            process_graphs = self.db.query(ProcessGraph) \
+                .filter_by(process_definition=ProcessDefinitionEnum.user_defined) \
+                .filter_by(user_id=user_id) \
+                .order_by(ProcessGraph.created_at).all()
             return {
                 "status": "success",
                 "code": 200,
@@ -208,7 +165,47 @@ class ProcessesGraphService:
                                     links=["#tag/Job-Management/paths/~1process_graphs/get"]).to_dict()
 
     @rpc
-    def put(self, user_id: str, process_graph_id: str, **process_graph_args) -> dict:
+    def add_predefined(self, process_name: str, user_id: str = None, **process_args) -> dict:
+        """The request will ask the back-end to add the process from GitHub using the process_name.
+
+        Arguments:
+            process_name {str} -- The name of the process to create in the database
+
+        Keyword Arguments:
+            user_id {str} -- The identifier of the user (default: {None})
+        """
+
+        # TODO how to handle process extensions
+        try:
+            process_url = os.environ.get('PROCESSES_GITHUB_URL') + process_name + '.json'
+            process_graph_response = requests.get(process_url)
+            if process_graph_response.status_code != 200:
+                return ServiceException(ProcessesService.name, process_graph_response.status_code,
+                                        user_id, str(process_graph_response.text)).to_dict()
+            process_graph_json = json.loads(process_graph_response.content)
+
+            process_graph = self.db.query(ProcessGraph).filter_by(openeo_id=process_name).first()
+            if process_graph:
+                self.db.delete(process_graph)
+                self.db.commit()
+
+            process_graph = construct_process_graph(user_id=user_id, process_graph_json=process_graph_json,
+                                                    process_definition=ProcessDefinitionEnum.predefined)
+            self.db.add(process_graph)
+            self.db.commit()
+
+            return {
+                "status": "success",
+                "code": 201,
+                "headers": {"Location": "/processes"},
+                "service_data": {'process_name': process_name}
+            }
+
+        except Exception as exp:
+            return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
+
+    @rpc
+    def put_user_defined(self, user_id: str, process_graph_id: str, **process_graph_args) -> dict:
         """The request will ask the back-end to create a new process graph using the description send in the request body.
 
         Keyword Arguments:
@@ -236,7 +233,8 @@ class ProcessesGraphService:
                 self.db.delete(process_graph)
                 self.db.commit()
 
-            process_graph = construct_process_graph(user_id, process_graph_json)
+            process_graph = construct_process_graph(user_id=user_id, process_graph_json=process_graph_json,
+                                                    process_definition=ProcessDefinitionEnum.user_defined)
             self.db.add(process_graph)
             self.db.commit()
 
@@ -263,7 +261,7 @@ class ProcessesGraphService:
 
         try:
             # Get all processes
-            process_response = self.process_service.get_all()
+            process_response = self.get_all_predefined()
             if process_response["status"] == "error":
                 return process_response
             processes = process_response["data"]["processes"]
@@ -273,7 +271,7 @@ class ProcessesGraphService:
             # if product_response["status"] == "error":
             #     return product_response
             # products = product_response["data"]
-            
+
             valid = validate_graph(process_graph, processes_list=processes)
             if valid:
                 output_errors = []
@@ -299,7 +297,7 @@ class ProcessesGraphService:
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
 
-    def _exist_and_authorize(self, user_id: str, process_graph_id: str, process_graph: ProcessGraph)\
+    def _exist_and_authorize(self, user_id: str, process_graph_id: str, process_graph: ProcessGraph) \
             -> Tuple[bool, Optional[dict]]:
         """Return Exception if given ProcessGraph does not exist or User is not allowed to access this ProcessGraph.
 
@@ -318,10 +316,10 @@ class ProcessesGraphService:
 
         return True, None
 
-    def _check_exists(self, user_id: str, process_graph_id: str, process_graph: ProcessGraph)\
+    def _check_exists(self, user_id: str, process_graph_id: str, process_graph: ProcessGraph) \
             -> Tuple[bool, Optional[dict]]:
         if process_graph is None:
-            return False, ServiceException(ProcessesGraphService.name, 400, user_id,
+            return False, ServiceException(ProcessesService.name, 400, user_id,
                                            f"The process_graph with id '{process_graph_id}' does not exist.",
                                            internal=False,
                                            links=[]).to_dict()
@@ -332,12 +330,12 @@ class ProcessesGraphService:
             return True, None
         # TODO: Permission (e.g admin)
         if process_graph.user_id != user_id:
-            return False, ServiceException(ProcessesGraphService.name, 401, user_id,
+            return False, ServiceException(ProcessesService.name, 401, user_id,
                                            "You are not allowed to access this resource.", internal=False,
                                            links=[]).to_dict()
         return True, None
 
-    def _check_process_graph_ids_are_equal(self, user_id: str, process_graph_id: str, process_graph_json: dict)\
+    def _check_process_graph_ids_are_equal(self, user_id: str, process_graph_id: str, process_graph_json: dict) \
             -> Tuple[bool, Optional[dict]]:
         """
         Checks the process_graph_id submitted as path parameter and inside the body are equal.
@@ -351,7 +349,7 @@ class ProcessesGraphService:
             bool, Optional[dict] -- whether to two process ids match, and if not a service exception to return
         """
         if not process_graph_id == process_graph_json['id']:
-            return False, ServiceException(ProcessesGraphService.name, 400, user_id,
+            return False, ServiceException(ProcessesService.name, 400, user_id,
                                            f"The process_graph_id submitted as path parameter has to be the same as the"
                                            f"'id' in the process graph json.", internal=False, links=[]).to_dict()
         return True, None

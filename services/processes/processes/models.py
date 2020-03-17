@@ -2,6 +2,7 @@
 # TODO: Further normalize models
 
 from datetime import datetime
+import enum
 
 from sqlalchemy import Column, String, TEXT, DateTime, JSON, Boolean, Enum, Float, CheckConstraint, ForeignKey, Integer
 from sqlalchemy.ext.declarative import declarative_base
@@ -21,6 +22,17 @@ data_type_enum = Enum(
 )
 
 
+class ProcessDefinitionEnum(enum.Enum):
+    predefined = 'predefined'
+    user_defined = 'user_defined'
+
+
+process_definition_enum = Enum(
+    ProcessDefinitionEnum,
+    name='process_definition',
+)
+
+
 class ProcessGraph(Base):
     """ Base model for a process graph. """
 
@@ -29,7 +41,8 @@ class ProcessGraph(Base):
     # Defined by user? how to set different one / add hash
     id = Column(Integer, primary_key=True)
     openeo_id = Column(String, unique=True)
-    user_id = Column(String, nullable=False)
+    process_definition = Column(process_definition_enum, nullable=False)
+    user_id = Column(String, nullable=True)
     summary = Column(String, nullable=True)
     description = Column(TEXT, nullable=True)
     deprecated = Column(Boolean, default=False, nullable=True)
@@ -51,8 +64,8 @@ class Parameter(Base):
     __tablename__ = 'parameter'
 
     id = Column(Integer, primary_key=True)
-    process_graph_id = Column(Integer, ForeignKey('process_graph.id'), nullable=False)
-    schema_id = Column(Integer, ForeignKey('schema.id'), nullable=True)
+    process_graph_id = Column(Integer, ForeignKey('process_graph.id'))
+    schema_id = Column(Integer, ForeignKey('schema.id'))
     name = Column(String, nullable=False)
     description = Column(TEXT, nullable=False)
     optional = Column(Boolean, default=False, nullable=True)
@@ -60,7 +73,6 @@ class Parameter(Base):
     experimental = Column(Boolean, default=False, nullable=True)
     default = Column(TEXT, nullable=True)  # could be any type - create separate column to store type?
 
-    # can also be a List or a single one
     schemas = relationship('Schema', foreign_keys='Schema.parameter_id', cascade='all, delete, delete-orphan')
 
 
@@ -69,7 +81,7 @@ class Return(Base):
     __tablename__ = 'return'
 
     id = Column(Integer, primary_key=True)
-    process_graph_id = Column(Integer, ForeignKey('process_graph.id'), nullable=False)
+    process_graph_id = Column(Integer, ForeignKey('process_graph.id'))
     description = Column(TEXT, nullable=True)
 
     # can also be a single one
@@ -103,7 +115,7 @@ class Schema(Base):
     types = relationship('SchemaType', cascade='all, delete, delete-orphan')
     enums = relationship('SchemaEnum', cascade='all, delete, delete-orphan')
     parameters = relationship('Parameter', foreign_keys='Parameter.schema_id', cascade='all, delete, delete-orphan')
-    items = relationship('Schema', foreign_keys='Schema.schema_id', cascade='all, delete, delete-orphan')
+    schemas = relationship('Schema', foreign_keys='Schema.schema_id', cascade='all, delete, delete-orphan')
 
     __table_args__ = (
         CheckConstraint(min_items >= 0, name='check_min_items_positive'),
@@ -138,7 +150,7 @@ class ExceptionCode(Base):
     description = Column(TEXT, nullable=True)
     message = Column(TEXT, nullable=False)
     http = Column(Integer, default=400)
-    error_code = Column(Integer, nullable=False)
+    error_code = Column(String, nullable=False)
 
 
 class Link(Base):
