@@ -13,8 +13,7 @@ from openeo_pg_parser_python.validate_process_graph import validate_graph
 
 from .dependencies import NodeParser, Validator
 from .models import Base, ProcessGraph, ProcessDefinitionEnum
-from .repository import construct_process_graph
-from .schema import ProcessGraphShortSchema, ProcessGraphFullSchema
+from .schema import ProcessGraphShortSchema, ProcessGraphFullSchema, ProcessGraphPredefinedSchema
 
 service_name = "processes"
 LOGGER = logging.getLogger('standardlog')
@@ -132,7 +131,7 @@ class ProcessesService:
                 "status": "success",
                 "code": 200,
                 "data": {
-                    "processes": ProcessGraphFullSchema(many=True).dump(process_graphs),
+                    "processes": ProcessGraphPredefinedSchema(many=True).dump(process_graphs),
                     "links": []
                 }
             }
@@ -165,7 +164,7 @@ class ProcessesService:
                                     links=["#tag/Job-Management/paths/~1process_graphs/get"]).to_dict()
 
     @rpc
-    def add_predefined(self, process_name: str, user_id: str = None, **process_args) -> dict:
+    def put_predefined(self, process_name: str, user_id: str = None, **process_args) -> dict:
         """The request will ask the back-end to add the process from GitHub using the process_name.
 
         Arguments:
@@ -182,15 +181,15 @@ class ProcessesService:
             if process_graph_response.status_code != 200:
                 return ServiceException(ProcessesService.name, process_graph_response.status_code,
                                         user_id, str(process_graph_response.text)).to_dict()
-            process_graph_json = json.loads(process_graph_response.content)
 
             process_graph = self.db.query(ProcessGraph).filter_by(openeo_id=process_name).first()
             if process_graph:
                 self.db.delete(process_graph)
                 self.db.commit()
 
-            process_graph = construct_process_graph(user_id=user_id, process_graph_json=process_graph_json,
-                                                    process_definition=ProcessDefinitionEnum.predefined)
+            process_graph_json = json.loads(process_graph_response.content)
+            process_graph_json['process_definition'] = ProcessDefinitionEnum.predefined
+            process_graph = ProcessGraphPredefinedSchema().load(process_graph_json)
             self.db.add(process_graph)
             self.db.commit()
 
@@ -214,8 +213,7 @@ class ProcessesService:
         """
 
         try:
-            process_graph_json = deepcopy(process_graph_args)
-            ids_equal, exception = self._check_process_graph_ids_are_equal(user_id, process_graph_id, process_graph_json)
+            ids_equal, exception = self._check_process_graph_ids_are_equal(user_id, process_graph_id, process_graph_args)
             if not ids_equal:
                 return exception
 
@@ -233,8 +231,9 @@ class ProcessesService:
                 self.db.delete(process_graph)
                 self.db.commit()
 
-            process_graph = construct_process_graph(user_id=user_id, process_graph_json=process_graph_json,
-                                                    process_definition=ProcessDefinitionEnum.user_defined)
+            process_graph_args['process_definition'] = ProcessDefinitionEnum.user_defined
+            process_graph_args['user_id'] = user_id
+            process_graph = ProcessGraphPredefinedSchema().load(process_graph_args)
             self.db.add(process_graph)
             self.db.commit()
 
@@ -266,11 +265,11 @@ class ProcessesService:
                 return process_response
             processes = process_response["data"]["processes"]
 
-            # # Get all products
-            # product_response = self.data_service.get_all_products()
-            # if product_response["status"] == "error":
-            #     return product_response
-            # products = product_response["data"]
+            # Get all products
+            product_response = self.data_service.get_all_products()
+            if product_response["status"] == "error":
+                return product_response
+            products = product_response["data"]
 
             valid = validate_graph(process_graph, processes_list=processes)
             if valid:

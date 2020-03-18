@@ -49,7 +49,7 @@ with ctx:
 
     # Process Discovery
     gateway.add_endpoint("/processes", func=rpc.processes.get_all_predefined, auth=False, validate=True)
-    gateway.add_endpoint("/processes/<process_name>", func=rpc.processes.add_predefined, auth=True, validate=True, methods=["POST"], role="admin") # NB extension of openEO API
+    gateway.add_endpoint("/processes/<process_name>", func=rpc.processes.put_predefined, auth=True, validate=True, methods=["PUT"], role="admin") # NB extension of openEO API
     # Process Graph Management
     gateway.add_endpoint("/validation", func=rpc.processes.validate, auth=True, validate=True, methods=["POST"])
     gateway.add_endpoint("/process_graphs", func=rpc.processes.get_all_user_defined, auth=True, validate=True)

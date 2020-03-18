@@ -134,7 +134,7 @@ paths:
     get:
       $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1processes/get
   /processes/{process_name}:
-    post:
+    put:
       summary: Creates a new process.
       description: >-
         The request will ask the back-end to create a new process using the description send in the request body.

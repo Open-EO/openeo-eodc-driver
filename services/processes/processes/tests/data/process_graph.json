@@ -132,13 +132,13 @@
   "links": [
     {
       "rel": "latest-version",
-      "href": "link to the latest version of this deprecated process",
+      "href": "https://open-eo.github.io/openeo-api/#operation/describe-custom-process",
       "type": "the type of this link",
       "title": "the title of this link"
     },
     {
       "rel": "latest-version2",
-      "href": "link to the latest version of this deprecated process2",
+      "href": "https://open-eo.github.io/openeo-api/#tag/Capabilities",
       "type": "the type of this link2",
       "title": "the title of this link2"
     }

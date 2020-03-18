@@ -1,5 +1,4 @@
-""" Models """
-# TODO: Further normalize models
+""" Processes Models """
 
 from datetime import datetime
 import enum
@@ -38,9 +37,8 @@ class ProcessGraph(Base):
 
     __tablename__ = 'process_graph'
 
-    # Defined by user? how to set different one / add hash
     id = Column(Integer, primary_key=True)
-    openeo_id = Column(String, unique=True)
+    openeo_id = Column(String, unique=True)  # Defined by user? how to set different one / add hash
     process_definition = Column(process_definition_enum, nullable=False)
     user_id = Column(String, nullable=True)
     summary = Column(String, nullable=True)
@@ -48,7 +46,6 @@ class ProcessGraph(Base):
     deprecated = Column(Boolean, default=False, nullable=True)
     experimental = Column(Boolean, default=False, nullable=True)
     process_graph = Column(JSON, default={})  # TODO also store as separate table!
-    examples = Column(JSON, nullable=True)  # check either process_graph or argument is set TODO store as separate table
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -57,6 +54,23 @@ class ProcessGraph(Base):
     returns = relationship('Return', uselist=False, cascade='all, delete, delete-orphan')
     exceptions = relationship('ExceptionCode', cascade='all, delete, delete-orphan')
     links = relationship('Link', cascade='all, delete, delete-orphan')
+    examples = relationship('Example', cascade='all, delete, delete-orphan')
+
+
+class Example(Base):
+
+    __tablename__ = 'example'
+
+    id = Column(Integer, primary_key=True)
+    process_graph_id = Column(Integer, ForeignKey('process_graph.id'))
+    process_graph = Column(JSON, nullable=True)  # TODO also store as separate table!
+    arguments = Column(JSON, nullable=True)
+    title = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    returns = Column(String, nullable=True)
+    return_type = Column(String, nullable=True)
+
+    CheckConstraint('process_graph' != None or 'arguments' != None, name='check_process_graph_or_arguments')
 
 
 class Parameter(Base):
@@ -71,7 +85,8 @@ class Parameter(Base):
     optional = Column(Boolean, default=False, nullable=True)
     deprecated = Column(Boolean, default=False, nullable=True)
     experimental = Column(Boolean, default=False, nullable=True)
-    default = Column(TEXT, nullable=True)  # could be any type - create separate column to store type?
+    default = Column(TEXT, nullable=True)
+    default_type = Column(String, nullable=True)
 
     schemas = relationship('Schema', foreign_keys='Schema.parameter_id', cascade='all, delete, delete-orphan')
 
@@ -84,7 +99,6 @@ class Return(Base):
     process_graph_id = Column(Integer, ForeignKey('process_graph.id'))
     description = Column(TEXT, nullable=True)
 
-    # can also be a single one
     schemas = relationship('Schema', foreign_keys='Schema.return_id', cascade='all, delete, delete-orphan')
 
 
@@ -104,18 +118,18 @@ class Schema(Base):
     id = Column(Integer, primary_key=True)
     parameter_id = Column(Integer, ForeignKey('parameter.id'), nullable=True)
     return_id = Column(Integer, ForeignKey('return.id'), nullable=True)
-    schema_id = Column(Integer, ForeignKey('schema.id'), nullable=True)
     subtype = Column(String, nullable=True)
     pattern = Column(String, nullable=True)
     minimum = Column(Float, nullable=True)
     maximum = Column(Float, nullable=True)
     min_items = Column(Float, default=0, nullable=True)
     max_items = Column(Float, nullable=True)
+    items = Column(JSON, nullable=True)
+    additional = Column(JSON, nullable=True)
 
     types = relationship('SchemaType', cascade='all, delete, delete-orphan')
     enums = relationship('SchemaEnum', cascade='all, delete, delete-orphan')
     parameters = relationship('Parameter', foreign_keys='Parameter.schema_id', cascade='all, delete, delete-orphan')
-    schemas = relationship('Schema', foreign_keys='Schema.schema_id', cascade='all, delete, delete-orphan')
 
     __table_args__ = (
         CheckConstraint(min_items >= 0, name='check_min_items_positive'),
