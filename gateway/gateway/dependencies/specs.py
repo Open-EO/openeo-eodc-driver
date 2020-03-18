@@ -377,26 +377,12 @@ class OpenAPISpecParser:
         new_url = self.url_stack[0]
         pattern = [new_url]
         for i, cur_url in enumerate(self.url_stack):
-
             if i == 0:
                 continue
-            if i > len(self.url_stack) / 2:
-                return False
-
             if cur_url == new_url:
-                p_len = len(pattern)
-                # check for self calling objects
-                if p_len == 1:
-                    return True
-
-                # Check for more complex patterns (several object together create a circle)
-                for stack_url, pattern_url in zip(self.url_stack[i+1: i+p_len], pattern[1:]):
-                    if not stack_url == pattern_url:
-                        pattern.append(cur_url)  # pattern not yet found, continue with next stack elem
-                        break
-                    return True  # pattern found in stack -> same recursion cycle happened already
+                return True
             else:
-                pattern.append(cur_url)  # not the same as new_url -> cannot be start of repeating pattern
+                pattern.append(cur_url)
 
     def _route(self, route: str) -> dict:
         """Returns the OpenAPI specification for the requested route.
