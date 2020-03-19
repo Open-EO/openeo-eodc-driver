@@ -1,0 +1,24 @@
+{
+  "username": "your-name",
+  "password": "your-password",
+  "profile": "sample-profile",
+  "budget": 100.45,
+  "storage": {
+    "free": 123,
+    "quota": 123
+  },
+  "links": [
+    {
+      "rel": "latest-version",
+      "href": "https://open-eo.github.io/openeo-api/#operation/describe-custom-process",
+      "type": "the type of this link",
+      "title": "the title of this link"
+    },
+    {
+      "rel": "latest-version2",
+      "href": "https://open-eo.github.io/openeo-api/#tag/Capabilities",
+      "type": "the type of this link2",
+      "title": "the title of this link2"
+    }
+  ]
+}

@@ -1,6 +1,12 @@
+import os
+
+from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer)
+from passlib.apps import custom_app_context as pwd_context
+
 import gateway.users.repository as rep
-from .models import db, IdentityProviders, AuthType, Users
-from .schema import IdentityProviderSchema, UserSchema
+from gateway.dependencies.response import APIException
+from .models import db, IdentityProviders, AuthType, Users, Profiles
+from .schema import IdentityProviderSchema, UserSchema, ProfileSchema
 
 service_name = "gateway-users"
 
@@ -46,102 +52,164 @@ class UsersService:
     User Management.
     """
 
-    def add_user(self, **kwargs) -> dict:
+    def get_user_info(self, user_id: str) -> dict:
+        """Returns info about the (logged in) user.
+
+        Returns:
+            Dict -- 200 HTTP code
+        """
+        user = db.session.query(Users).filter_by(id=user_id).one()
+        return {
+            "status": "success",
+            "code": 200,
+            "data": UserSchema().dump(user),
+        }
+
+    def add_user(self, **user_args) -> dict:
         """
         Add Basic or OIDC user to database.
 
         Arguments:
-            kwargs {dict} -- The dictionary needed to add a user. Either [username, password, profile_name] > basic or
+            user_args {dict} -- The dictionary needed to add a user. Either [username, password, profile_name] > basic or
                 [email, identity_provider, profile_name] > OIDC needs to be provided
 
         Returns:
             dict -- Describes success / failure of process
         """
+        try:
+            if 'email' in user_args and 'identity_provider' in user_args and 'profile' in user_args:
+                out_user = user_args['email']
+                user_args['auth_type'] = AuthType.oidc
+                existing = rep.get_user_by_email(user_args['email'])
 
-        if 'username' in kwargs and 'password' in kwargs and 'profile_name' in kwargs:
-            worked, exc = rep.insert_users(auth_type='basic', **kwargs)
-            out_user = kwargs['username']
-        elif 'email' in kwargs and 'identity_provider' in kwargs and 'profile_name' in kwargs:
-            worked, exc = rep.insert_users(auth_type='oidc', **kwargs)
-            out_user = kwargs['email']
-        else:
-            return ServiceException(400, 'None', 'User cannot be created! Please supply either username or email!').to_dict()
+                user_args['identity_provider_id'] = rep.get_identity_provider_id(user_args.pop('identity_provider'))
+                if not user_args['identity_provider_id']:
+                    return ServiceException(400, 'None', 'The given identity provider is not supported').to_dict()
 
-        if not worked:
-            # TODO currently complete stack trace is returned (good for debugging!), could be maybe put into log?
-            return ServiceException(500, out_user, f"Failed to create user '{out_user}'.\n{exc}").to_dict()
-        return {
-            "status": "success",
-            "code": 200,
-            "data": {'message': f"User '{out_user}' successfully added to database."}
-        }
+            elif 'username' in user_args and 'password' in user_args and 'profile' in user_args:
+                out_user = user_args['username']
+                user_args['auth_type'] = AuthType.basic
+                existing = rep.get_user_by_username(user_args['username'])
 
-    def delete_user(self, **kwargs) -> dict:
+            else:
+                return ServiceException(400, 'None', 'User cannot be created! Please supply either username or email!').to_dict()
+            if existing:
+                return ServiceException(400, 'None', f"User {out_user} exists already in the database. Could not be"
+                                                     f" added").to_dict()
+
+            user_args['profile_id'] = rep.get_profile_id(user_args.pop('profile'))
+            if not user_args['profile_id']:
+                return ServiceException(400, 'None', 'The given profile is not supported').to_dict()
+
+            user = UserSchema().load(user_args)
+            db.session.add(user)
+            db.session.commit()
+
+            return {
+                "status": "success",
+                "code": 200,
+                "data": {'message': f"User '{out_user}' successfully added to database."}
+            }
+        except Exception as exp:
+            return ServiceException(500, 'None', str(exp)).to_dict()
+
+    def delete_user(self, **user_args) -> dict:
         """
         Delete Basic or OIDC user from database.
 
         Arguments:
-            kwargs {dict} -- The dictionary needed to delete a user. Either [username] > basic or [email] > OIDC needs
+            user_args {dict} -- The dictionary needed to delete a user. Either [username] > basic or [email] > OIDC needs
                 to be provided
 
         Returns:
             dict -- Describes success / failure of process
         """
-        if 'username' in kwargs:
-            worked, exc = rep.delete_user_username(kwargs['username'])
-            out_user = kwargs['username']
-        elif 'email' in kwargs:
-            worked, exc = rep.delete_user_email(kwargs['email'])
-            out_user = kwargs['email']
-        else:
-            return ServiceException(500, 'None', 'Either username or email needs to be provided!').to_dict()
+        try:
+            if 'username' in user_args:
+                user = rep.get_user_by_username(user_args['username'])
+                out_user = user_args['username']
+            elif 'email' in user_args:
+                user = rep.get_user_by_email(user_args['email'])
+                out_user = user_args['email']
+            else:
+                return ServiceException(400, 'None', 'Either username or email needs to be provided!').to_dict()
 
-        if not worked:
-            return ServiceException(500, out_user, f"Failed to create user '{out_user}'.\n{exc}").to_dict()
-        return {
-            "status": "success",
-            "code": 200,
-            "data": {'message': f"User '{out_user}' successfully delete from database."}
-        }
+            if user:
+                db.session.delete(user)
+                db.session.commit()
 
-    def add_user_profile(self, name: str, data_access: str) -> dict:
+            return {
+                "status": "success",
+                "code": 200,
+                "data": {'message': f"User '{out_user}' successfully delete from database."}
+            }
+        except Exception as exp:
+            return ServiceException(500, 'None', str(exp)).to_dict()
+
+    def add_user_profile(self, **profile_args) -> dict:
         """
         Add user profile to database.
 
         Arguments:
-            name {str} -- The name of the profile to add
-            data_access {str} -- The string describing the single data access levels separated by comma
-                (e.g. basic,projectA)
+            profile_args {dict} -- Dictionary containing all required information to create a profile
 
         Returns:
             dict -- Describes success / failure of process
         """
-        worked, exc = rep.insert_profile(name, data_access)
-        if not worked:
-            return ServiceException(500, 'None', f"Profile '{name}' could not be added to the database.\n{exc}").to_dict()
-        return {
-            "status": "success",
-            "code": 200,
-            "data": {'message': f"Profile '{name}' added to database."}
-        }
+        try:
+            profile_name = profile_args['name']
+            existing = db.session.query(Profiles).filter_by(name=profile_name).first()
+            if existing:
+                return ServiceException(400, 'None', f"Profile {profile_name} exists already "
+                                                     f"in the database. Could not be added").to_dict()
+            profile = ProfileSchema().load(profile_args)
+            db.session.add(profile)
+            db.session.commit()
 
-    def delete_user_profile(self, name: str) -> dict:
+            return {
+                "status": "success",
+                "code": 200,
+                "data": {'message': f"Profile '{profile_name}' added to database."}
+            }
+        except Exception as exp:
+            return ServiceException(500, 'None', str(exp)).to_dict()
+
+    def delete_user_profile(self, **profile_args) -> dict:
         """
         Delete user profile from database.
 
         Arguments:
-            name {str} -- The name of the profile to delete
+            profile_args {dict} -- Dictionary with key 'name' and value <profile-name>
 
         Returns:
             dict -- Describes success / failure of process
         """
-        worked, exc = rep.delete_profile(name)
-        if not worked:
-            return ServiceException(500, 'None', f"Profile '{name}' could not be delete from database.\n{exc}").to_dict()
+        try:
+            profile_name = profile_args['name']
+            profile = db.session.query(Profiles).filter_by(name=profile_name).first()
+            if profile:
+                db.session.delete(profile)
+                db.session.commit()
+            return {
+                "status": "success",
+                "code": 200,
+                "data": {'message': f"Profile '{profile_name}' delete from database."}
+            }
+        except Exception as exp:
+            return ServiceException(500, 'None', str(exp)).to_dict()
+
+    def get_oidc_providers(self) -> dict:
+        """Gets all available openID connect providers.
+
+        Returns:
+            Dict -- All available identity providers.
+        """
+
+        identity_providers = db.session.query(IdentityProviders).all()
         return {
             "status": "success",
             "code": 200,
-            "data": {'message': f"Profile '{name}' delete from database."}
+            "data": IdentityProviderSchema(many=True).dump(identity_providers)
         }
 
     def add_identity_provider(self, **identity_provider_args) -> dict:
@@ -184,7 +252,7 @@ class UsersService:
         """
         try:
             id_openeo = identity_provider_args['id']
-            identity_provider = IdentityProviders.query.filter(IdentityProviders.id_openeo == id_openeo).first()
+            identity_provider = IdentityProviders.query.filter_by(id_openeo=id_openeo).first()
             if identity_provider:
                 db.session.delete(identity_provider)
                 db.session.commit()
@@ -195,3 +263,36 @@ class UsersService:
             }
         except Exception as exp:
             return ServiceException(500, 'None', str(exp)).to_dict()
+
+
+class AuthService:
+
+    service_name = 'gateway-auth'
+
+    def get_basic_token(self, username: str, password: str) -> dict:
+        """
+        Generate token for basic user.
+
+        Returns:
+            Dict -- User_id with access token
+        """
+        user = db.session.query(Users).filter(Users.username == username).scalar()
+        if not self._verify_password(user, password):
+            raise APIException(
+                msg=f"Incorrect credentials for user {username}.",
+                code=401,
+                service="gateway",
+                internal=False,
+            )
+        return {
+            "status": "success",
+            "code": 200,
+            "data":  {"access_token": self._generate_auth_token(user)},
+        }
+
+    def _verify_password(self, user: Users, password: str):
+        return pwd_context.verify(password, user.password_hash)
+
+    def _generate_auth_token(self, user: Users, expiration: int = 600):
+        serialized = Serializer(os.environ.get('SECRET_KEY'), expires_in=expiration)
+        return serialized.dumps({'id': user.id}).decode('utf-8')

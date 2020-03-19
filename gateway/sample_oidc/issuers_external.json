@@ -1,5 +1,0 @@
-{
-  "issuers": [
-    "https://accounts.google.com/.well-known/openid-configuration"
-    ]
-}

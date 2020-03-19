@@ -6,8 +6,7 @@ from .gateway import Gateway
 gateway = Gateway()
 gateway.set_cors()
 
-from .auth_service import AuthService
-from .users.service import UsersService
+from .users.service import UsersService, AuthService
 
 # Initialize non-RPC services
 auth_service = AuthService()
@@ -36,9 +35,9 @@ with ctx:
     gateway.add_endpoint("/collections", func=rpc.data.refresh_cache, auth=True, validate=True, methods=["POST"], role="admin") # NB extension of openEO API
 
     # Account Management
-    gateway.add_endpoint("/credentials/oidc", func=auth_service.send_openid_connect_discovery, rpc=False)
+    gateway.add_endpoint("/credentials/oidc", func=users_service.get_oidc_providers, rpc=False)
     gateway.add_endpoint("/credentials/basic", func=auth_service.get_basic_token, rpc=False, validate_custom=True)
-    gateway.add_endpoint("/me", func=auth_service.get_user_info, auth=True, rpc=False)
+    gateway.add_endpoint("/me", func=users_service.get_user_info, auth=True, rpc=False)
 
     # File Management
     gateway.add_endpoint("/files", func=rpc.files.get_all, auth=True, validate=True)
