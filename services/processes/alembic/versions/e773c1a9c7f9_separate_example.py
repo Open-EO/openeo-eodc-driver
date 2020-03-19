@@ -22,7 +22,7 @@ def upgrade():
     op.create_table(
         'example',
         sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('process_graph_id', sa.Integer(), sa.ForeignKey('process_graph.id'), nullable=False),
+        sa.Column('process_graph_id', sa.String(), sa.ForeignKey('process_graphs.id'), nullable=False),
         sa.Column('process_graph', sa.JSON(), nullable=True),
         sa.Column('arguments', sa.JSON(), nullable=True),
         sa.Column('title', sa.String(), nullable=True),
@@ -30,7 +30,7 @@ def upgrade():
         sa.Column('returns', sa.String(), nullable=True),
         sa.Column('return_type', sa.String(), nullable=True),
     )
-    op.create_foreign_key('example_process_graph_fkey', 'example', 'process_graph', ['process_graph_id'], ['id'])
+    op.create_foreign_key('example_process_graph_fkey', 'example', 'process_graphs', ['process_graph_id'], ['id'])
     op.create_check_constraint('check_process_graph_or_arguments', 'example', 'process_graph' != None or 'arguments' != None)
 
     op.add_column('parameter', sa.Column('default_type', sa.String(), nullable=True))

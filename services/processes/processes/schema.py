@@ -1,4 +1,5 @@
 import typing
+from uuid import uuid4
 
 from marshmallow import Schema, fields, post_dump, post_load, pre_load
 
@@ -210,7 +211,8 @@ class ExampleSchema(BaseSchema):
 
 
 class ProcessGraphShortSchema(BaseSchema):
-    id = fields.String(required=True, attribute='openeo_id')
+    id_internal = fields.String(attribute='id', load_only=True)
+    id = fields.String(required=True, attribute='id_openeo')
     summary = fields.String()
     description = fields.String()
     categories = fields.Pluck(CategorySchema, 'name', many=True)
@@ -220,6 +222,11 @@ class ProcessGraphShortSchema(BaseSchema):
     parameters = fields.List(fields.Nested(ParameterSchema))
     process_definition = fields.Field(load_only=True)
     user_id = fields.String(load_only=True)
+
+    @pre_load
+    def add_process_graph_id(self, in_data, **kwargs):
+        in_data['id_internal'] = 'pg-' + str(uuid4())
+        return in_data
 
 
 class ProcessGraphFullSchema(ProcessGraphShortSchema):

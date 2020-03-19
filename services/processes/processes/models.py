@@ -35,10 +35,10 @@ process_definition_enum = Enum(
 class ProcessGraph(Base):
     """ Base model for a process graph. """
 
-    __tablename__ = 'process_graph'
+    __tablename__ = 'process_graphs'
 
-    id = Column(Integer, primary_key=True)
-    openeo_id = Column(String, unique=True)  # Defined by user? how to set different one / add hash
+    id = Column(String, primary_key=True)
+    id_openeo = Column(String, unique=True)  # Defined by user? how to set different one / add hash
     process_definition = Column(process_definition_enum, nullable=False)
     user_id = Column(String, nullable=True)
     summary = Column(String, nullable=True)
@@ -62,7 +62,7 @@ class Example(Base):
     __tablename__ = 'example'
 
     id = Column(Integer, primary_key=True)
-    process_graph_id = Column(Integer, ForeignKey('process_graph.id'))
+    process_graph_id = Column(String, ForeignKey('process_graphs.id'))
     process_graph = Column(JSON, nullable=True)  # TODO also store as separate table!
     arguments = Column(JSON, nullable=True)
     title = Column(String, nullable=True)
@@ -78,7 +78,7 @@ class Parameter(Base):
     __tablename__ = 'parameter'
 
     id = Column(Integer, primary_key=True)
-    process_graph_id = Column(Integer, ForeignKey('process_graph.id'))
+    process_graph_id = Column(String, ForeignKey('process_graphs.id'))
     schema_id = Column(Integer, ForeignKey('schema.id'))
     name = Column(String, nullable=False)
     description = Column(TEXT, nullable=False)
@@ -96,7 +96,7 @@ class Return(Base):
     __tablename__ = 'return'
 
     id = Column(Integer, primary_key=True)
-    process_graph_id = Column(Integer, ForeignKey('process_graph.id'))
+    process_graph_id = Column(String, ForeignKey('process_graphs.id'))
     description = Column(TEXT, nullable=True)
 
     schemas = relationship('Schema', foreign_keys='Schema.return_id', cascade='all, delete, delete-orphan')
@@ -107,7 +107,7 @@ class Category(Base):
     __tablename__ = 'category'
 
     id = Column(Integer, primary_key=True)
-    process_graph_id = Column(Integer, ForeignKey('process_graph.id'))
+    process_graph_id = Column(String, ForeignKey('process_graphs.id'))
     name = Column(String, nullable=False)
 
 
@@ -160,7 +160,7 @@ class ExceptionCode(Base):
     __tablename__ = 'exception'
 
     id = Column(Integer, primary_key=True)
-    process_graph_id = Column(Integer, ForeignKey('process_graph.id'))
+    process_graph_id = Column(String, ForeignKey('process_graphs.id'))
     description = Column(TEXT, nullable=True)
     message = Column(TEXT, nullable=False)
     http = Column(Integer, default=400)
@@ -172,7 +172,7 @@ class Link(Base):
     __tablename__ = 'link'
 
     id = Column(Integer, primary_key=True)
-    process_graph_id = Column(Integer, ForeignKey('process_graph.id'))
+    process_graph_id = Column(String, ForeignKey('process_graphs.id'))
     rel = Column(String, nullable=False)
     href = Column(String, nullable=False)  # should be uri!
     type = Column(String, nullable=True)

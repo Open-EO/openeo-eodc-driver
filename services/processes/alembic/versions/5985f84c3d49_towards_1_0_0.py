@@ -28,26 +28,18 @@ data_type_enum = sa.Enum(
 
 
 def upgrade():
+    op.add_column('process_graphs', sa.Column('deprecated', sa.Boolean(), default=False, nullable=True))
+    op.add_column('process_graphs', sa.Column('experimental', sa.Boolean(), default=False, nullable=True))
+    op.add_column('process_graphs', sa.Column('examples', sa.JSON(), nullable=True))
+    op.alter_column('process_graphs', 'title', new_column_name='summary')
+    op.add_column('process_graphs', sa.Column('id_openeo', sa.String(), unique=True))
+    process_graphs_id_openeo = sa.table('process_graphs', sa.column('id_openeo'))
+    op.execute(process_graphs_id_openeo.update().values(id_openeo=sa.column('id')))
 
-    op.drop_table('process_graphs')
-    op.create_table(
-        'process_graph',
-        sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('openeo_id', sa.String(), unique=True),
-        sa.Column('user_id', sa.String(), nullable=False),
-        sa.Column('summary', sa.String(), nullable=True),
-        sa.Column('description', sa.TEXT(), nullable=True),
-        sa.Column('deprecated', sa.Boolean(), default=False, nullable=True),
-        sa.Column('experimental', sa.Boolean(), default=False, nullable=True),
-        sa.Column('process_graph', sa.JSON(), default={}),
-        sa.Column('examples', sa.JSON(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), default=sa.func.now(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), default=sa.func.now(), onupdate=sa.func.now(), nullable=False),
-    )
     op.create_table(
         'parameter',
         sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('process_graph_id', sa.Integer(), sa.ForeignKey('process_graph.id'), nullable=False),
+        sa.Column('process_graph_id', sa.String(), sa.ForeignKey('process_graphs.id')),
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('description', sa.TEXT(), nullable=False),
         sa.Column('optional', sa.Boolean(), default=False, nullable=True),
@@ -55,21 +47,21 @@ def upgrade():
         sa.Column('experimental', sa.Boolean(), default=False, nullable=True),
         sa.Column('default', sa.TEXT(), nullable=True),
     )
-    op.create_foreign_key('parameter_process_graph_fkey', 'parameter', 'process_graph', ['process_graph_id'], ['id'])
+    op.create_foreign_key('parameter_process_graph_fkey', 'parameter', 'process_graphs', ['process_graph_id'], ['id'])
     op.create_table(
         'return',
         sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('process_graph_id', sa.Integer(), sa.ForeignKey('process_graph.id'), nullable=False),
+        sa.Column('process_graph_id', sa.String(), sa.ForeignKey('process_graphs.id')),
         sa.Column('description', sa.TEXT(), nullable=True),
     )
-    op.create_foreign_key('return_process_graph_fkey', 'return', 'process_graph', ['process_graph_id'], ['id'])
+    op.create_foreign_key('return_process_graph_fkey', 'return', 'process_graphs', ['process_graph_id'], ['id'])
     op.create_table(
         'category',
         sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('process_graph_id', sa.Integer(), sa.ForeignKey('process_graph.id'), nullable=False),
+        sa.Column('process_graph_id', sa.String(), sa.ForeignKey('process_graphs.id'), nullable=False),
         sa.Column('name', sa.String(), nullable=False),
     )
-    op.create_foreign_key('category_process_graph_fkey', 'category', 'process_graph', ['process_graph_id'], ['id'])
+    op.create_foreign_key('category_process_graph_fkey', 'category', 'process_graphs', ['process_graph_id'], ['id'])
     op.create_table(
         'schema',
         sa.Column('id', sa.Integer(), primary_key=True),
@@ -110,23 +102,23 @@ def upgrade():
     op.create_table(
         'exception',
         sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('process_graph_id', sa.Integer(), sa.ForeignKey('process_graph.id')),
+        sa.Column('process_graph_id', sa.String(), sa.ForeignKey('process_graphs.id')),
         sa.Column('description', sa.TEXT(), nullable=True),
         sa.Column('message', sa.TEXT(), nullable=False),
         sa.Column('http', sa.Integer(), default=400),
-        sa.Column('error_code', sa.Integer(), nullable=False),
+        sa.Column('error_code', sa.String(), nullable=False),
     )
-    op.create_foreign_key('exception_process_graph_fkey', 'exception', 'process_graph', ['process_graph_id'], ['id'])
+    op.create_foreign_key('exception_process_graph_fkey', 'exception', 'process_graphs', ['process_graph_id'], ['id'])
     op.create_table(
         'link',
         sa.Column('id', sa.Integer(), primary_key=True),
-        sa.Column('process_graph_id', sa.Integer(), sa.ForeignKey('process_graph.id')),
+        sa.Column('process_graph_id', sa.String(), sa.ForeignKey('process_graphs.id')),
         sa.Column('rel', sa.String(), nullable=False),
         sa.Column('href', sa.String(), nullable=False),
-        sa.Column('type', sa.String(), nullable=False),
-        sa.Column('title', sa.String(), nullable=False),
+        sa.Column('type', sa.String(), nullable=True),
+        sa.Column('title', sa.String(), nullable=True),
     )
-    op.create_foreign_key('link_process_graph_fkey', 'link', 'process_graph', ['process_graph_id'], ['id'])
+    op.create_foreign_key('link_process_graph_fkey', 'link', 'process_graphs', ['process_graph_id'], ['id'])
 
 
 def downgrade():
@@ -153,18 +145,11 @@ def downgrade():
     op.drop_table('category')
     op.drop_table('return')
     op.drop_table('parameter')
-    op.drop_table('process_graph')
 
     data_type_enum.drop(op.get_bind(), checkfirst=False)
 
-    op.create_table(
-        'process_graphs',
-        sa.Column('id', sa.String()),
-        sa.Column('user_id', sa.String(), nullable=False),
-        sa.Column('title', sa.String(), nullable=True),
-        sa.Column('description', sa.TEXT(), nullable=True),
-        sa.Column('process_graph', sa.JSON(), default={}),
-        sa.Column('created_at', sa.DateTime(), default=sa.func.now(), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), default=sa.func.now(), onupdate=sa.func.now(), nullable=False),
-        sa.PrimaryKeyConstraint('id'),
-    )
+    op.drop_column('process_graphs', 'deprecated')
+    op.drop_column('process_graphs', 'experimental')
+    op.drop_column('process_graphs', 'examples')
+    op.alter_column('process_graphs', 'summary', new_column_name='title')
+    op.drop_column('process_graphs', 'id_openeo')

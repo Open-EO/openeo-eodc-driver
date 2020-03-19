@@ -74,7 +74,7 @@ class ProcessesService:
         """
         try:
             process_graph = self.db.query(ProcessGraph) \
-                .filter_by(openeo_id=process_graph_id) \
+                .filter_by(id_openeo=process_graph_id) \
                 .filter_by(process_definition=ProcessDefinitionEnum.user_defined) \
                 .first()
             valid, response = self._exist_and_authorize(user_id, process_graph_id, process_graph)
@@ -99,7 +99,7 @@ class ProcessesService:
         """
         try:
             # Check process graph exists and user is allowed to access / delete it
-            process_graph = self.db.query(ProcessGraph).filter_by(openeo_id=process_graph_id).first()
+            process_graph = self.db.query(ProcessGraph).filter_by(id_openeo=process_graph_id).first()
             valid, response = self._exist_and_authorize(user_id, process_graph_id, process_graph)
             if not valid:
                 return response
@@ -182,7 +182,7 @@ class ProcessesService:
                 return ServiceException(ProcessesService.name, process_graph_response.status_code,
                                         user_id, str(process_graph_response.text)).to_dict()
 
-            process_graph = self.db.query(ProcessGraph).filter_by(openeo_id=process_name).first()
+            process_graph = self.db.query(ProcessGraph).filter_by(id_openeo=process_name).first()
             if process_graph:
                 self.db.delete(process_graph)
                 self.db.commit()
@@ -222,7 +222,7 @@ class ProcessesService:
             if validate["status"] == "error":
                 return validate
 
-            process_graph = self.db.query(ProcessGraph).filter_by(openeo_id=process_graph_id).first()
+            process_graph = self.db.query(ProcessGraph).filter_by(id_openeo=process_graph_id).first()
             if process_graph:
                 valid, response = self._authorize(user_id, process_graph)
                 if not valid:

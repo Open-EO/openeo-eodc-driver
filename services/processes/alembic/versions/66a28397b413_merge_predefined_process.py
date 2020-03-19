@@ -24,37 +24,19 @@ process_definition_enum = sa.Enum(
 
 
 def upgrade():
-    op.alter_column('parameter', 'process_graph_id', nullable=True)
-    op.alter_column('return', 'process_graph_id', nullable=True)
-
-    op.alter_column('link', 'type', nullable=True)
-    op.alter_column('link', 'title', nullable=True)
-
-    op.alter_column('exception', 'error_code', type_=sa.String())
-
     process_definition_enum.create(op.get_bind(), checkfirst=False)
-    op.add_column('process_graph', sa.Column('process_definition', process_definition_enum))
-    process_definition = sa.table('process_graph', sa.column('process_definition'))
-    op.execute(process_definition.update().values(process_definition='predefined'))
-    op.alter_column('process_graph', 'process_definition', nullable=True)
-    op.alter_column('process_graph', 'user_id', nullable=True)
+    op.add_column('process_graphs', sa.Column('process_definition', process_definition_enum))
+    process_definition = sa.table('process_graphs', sa.column('process_definition'))
+    op.execute(process_definition.update().values(process_definition='user_defined'))
+    op.alter_column('process_graphs', 'process_definition', nullable=True)
+
+    op.alter_column('process_graphs', 'user_id', nullable=True)
 
 
 def downgrade():
-    op.alter_column('process_graph', 'user_id', nullable=False)
-    op.drop_column('process_graph', 'process_definition')
+    process_graph_user_id = sa.table('process_graphs', sa.column('user_id'))
+
+    op.execute(process_graph_user_id.update().values(user_id='default-user'))
+    op.alter_column('process_graphs', 'user_id', nullable=False)
+    op.drop_column('process_graphs', 'process_definition')
     process_definition_enum.drop(op.get_bind(), checkfirst=False)
-
-    # Only works if error_code columns contain only valid integers
-    op.alter_column('exception', 'error_code', type_=sa.Integer(), postgresql_using='error_code::integer')
-
-    link_type = sa.table('link', sa.column('type'))
-    op.execute(link_type.update().values(type=''))
-    op.alter_column('link', 'type', nullable=False)
-    link_title = sa.table('link', sa.column('title'))
-    op.execute(link_title.update().values(title=''))
-    op.alter_column('link', 'title', nullable=False)
-
-    # Only works on empty table
-    op.alter_column('parameter', 'process_graph_id', nullable=True)
-    op.alter_column('return', 'process_graph_id', nullable=True)
