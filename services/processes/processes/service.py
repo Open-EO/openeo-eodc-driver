@@ -213,10 +213,7 @@ class ProcessesService:
         """
 
         try:
-            ids_equal, exception = self._check_process_graph_ids_are_equal(user_id, process_graph_id, process_graph_args)
-            if not ids_equal:
-                return exception
-
+            process_graph_args['id'] = process_graph_id  # path parameter overwrites id in json
             process_graph_only = deepcopy(process_graph_args.get('process_graph'))
             validate = self.validate(user_id, process_graph_only)
             if validate["status"] == "error":
@@ -332,23 +329,4 @@ class ProcessesService:
             return False, ServiceException(ProcessesService.name, 401, user_id,
                                            "You are not allowed to access this resource.", internal=False,
                                            links=[]).to_dict()
-        return True, None
-
-    def _check_process_graph_ids_are_equal(self, user_id: str, process_graph_id: str, process_graph_json: dict) \
-            -> Tuple[bool, Optional[dict]]:
-        """
-        Checks the process_graph_id submitted as path parameter and inside the body are equal.
-
-        Arguments:
-            user_id {str} -- The identifier of the user
-            process_graph_id {str} -- The id of the process graph
-            process_graph {ProcessGraph} -- The ProcessGraph object
-
-        Returns:
-            bool, Optional[dict] -- whether to two process ids match, and if not a service exception to return
-        """
-        if not process_graph_id == process_graph_json['id']:
-            return False, ServiceException(ProcessesService.name, 400, user_id,
-                                           f"The process_graph_id submitted as path parameter has to be the same as the"
-                                           f"'id' in the process graph json.", internal=False, links=[]).to_dict()
         return True, None

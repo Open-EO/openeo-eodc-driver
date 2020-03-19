@@ -3,7 +3,8 @@
 from datetime import datetime
 import enum
 
-from sqlalchemy import Column, String, TEXT, DateTime, JSON, Boolean, Enum, Float, CheckConstraint, ForeignKey, Integer
+from sqlalchemy import Column, String, TEXT, DateTime, JSON, Boolean, Enum, Float, CheckConstraint, ForeignKey, Integer, \
+    UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -38,7 +39,7 @@ class ProcessGraph(Base):
     __tablename__ = 'process_graphs'
 
     id = Column(String, primary_key=True)
-    id_openeo = Column(String, unique=True)  # Defined by user? how to set different one / add hash
+    id_openeo = Column(String, nullable=False)
     process_definition = Column(process_definition_enum, nullable=False)
     user_id = Column(String, nullable=True)
     summary = Column(String, nullable=True)
@@ -55,6 +56,8 @@ class ProcessGraph(Base):
     exceptions = relationship('ExceptionCode', cascade='all, delete, delete-orphan')
     links = relationship('Link', cascade='all, delete, delete-orphan')
     examples = relationship('Example', cascade='all, delete, delete-orphan')
+
+    UniqueConstraint('id_openeo', 'user_id', name='uq_process_graph_user_id')
 
 
 class Example(Base):
