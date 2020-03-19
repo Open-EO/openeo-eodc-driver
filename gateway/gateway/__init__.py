@@ -7,7 +7,7 @@ gateway = Gateway()
 gateway.set_cors()
 
 from .auth_service import AuthService
-from .users_service import UsersService
+from .users.service import UsersService
 
 # Initialize non-RPC services
 auth_service = AuthService()

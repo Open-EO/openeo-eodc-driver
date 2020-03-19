@@ -1,4 +1,6 @@
 import gateway.users.repository as rep
+from .models import db, IdentityProviders, AuthType, Users
+from .schema import IdentityProviderSchema, UserSchema
 
 service_name = "gateway-users"
 
@@ -56,13 +58,9 @@ class UsersService:
             dict -- Describes success / failure of process
         """
 
-        if 'role' not in kwargs:
-            kwargs['role'] = 'user'
-
         if 'username' in kwargs and 'password' in kwargs and 'profile_name' in kwargs:
             worked, exc = rep.insert_users(auth_type='basic', **kwargs)
             out_user = kwargs['username']
-
         elif 'email' in kwargs and 'identity_provider' in kwargs and 'profile_name' in kwargs:
             worked, exc = rep.insert_users(auth_type='oidc', **kwargs)
             out_user = kwargs['email']
@@ -146,33 +144,35 @@ class UsersService:
             "data": {'message': f"Profile '{name}' delete from database."}
         }
 
-    def add_identity_provider(self, id_openeo: str, issuer_url: str, title: str, scopes: list = None,
-                              description: str = None) -> dict:
+    def add_identity_provider(self, **identity_provider_args) -> dict:
         """
         Add Identity provider to database for OIDC authentication.
 
         Arguments:
-            id_openeo {str} -- The OpenEO ID of the identity provider to add
-            issuer_url {str} -- The issuer url
-            title {str} -- A descriptive title
-            scopes {list} -- A list of scopes to request when this identity provider is used (e.g. [openid, email])
-            description {str} -- A short description (e.g.: for which group this identity provider may be useful)
+            **identity_provider_args {dict} -- Dictionary providing all required information of a identity provider
 
         Returns:
             dict -- Describes success / failure of process
         """
-        worked, exc = rep.insert_identity_provider(id_openeo=id_openeo, issuer_url=issuer_url, scopes=scopes,
-                                                   title=title, description=description)
-        if not worked:
-            return ServiceException(500, 'None', f"Identity provider '{id_openeo}' could not be added to the database."
-                                                 f"\n{exc}").to_dict()
-        return {
-            "status": "success",
-            "code": 200,
-            "data": {'message': f"Identity provider '{id_openeo}' added to database."}
-        }
+        try:
+            existing = db.session.query(IdentityProviders).filter_by(id_openeo=identity_provider_args['id']).first()
+            if existing:
+                return ServiceException(400, 'None', f"Identity Provider {identity_provider_args['id']} exists already "
+                                                     f"in the database. Could not be added").to_dict()
 
-    def delete_identity_provider(self, id_openeo: str) -> dict:
+            identity_provider = IdentityProviderSchema().load(identity_provider_args)
+            db.session.add(identity_provider)
+            db.session.commit()
+
+            return {
+                "status": "success",
+                "code": 200,
+                "data": {'message': f"Identity provider '{identity_provider.id_openeo}' added to database."}
+            }
+        except Exception as exp:
+            return ServiceException(500, 'None', str(exp)).to_dict()
+
+    def delete_identity_provider(self, **identity_provider_args) -> dict:
         """
         Delete Identity provider from database.
 
@@ -182,12 +182,16 @@ class UsersService:
         Returns:
             dict -- Describes success / failure of process
         """
-        worked, exc = rep.delete_identity_provider(id_openeo)
-        if not worked:
-            return ServiceException(500, 'None', f"Identity Identity provider '{id_openeo}' could not be delete from"
-                                                 f" database. \n{exc}").to_dict()
-        return {
-            "status": "success",
-            "code": 200,
-            "data": {"message": f"Identity provider {id_openeo} successfully deleted."}
-        }
+        try:
+            id_openeo = identity_provider_args['id']
+            identity_provider = IdentityProviders.query.filter(IdentityProviders.id_openeo == id_openeo).first()
+            if identity_provider:
+                db.session.delete(identity_provider)
+                db.session.commit()
+            return {
+                "status": "success",
+                "code": 200,
+                "data": {"message": f"Identity provider {id_openeo} successfully deleted."}
+            }
+        except Exception as exp:
+            return ServiceException(500, 'None', str(exp)).to_dict()

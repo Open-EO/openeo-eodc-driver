@@ -76,13 +76,19 @@ class IdentityProviders(db.Model):
     title = db.Column(db.String, nullable=False, unique=True)
     description = db.Column(db.Text)
 
-    def __init__(self, id_openeo: str, issuer_url: str, scopes: List[str], title: str, description: str = None):
-        self.id = 'ip-' + str(uuid4())
-        self.id_openeo = id_openeo
-        self.issuer_url = issuer_url
-        self.scopes = ','.join(scopes)
-        self.title = title
-        self.description = description
+    links = db.relationship('Links', cascade='all, delete, delete-orphan')
+
+
+class Links(db.Model):
+
+    __tablename__ = 'links'
+
+    id = db.Column(db.Integer, primary_key=True)
+    identity_provider_id = db.Column(db.String, db.ForeignKey('identity_providers.id'))
+    rel = db.Column(db.String, nullable=False)
+    href = db.Column(db.String, nullable=False)  # should be uri!
+    type = db.Column(db.String, nullable=True)
+    title = db.Column(db.String, nullable=True)
 
 
 class Profiles(db.Model):
