@@ -6,10 +6,10 @@ from .gateway import Gateway
 gateway = Gateway()
 gateway.set_cors()
 
-from .users.service import UsersService, AuthService
+from .users.service import UsersService, BasicAuthService
 
 # Initialize non-RPC services
-auth_service = AuthService()
+auth_service = BasicAuthService()
 users_service = UsersService()
 
 # Get application context and map RPCs to endpoints

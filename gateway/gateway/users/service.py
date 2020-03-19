@@ -1,6 +1,7 @@
 import os
 
-from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer)
+from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
+
 from passlib.apps import custom_app_context as pwd_context
 
 import gateway.users.repository as rep
@@ -265,7 +266,7 @@ class UsersService:
             return ServiceException(500, 'None', str(exp)).to_dict()
 
 
-class AuthService:
+class BasicAuthService:
 
     service_name = 'gateway-auth'
 
@@ -277,7 +278,7 @@ class AuthService:
             Dict -- User_id with access token
         """
         user = db.session.query(Users).filter(Users.username == username).scalar()
-        if not self._verify_password(user, password):
+        if not self.verify_password(user, password):
             raise APIException(
                 msg=f"Incorrect credentials for user {username}.",
                 code=401,
@@ -287,12 +288,26 @@ class AuthService:
         return {
             "status": "success",
             "code": 200,
-            "data":  {"access_token": self._generate_auth_token(user)},
+            "data":  {"access_token": self.generate_auth_token(user)},
         }
 
-    def _verify_password(self, user: Users, password: str):
+    def verify_password(self, user: Users, password: str):
         return pwd_context.verify(password, user.password_hash)
 
-    def _generate_auth_token(self, user: Users, expiration: int = 600):
+    def generate_auth_token(self, user: Users, expiration: int = 600):
         serialized = Serializer(os.environ.get('SECRET_KEY'), expires_in=expiration)
         return serialized.dumps({'id': user.id}).decode('utf-8')
+
+    def verify_auth_token(self, token):
+        # Verify token
+        s = Serializer(os.environ.get('SECRET_KEY'))
+        try:
+            data = s.loads(token)
+        except SignatureExpired:
+            return  # valid token, but expired
+        except BadSignature:
+            return  # invalid token
+
+        # Verify user exists
+        user = db.session.query(Users).filter(Users.id == data['id']).scalar()
+        return user.id if user else None

@@ -84,16 +84,30 @@ class AuthenticationHandler:
             str -- The user_id corresponding to the token
         """
 
-        # TODO from version > 0.4.2 the token will contain basic or oidc and no "brute force" approach will be needed
-        user_id = self._verify_basic_token(token)
-        if not user_id:
-            user_id = self._verify_oidc_token(token)
+        try:
+            method, provider, token = token.split('/')
+        except ValueError:
+            raise APIException(
+                msg="The token must be structured as following <authentication method>/<provider ID>/<token>!",
+                code=401,
+                service="gateway",
+                internal=False)
+
+        if method == 'basic':
+            user_id = self._verify_basic_token(token)
+        elif method == 'oidc':
+            user_id = self._verify_oidc_token(token, provider)
+        else:
+            raise APIException(
+                msg="The authentication method must be either 'basic' or 'oidc'",
+                code=401,
+                service="gateway",
+                internal=False)
 
         if not role == 'user':
             if not self._check_user_role(user_id, role=role):
                 user_id = None  # User does not have 'admin' role and is therefore not allowed to access the endpoint
 
-        # Only needed in case basic token is invalid and therefore tried as OIDC token (should be fixed with >0.4.2)
         if not user_id:
             raise APIException(
                 msg='Invalid token. User could not be authenticated.',
@@ -112,26 +126,26 @@ class AuthenticationHandler:
         Returns:
             str -- The user_id corresponding to the token
         """
-        from gateway.users.repository import verify_auth_token
-        return verify_auth_token(token)[0]
+        from gateway.users.service import BasicAuthService
+        return BasicAuthService().verify_auth_token(token)
 
-    def _verify_oidc_token(self, token) -> Optional[str]:
+    def _verify_oidc_token(self, token: str, provider: str) -> Optional[str]:
         """
         Verifies OIDC token.
 
         Arguments:
             token {str} -- The OIDC authentication token (currently an ID-token is required)
+            provider {str} -- The used OIDC provider ID (must be supported by backend)
 
         Returns:
             str -- The user_id corresponding to the token
         """
 
+        # TODO change from id to access token
+
         token_header = jwt.get_unverified_header(token)
         token_unverified = jwt.decode(token, verify=False)
 
-        # Currently an invalid basic token is also tried as OIDC token, which creates not meaningful errors
-        if 'email' not in token_unverified or 'iss' not in token_unverified:
-            return None
         user_id = self._get_user_id_from_email(token_unverified['email'])
         _ = self._check_oidc_issuer_exists(token_unverified['iss'])
 
