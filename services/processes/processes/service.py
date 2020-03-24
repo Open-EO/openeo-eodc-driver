@@ -241,10 +241,6 @@ class ProcessesService:
             return {
                 "status": "success",
                 "code": 200,
-                "headers": {
-                    "Location": "/process_graphs/" + process_graph_id,
-                    "OpenEO-Identifier": process_graph_id
-                },
                 "service_data": process_graph_id
             }
         except Exception as exp:
@@ -339,7 +335,6 @@ class ProcessesService:
         predefined = list(map(lambda rec: rec[0],
                               self.db.query(ProcessGraph.id_openeo)
                               .filter_by(process_definition=ProcessDefinitionEnum.predefined).all()))
-        LOGGER.info(str(predefined))
         if process_graph_id in predefined:
             return False, ServiceException(ProcessesService.name, 400, user_id,
                                            f"The process_graph_id {process_graph_id} is not allowed, as it corresponds"
