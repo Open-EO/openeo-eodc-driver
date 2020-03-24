@@ -145,7 +145,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1processes/get/responses/200/content/application~1json/schema/properties/processes/items
+              $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1processes/get/responses/200/content/application~1json/schema/properties/processes/items
       security:
         - {}
         - Bearer: []
@@ -153,9 +153,9 @@ paths:
         '200':
           description: The processes has been successfully created.
         4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/client_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/client_error
         5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/server_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/server_error
 
   /process_graphs/{process_graph_id}:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1process_graphs~1{process_graph_id}
@@ -188,9 +188,9 @@ paths:
         '200':
           description: aaa.
         4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/client_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/client_error
         5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/server_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/server_error
   /users_mng/users:
     description: >-
       **Note:** This is an extension of the EODC API!

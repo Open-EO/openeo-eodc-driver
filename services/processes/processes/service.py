@@ -213,11 +213,15 @@ class ProcessesService:
         """
 
         try:
+            valid, response = self._check_not_in_predefined(user_id, process_graph_id)
+            if not valid:
+                return response
+
             process_graph_args['id'] = process_graph_id  # path parameter overwrites id in json
             process_graph_only = deepcopy(process_graph_args.get('process_graph'))
-            validate = self.validate(user_id, process_graph_only)
-            if validate["status"] == "error":
-                return validate
+            # validate = self.validate(user_id, process_graph_only)
+            # if validate["status"] == "error":
+            #     return validate
 
             process_graph = self.db.query(ProcessGraph).filter_by(id_openeo=process_graph_id).first()
             if process_graph:
@@ -329,4 +333,16 @@ class ProcessesService:
             return False, ServiceException(ProcessesService.name, 401, user_id,
                                            "You are not allowed to access this resource.", internal=False,
                                            links=[]).to_dict()
+        return True, None
+
+    def _check_not_in_predefined(self, user_id: str, process_graph_id: str):
+        predefined = list(map(lambda rec: rec[0],
+                              self.db.query(ProcessGraph.id_openeo)
+                              .filter_by(process_definition=ProcessDefinitionEnum.predefined).all()))
+        LOGGER.info(str(predefined))
+        if process_graph_id in predefined:
+            return False, ServiceException(ProcessesService.name, 400, user_id,
+                                           f"The process_graph_id {process_graph_id} is not allowed, as it corresponds"
+                                           f" to a predefined process. Please use another process_graph_id. E.g. "
+                                           f"user_{process_graph_id}", internal=False, links=[]).to_dict()
         return True, None
