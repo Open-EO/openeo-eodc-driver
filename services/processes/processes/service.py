@@ -219,9 +219,9 @@ class ProcessesService:
 
             process_graph_args['id'] = process_graph_id  # path parameter overwrites id in json
             process_graph_only = deepcopy(process_graph_args.get('process_graph'))
-            # validate = self.validate(user_id, process_graph_only)
-            # if validate["status"] == "error":
-            #     return validate
+            validate = self.validate(user_id, process_graph_only)
+            if validate["status"] == "error":
+                return validate
 
             process_graph = self.db.query(ProcessGraph).filter_by(id_openeo=process_graph_id).first()
             if process_graph:
@@ -241,7 +241,6 @@ class ProcessesService:
             return {
                 "status": "success",
                 "code": 200,
-                "service_data": process_graph_id
             }
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()

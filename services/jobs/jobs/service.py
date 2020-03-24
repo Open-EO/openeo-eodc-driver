@@ -1,16 +1,16 @@
 """ Job Management """
 
-import os
 import logging
-from time import sleep
+import os
+from uuid import uuid4
+
+from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
 
-from .models import Base, Job, JobStatus
-from .schema import JobSchema, JobSchemaFull, JobSchemaShort
-from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
 from .dependencies.airflow_conn import Airflow
-
+from .models import Base, Job, JobStatus
+from .schema import JobSchema, JobSchemaFull, JobSchemaShort, JobCreateSchema
 
 service_name = "jobs"
 LOGGER = logging.getLogger('standardlog')
@@ -22,7 +22,7 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, code: int, user_id: str, msg: str, internal: bool=True, links: list=None):
+    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None):
         if not links:
             links = []
 
@@ -54,7 +54,7 @@ class ServiceException(Exception):
 
 class JobLocked(ServiceException):
     """ JobLocked raised if job is queued / running when trying to modify it. """
-    def __init__(self, code: int, user_id: str, msg: str, internal: bool=True, links: list=None):
+    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None):
         super(JobLocked, self).__init__(code, user_id, msg, internal, links)
 
 
@@ -64,12 +64,12 @@ class JobService:
 
     name = service_name
     db = DatabaseSession(Base)
-    process_graphs_service = RpcProxy("process_graphs")
+    processes_service = RpcProxy("processes")
     files_service = RpcProxy("files")
     airflow = Airflow()
 
     @rpc
-    def get(self, user_id: str, job_id: str):
+    def get(self, user_id: str, job_id: str) -> dict:
         """The request will ask the back-end to get the job using the job_id.
 
         Keyword Arguments:
@@ -84,22 +84,21 @@ class JobService:
             if not valid:
                 return response
 
-            response = self.process_graphs_service.get(user_id, job.process_graph_id)
+            response = self.processes_service.get_user_defined(user_id, job.process_graph_id)
             if response["status"] == "error":
                 return response
-            job.process_graph = response["data"]["process_graph"]
+            job.process = response["data"]["process_graph"]
 
             return {
                 "status": "success",
                 "code": 200,
-                "data": JobSchemaFull().dump(job).data
+                "data": JobSchemaFull().dump(job)
             }
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp),
-                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}/get"]).to_dict()
+            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
     @rpc
-    def modify(self, user_id: str, job_id: str, **job_args):
+    def modify(self, user_id: str, job_id: str, **job_args) -> dict:
         """The request will ask the back-end to modify the job with the given job_id.
 
         Keyword Arguments:
@@ -114,34 +113,38 @@ class JobService:
                 return response
 
             if job.status in [JobStatus.queued, JobStatus.running]:
-                msg = "Job {0} is currently {1} and cannot be modified".format(job_id, job.status)
-                return JobLocked(400, user_id, msg, links=["jobs/" + job_id])
+                return JobLocked(400, user_id, f"Job {job_id} is currently {job.status} and cannot be modified",
+                                 links=[]).to_dict()
 
-            process_graph_id = None
             if job_args.get("process_graph", None):
-                process_response = self.process_graphs_service.create(
-                    user_id=user_id,
-                    **{"process_graph": job_args.pop('process_graph')})
-
+                process_graph_args = job_args.pop('process_graph')
+                process_graph_id = process_graph_args["id"] if "id" in process_graph_args else str(uuid4())
+                process_response = self.processes_service.put_user_defined(
+                    user_id=user_id, process_graph_id=process_graph_id, **process_graph_args)
                 if process_response["status"] == "error":
                     return process_response
-                process_graph_id = process_response["service_data"]
+                job_args["process_graph_id"] = process_graph_id
 
-            job.update(process_graph_id, **job_args)
-            self.db.merge(job)
+            # Maybe there is a better option to do this update? e.g. using marshmallow schemas?
+            job.title = job_args.get("title", job.title)
+            job.process_graph_id = job_args.get("process_graph_id", job.process_graph_id)
+            job.description = job_args.get("description", job.description)
+            job.plan = job_args.get("plan", job.plan)
+            if job_args.get("budget", None):
+                job.budget = int(job_args["budget"] * 100)
             self.db.commit()
 
             return {
-                    "status": "success",
-                    "code": 204
-                }
+                "status": "success",
+                "code": 204
+            }
 
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
-                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}/patch"]).to_dict()
+                                    links=[]).to_dict()
 
     @rpc
-    def delete(self, user_id: str, job_id: str):
+    def delete(self, user_id: str, job_id: str) -> dict:
         """The request will ask the back-end to delete the job with the given job_id.
 
         Keyword Arguments:
@@ -173,29 +176,27 @@ class JobService:
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp),
-                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}/delete"]).to_dict()
+            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
     @rpc
-    def get_all(self, user_id: str):
+    def get_all(self, user_id: str) -> dict:
         """The request will ask the back-end to get all available jobs for the given user.
 
         Keyword Arguments:
             user_id {str} -- The identifier of the user
         """
         try:
-            # self.update_job_status(job_id=job_id) # should be done for all jobs
+            # TODO status update should be done separately
+            jobs = self.db.query(Job.id).filter_by(user_id=user_id).order_by(Job.created_at).all()
+            for job in jobs:
+                self.update_job_status(job.id)
             jobs = self.db.query(Job).filter_by(user_id=user_id).order_by(Job.created_at).all()
-            
-            # Update job status for all jobs
-            for k, job in enumerate(jobs):
-                jobs[k].status = self.airflow.check_dag_status(job.id)
 
             return {
                 "status": "success",
                 "code": 200,
                 "data": {
-                    "jobs": JobSchema(many=True).dump(jobs).data,
+                    "jobs": JobSchema(many=True).dump(jobs),
                     "links": []
                 }
             }
@@ -204,7 +205,7 @@ class JobService:
                                     links=["#tag/Job-Management/paths/~1jobs/get"]).to_dict()
 
     @rpc
-    def create(self, user_id: str, **job_args):
+    def create(self, user_id: str, **job_args) -> dict:
         """The request will ask the back-end to create a new job using the description send in the request body.
 
         Keyword Arguments:
@@ -212,48 +213,35 @@ class JobService:
             job_args {dict} -- The information needed to create a job
         """
         try:
-            process_graph = job_args.pop('process_graph')
-            process_response = self.process_graphs_service.create(
-                user_id=user_id,
-                **{"process_graph": process_graph})
+            process_graph = job_args.pop("process")
+            process_graph_id = process_graph["id"] if "id" in process_graph else str(uuid4())
+            process_response = self.processes_service.put_user_defined(
+                user_id=user_id, process_graph_id=process_graph_id, **process_graph)
             if process_response["status"] == "error":
                 return process_response
-            process_graph_id = process_response["service_data"]
-            
-            job = Job(user_id, process_graph_id, **job_args)
-            job_id = str(job.id)
+
+            job_args["process_graph_id"] = process_graph_id
+            job_args["user_id"] = user_id
+            job = JobCreateSchema().load(job_args)
             self.db.add(job)
             self.db.commit()
-            
-            if "description" not in locals():
-                description = None
-                
-            # Create folder for job
+            job_id = str(job.id)
+
             self.files_service.setup_jobs_folder(user_id=user_id, job_id=job_id)
-            
-            # Create Apache Airflow DAG file
-            job_folder = os.environ["JOB_DATA"] + os.path.sep + user_id + os.path.sep + "jobs" + os.path.sep + job_id
+
+            job_folder = os.path.join(os.environ["JOB_DATA"], user_id, "jobs", job_id)
             writer = AirflowDagWriter(job_id, user_id, process_graph_json=process_graph, job_data=job_folder, vrt_only=True)
             writer.write_and_move_job()
+
+            # TODO could the below part be done once the process is triggered?
             # unpause DAG so that it can be triggered in the process() method
-            response = self.airflow.unpause_dag(job_id, unpause=True)
+            # response = self.airflow.unpause_dag(job_id, unpause=True)
             # the following is needed because in some cases (when??) one must wait a little longer to unpause a DAG
             # maybe it takes some time before all relevant data are inserted in the internal airflow db?
-            if not response.ok:
-                sleep(10)
-                response = self.airflow.unpause_dag(job_id, unpause=True)
-            
-            # NB the following is a stab at creating parallelised DAGs
-            # it does not work because the vrt files created by the first DAG runs are on a different machine
-            # different approach: AirflowDagWriter must be exectued on the Airflow machine, but then thatmachine needs to have the PG for the current job
-            
-            # # Execute DAG to create vrt files
-            # while self.airflow.check_dag_status(job_id=job_id) != 'finished':
+            # if not response.ok:
             #     sleep(10)
-            # writer.parallelize_task = True
-            # writer.vrt_only = False
-            # writer.write_and_move_job() 
-            
+            #     response = self.airflow.unpause_dag(job_id, unpause=True)
+
             return {
                 "status": "success",
                 "code": 201,
@@ -268,17 +256,17 @@ class JobService:
                                     links=["#tag/Job-Management/paths/~1jobs/post"]).to_dict()
 
     @rpc
-    def process(self, user_id: str, job_id: str):
+    def process(self, user_id: str, job_id: str) -> dict:
         try:
             self.update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
-            
+
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
-                raise Exception(response)
-            
+                return response
+
+            response = self.airflow.unpause_dag(job_id, unpause=True)
             response = self.airflow.trigger_dag(job_id)
-            #response = self.airflow.unpause_dag(job_id, unpause=True)
 
             # Update jobs database #TODO get this information from airflow database
             job.status = JobStatus.running
@@ -294,7 +282,7 @@ class JobService:
             return exp
 
     @rpc
-    def estimate(self, user_id: str, job_id: str):
+    def estimate(self, user_id: str, job_id: str) -> dict:
         """
         Basic function to return default information about processng costs on back-end.
         """
@@ -331,33 +319,33 @@ class JobService:
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
                 raise Exception(response)
-                
+
             output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
-            
-            if output['status'] == 'success':            
+
+            if output['status'] == 'success':
                 job_data = JobSchemaShort().dump(job).data
                 job_data['links'] = []
                 for filepath in output['data']['file_list']:
                     filename = os.path.join(os.environ.get("GATEWAY_URL"),
                                             "downloads", user_id, job_id, filepath.split(os.path.sep)[-1])
                     job_data['links'].append({
-                                                "href": filename,
-                                                "type": "image/tiff"
-                                                }
-                                            )
-            
+                        "href": filename,
+                        "type": "image/tiff"
+                    }
+                    )
+
                 return {
                     "status": "success",
                     "code": 200,
                     "headers": {
-                                "Expires": "not given",
-                                "OpenEO-Costs": 0
-                                },
+                        "Expires": "not given",
+                        "OpenEO-Costs": 0
+                    },
                     "data": job_data
                 }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp),
-                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/get"]).to_dict()    
+                                    links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/get"]).to_dict()
 
     @staticmethod
     def authorize(user_id: str, job_id: str, job: Job):
@@ -369,12 +357,12 @@ class JobService:
             job {ProcessGraph} -- The Job object for the given job_id
         """
         if job is None:
-            return False, ServiceException(400, user_id, "The job with id '{0}' does not exist.".format(job_id),
+            return False, ServiceException(400, user_id, f"The job with id '{job_id}' does not exist.",
                                            internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         # TODO: Permission (e.g admin)
         if job.user_id != user_id:
-            return False, ServiceException(401, user_id, "You are not allowed to access this ressource.",
+            return False, ServiceException(401, user_id, "You are not allowed to access this resource.",
                                            internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
         return True, None
@@ -384,8 +372,7 @@ class JobService:
         Get job status from airflow db and updates jobs db.
         """
         # NB we need to push notification from the airflow db to the jobs db
-        
+
         job = self.db.query(Job).filter_by(id=job_id).first()
         job.status = self.airflow.check_dag_status(job_id)
-        self.db.merge(job)
         self.db.commit()
