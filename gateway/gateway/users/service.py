@@ -277,14 +277,13 @@ class BasicAuthService:
         Returns:
             Dict -- User_id with access token
         """
+        if not username:
+            raise APIException(f"A username needs to be specified", 401, "gateway", internal=False)
         user = db.session.query(Users).filter(Users.username == username).scalar()
+        if not user:
+            raise APIException(f"The user {username} does not exist in the database.", 401, "gateway", internal=False)
         if not self.verify_password(user, password):
-            raise APIException(
-                msg=f"Incorrect credentials for user {username}.",
-                code=401,
-                service="gateway",
-                internal=False,
-            )
+            raise APIException(f"Incorrect credentials for user {username}.", 401, "gateway", internal=False)
         return {
             "status": "success",
             "code": 200,
