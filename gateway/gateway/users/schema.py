@@ -79,16 +79,16 @@ class UserSchema(BaseSchema):
             in_data['user_id'] = 'us-' + str(uuid4())
         return in_data
 
-    def get_password_hash(self, obj):
-        if obj:
-            return pwd_context.encrypt(obj)
+    def get_password_hash(self, value):
+        if value:
+            return pwd_context.encrypt(value)
 
-    def to_cent(self, obj):
-        if obj:
-            return int(obj * 100)
+    def to_cent(self, value):
+        if value:
+            return int(value * 100)
 
     def to_euro(self, obj):
-        if obj:
+        if obj.budget:
             return obj.budget / 100.0
 
 
