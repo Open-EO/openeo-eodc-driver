@@ -1,5 +1,5 @@
 """ EO Data Discovery """
-# TODO: Adding paging with start= maxRecords= parameter for record requesting 
+# TODO: Adding paging with start= maxRecords= parameter for record requesting
 
 import os
 import json
@@ -13,7 +13,8 @@ from .dependencies.csw import CSWSession
 from .schemas import CollectionSchema, CollectionsSchema
 
 service_name = "data"
-LOGGER = logging.getLogger('standardlog')
+LOGGER = logging.getLogger("standardlog")
+
 
 class ServiceException(Exception):
     """ServiceException raises if an exception occured while processing the 
@@ -21,8 +22,9 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, code: int, user_id: str, msg: str,
-                 internal: bool = True, links: list = []):
+    def __init__(
+        self, code: int, user_id: str, msg: str, internal: bool = True, links: list = []
+    ):
         self._service = service_name
         self._code = code
         self._user_id = user_id
@@ -45,7 +47,7 @@ class ServiceException(Exception):
             "user_id": self._user_id,
             "msg": self._msg,
             "internal": self._internal,
-            "links": self._links
+            "links": self._links,
         }
 
 
@@ -74,17 +76,19 @@ class DataService:
             product_records = self.csw_session.get_all_products()
             response = CollectionsSchema().dump(product_records).data
 
-            return {
-                "status": "success",
-                "code": 200,
-                "data": response
-            }
+            return {"status": "success", "code": 200, "data": response}
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp),
-                                    links=["#tag/EO-Data-Discovery/paths/~1data/get"]).to_dict()
+            return ServiceException(
+                500,
+                user_id,
+                str(exp),
+                links=["#tag/EO-Data-Discovery/paths/~1data/get"],
+            ).to_dict()
 
     @rpc
-    def get_product_detail(self, user_id: str = None, collection_id: str = None) -> dict:
+    def get_product_detail(
+        self, user_id: str = None, collection_id: str = None
+    ) -> dict:
         """The request will ask the back-end for further details about a dataset.
 
         Keyword Arguments:
@@ -101,19 +105,26 @@ class DataService:
             response = CollectionSchema().dump(product_record).data
 
             # Add properties
-            json_file = os.path.join(os.path.dirname(__file__), "dependencies", "jsons", collection_id + ".json")
+            json_file = os.path.join(
+                os.path.dirname(__file__),
+                "dependencies",
+                "jsons",
+                collection_id + ".json",
+            )
             if json_file:
                 properties = json.load(open(json_file))
-                response['properties'] = properties
+                response["cube:dimensions"] = properties
+                response["summaries"] = {}
 
-            return {
-                "status": "success",
-                "code": 200,
-                "data": response
-            }
+            return {"status": "success", "code": 200, "data": response}
         except ValidationError as exp:
-            return ServiceException(exp.code, user_id, str(exp), internal=False,
-                                    links=["#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"]).to_dict()
+            return ServiceException(
+                exp.code,
+                user_id,
+                str(exp),
+                internal=False,
+                links=["#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"],
+            ).to_dict()
         except Exception as exp:
             return ServiceException(500, user_id, str(exp)).to_dict()
 
@@ -135,10 +146,15 @@ class DataService:
             return {
                 "status": "success",
                 "code": 200,
-                "data": {"message": "Successfully refreshed cache"}
+                "data": {"message": "Successfully refreshed cache"},
             }
         except ValidationError as exp:
-            return ServiceException(400, user_id, str(exp), internal=False,
-                                    links=["#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"]).to_dict()
+            return ServiceException(
+                400,
+                user_id,
+                str(exp),
+                internal=False,
+                links=["#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"],
+            ).to_dict()
         except Exception as exp:
             return ServiceException(500, user_id, str(exp)).to_dict()
