@@ -1,7 +1,7 @@
 """add links
 
 Revision ID: 35a8ea7c28f1
-Revises: e877d29a581f
+Revises: 943d0bb2c339
 Create Date: 2020-03-18 12:54:00.965100
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '35a8ea7c28f1'
-down_revision = 'e877d29a581f'
+down_revision = '943d0bb2c339'
 branch_labels = None
 depends_on = None
 

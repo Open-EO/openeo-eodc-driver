@@ -23,6 +23,4 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_column('identity_providers',
-        sa.Column('id_openeo', sa.String(), nullable=False, unique=True)
-    )
+    op.drop_column('identity_providers', 'id_openeo')
