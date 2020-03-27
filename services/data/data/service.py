@@ -84,7 +84,7 @@ class DataService:
             product_records = self.csw_session.get_all_products()
             response = CollectionsSchema().dump(product_records).data
 
-            LOGGER.debug("response: %s", pformat(response))
+            LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
         except Exception as exp:
             return ServiceException(
@@ -126,7 +126,7 @@ class DataService:
                 response["cube:dimensions"] = properties
                 response["summaries"] = {}
 
-            LOGGER.debug("response: %s", pformat(response))
+            LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
         except ValidationError as exp:
             return ServiceException(

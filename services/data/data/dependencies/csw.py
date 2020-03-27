@@ -65,7 +65,6 @@ class CSWHandler:
 
         data = self._get_records(series=True)
 
-        LOGGER.debug("data: %s", data)
         collections = []
         for collection in data:
             collections.append(
@@ -271,7 +270,7 @@ class CSWHandler:
             output_schema=output_schema,
             start_position=start_position,
         )
-        LOGGER.debug("POST: %s", xml_request)
+        LOGGER.debug("POST:\n%s", xml_request)
         response = post(self.csw_server_uri, data=xml_request)
 
         # Response error handling
