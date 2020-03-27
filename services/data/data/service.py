@@ -1,10 +1,10 @@
 """ EO Data Discovery """
-# TODO: Adding paging with start= maxRecords= parameter for record requesting
 
 import os
 import json
 import logging
 from typing import Union
+from pprint import pformat
 
 from nameko.rpc import rpc
 
@@ -60,6 +60,12 @@ class DataService:
     arg_parser = ArgParserProvider()
     csw_session = CSWSession()
 
+    def __init__(self):
+        LOGGER.info("Initialized %s", self)
+
+    def __repr__(self):
+        return "DataService('{}')".format(self.name)
+
     @rpc
     def get_all_products(self, user_id: str = None) -> Union[list, dict]:
         """Requests will ask the back-end for available data and will return an array of 
@@ -72,10 +78,13 @@ class DataService:
              Union[list, dict] -- The products or a serialized exception
         """
 
+        LOGGER.info("All products requested")
+        LOGGER.debug("user_id requesting %s", user_id)
         try:
             product_records = self.csw_session.get_all_products()
             response = CollectionsSchema().dump(product_records).data
 
+            LOGGER.debug("response: %s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
         except Exception as exp:
             return ServiceException(
@@ -100,11 +109,12 @@ class DataService:
         """
 
         try:
+            LOGGER.info("%s product requested", collection_id)
             collection_id = self.arg_parser.parse_product(collection_id)
             product_record = self.csw_session.get_product(collection_id)
             response = CollectionSchema().dump(product_record).data
 
-            # Add properties
+            # Add cube:dimensions and summaries
             json_file = os.path.join(
                 os.path.dirname(__file__),
                 "dependencies",
@@ -116,6 +126,7 @@ class DataService:
                 response["cube:dimensions"] = properties
                 response["summaries"] = {}
 
+            LOGGER.debug("response: %s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
         except ValidationError as exp:
             return ServiceException(
@@ -141,6 +152,7 @@ class DataService:
         """
 
         try:
+            LOGGER.info("Refresh cache requested")
             self.csw_session.refresh_cache(use_cache)
 
             return {
