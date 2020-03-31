@@ -1,4 +1,4 @@
-FROM puckel/docker-airflow:latest
+FROM puckel/docker-airflow:1.10.4
 ENV FLASK_ENV='production'
 USER root
 COPY airflow.cfg /usr/local/airflow/airflow.cfg
