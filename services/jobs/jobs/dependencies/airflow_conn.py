@@ -1,19 +1,16 @@
 from os import environ
+from typing import Optional
+
 import requests
 
 
 from ..models import JobStatus
 
 
-job_status_mapper = {
-    "submitted": JobStatus.created,
-    "created": JobStatus.created,
-    "queued": JobStatus.queued,
+airflow_job_status_mapper = {
     "running": JobStatus.running,
-    "cancelled": JobStatus.canceled,
-    "finished": JobStatus.finished,
     "success": JobStatus.finished,
-    "error": JobStatus.error
+    "failed": JobStatus.error
 }
 
 
@@ -36,49 +33,47 @@ class Airflow:
         """
         
         """
+        return requests.get(self.api_url + "/test")
 
-        response = requests.get(self.api_url + "/test")
-
-        return response
-
-    def unpause_dag(self, job_id, unpause=True):
+    def unpause_dag(self, job_id: str, unpause: bool = True) -> bool:
         """
         Pause/unpause DAG
         """
-
-        request_url = self.dags_url + "/" + job_id + "/paused/" + str(not unpause)
+        request_url = f"{self.dags_url}/{job_id}/paused/{str(not unpause)}"
         response = requests.get(request_url, headers=self.header, data=self.data)
+        return response.status_code == 200
 
-        return response
-
-
-    def trigger_dag(self, job_id):
+    def trigger_dag(self, job_id: str) -> bool:
         """
         Trigger airflow DAG (only works if it is unpaused already)
         """
-
-        job_url = self.dags_url + "/" + job_id + "/dag_runs"
+        self.unpause_dag(job_id)
+        job_url = f"{self.dags_url}/{job_id}/dag_runs"
         response = requests.post(job_url, headers=self.header, data=self.data)
+        return response.status_code == 200
 
-        return response
-
-    def check_dag_status(self, job_id):
+    def check_dag_status(self, job_id: str) -> Optional[JobStatus]:
         """
         Check status of airflow DAG
         """
-        dag_status = JobStatus.created
+        dag_status = None
 
-        job_url = self.dags_url + "/" + job_id + "/dag_runs"
+        job_url = f"{self.dags_url}/{job_id}/dag_runs"
         response = requests.get(job_url, headers=self.header, data=self.data)
-        if response.status_code == 400:
-            if 'not found' in response.json()['error']:
-                dag_status = JobStatus.canceled
+        if response.status_code == 200:
+            if not response.json():
+                # empty list is returned > no dag run, only created
+                dag_status = JobStatus.created
             else:
-                dag_status = JobStatus.error
-        else:
-            if response.json():
-                state = response.json()[0]['state']
-                if state in job_status_mapper:
-                    dag_status = job_status_mapper[state]
+                state = response.json()[-1]['state']  # TODO shouldn't this be the max?
+                dag_status = airflow_job_status_mapper[state]
 
         return dag_status
+
+    def delete_dag(self, job_id: str) -> bool:
+        """
+        Delete the dag with the given id.
+        """
+        job_url = f"{self.dags_url}/{job_id}"
+        response = requests.delete(job_url)
+        return response.status_code == 200

@@ -2,6 +2,7 @@
 
 import logging
 import os
+from time import sleep
 from uuid import uuid4
 
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
@@ -58,6 +59,14 @@ class JobLocked(ServiceException):
         super(JobLocked, self).__init__(code, user_id, msg, internal, links)
 
 
+class JobNotFinished(ServiceException):
+    """ JobNotFinished raised if job is not finished but results are requested . """
+    def __init__(self, code: int, user_id: str, job_id: str, msg: str = None, internal: bool = True, links: list = None):
+        if not msg:
+            msg = f"Job {job_id} is not yet finished. Results cannot be accessed."
+        super().__init__(code, user_id, msg, internal, links)
+
+
 class JobService:
     """Management of batch processing tasks (jobs) and their results.
     """
@@ -67,6 +76,7 @@ class JobService:
     processes_service = RpcProxy("processes")
     files_service = RpcProxy("files")
     airflow = Airflow()
+    check_stop_interval = 10
 
     @rpc
     def get(self, user_id: str, job_id: str) -> dict:
@@ -77,7 +87,7 @@ class JobService:
             job_id {str} -- The id of the job
         """
         try:
-            self.update_job_status(job_id=job_id)
+            self._update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
 
             valid, response = self.authorize(user_id, job_id, job)
@@ -106,7 +116,7 @@ class JobService:
             job_id {str} -- The id of the job
         """
         try:
-            self.update_job_status(job_id=job_id)
+            self._update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
@@ -151,24 +161,27 @@ class JobService:
             user_id {str} -- The identifier of the user
             job_id {str} -- The id of the process graph
         """
+        # TODO handle costs (stop it)
         try:
-            self.update_job_status(job_id=job_id)
+            LOGGER.debug(f"Start deleting job {job_id}")
             job = self.db.query(Job).filter_by(id=job_id).first()
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
                 return response
 
-            # TODO: stop computation, delete computed results, stop creating costs > delete everything related to job!
-            if job.status == JobStatus.queued:
-                # TODO: remove job from queue
-                pass
-            elif job.status == JobStatus.running:
-                # TODO: stop computation, stop creating costs
-                pass
-            # TODO: check if results were computed and if delete them
+            self._update_job_status(job_id=job_id)
+            # JobStatus should never be queued -> does not exist for a dag in airflow
+            if job.status in [JobStatus.running, JobStatus.queued]:
+                LOGGER.debug(f"Stopping running job {job_id}")
+                self._stop_airflow_job(user_id, job_id)
+                LOGGER.info(f"Stopped running job {job_id}.")
 
-            self.db.delete(job)
+            self.files_service.delete_complete_job(user_id, job_id)  # delete data on file system
+            os.remove(self.get_dag_path(job.dag_filename))  # delete dag file
+            self.airflow.delete_dag(job_id)  # delete from airflow database
+            self.db.delete(job)  # delete from our job database
             self.db.commit()
+            LOGGER.info(f"Job {job_id} completely deleted.")
 
             return {
                 "status": "success",
@@ -189,7 +202,7 @@ class JobService:
             # TODO status update should be done separately
             jobs = self.db.query(Job.id).filter_by(user_id=user_id).order_by(Job.created_at).all()
             for job in jobs:
-                self.update_job_status(job.id)
+                self._update_job_status(job.id)
             jobs = self.db.query(Job).filter_by(user_id=user_id).order_by(Job.created_at).all()
 
             return {
@@ -213,12 +226,14 @@ class JobService:
             job_args {dict} -- The information needed to create a job
         """
         try:
-            process_graph = job_args.pop("process")
-            process_graph_id = process_graph["id"] if "id" in process_graph else str(uuid4())
+            LOGGER.debug("Start creating job")
+            process = job_args.pop("process")
+            process_graph_id = process["id"] if "id" in process else str(uuid4())
             process_response = self.processes_service.put_user_defined(
-                user_id=user_id, process_graph_id=process_graph_id, **process_graph)
+                user_id=user_id, process_graph_id=process_graph_id, **process)
             if process_response["status"] == "error":
                 return process_response
+            LOGGER.debug("ProcessGraph created")
 
             job_args["process_graph_id"] = process_graph_id
             job_args["user_id"] = user_id
@@ -227,20 +242,15 @@ class JobService:
             self.db.commit()
             job_id = str(job.id)
 
-            self.files_service.setup_jobs_folder(user_id=user_id, job_id=job_id)
+            self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)
 
-            job_folder = os.path.join(os.environ["JOB_DATA"], user_id, "jobs", job_id)
-            writer = AirflowDagWriter(job_id, user_id, process_graph_json=process_graph, job_data=job_folder, vrt_only=True)
+            job_folder = self.get_job_folder(user_id, job_id)
+            writer = AirflowDagWriter(job_id, user_id, process_graph_json=process["process_graph"], job_data=job_folder,
+                                      vrt_only=True, add_delete_sensor=True)
             writer.write_and_move_job()
-
-            # TODO could the below part be done once the process is triggered?
-            # unpause DAG so that it can be triggered in the process() method
-            # response = self.airflow.unpause_dag(job_id, unpause=True)
-            # the following is needed because in some cases (when??) one must wait a little longer to unpause a DAG
-            # maybe it takes some time before all relevant data are inserted in the internal airflow db?
-            # if not response.ok:
-            #     sleep(10)
-            #     response = self.airflow.unpause_dag(job_id, unpause=True)
+            job.dag_filename = writer.file_handler.filepath
+            self.db.commit()
+            LOGGER.debug("Dag file created")
 
             return {
                 "status": "success",
@@ -258,33 +268,26 @@ class JobService:
     @rpc
     def process(self, user_id: str, job_id: str) -> dict:
         try:
-            self.update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
-
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
                 return response
 
-            response = self.airflow.unpause_dag(job_id, unpause=True)
-            response = self.airflow.trigger_dag(job_id)
+            if not self.airflow.trigger_dag(job_id):
+                return ServiceException(500, user_id, f"Job {job_id} could not be started.", links=[]).to_dict()
 
-            # Update jobs database #TODO get this information from airflow database
-            job.status = JobStatus.running
-            self.db.commit()
-
+            self._update_job_status(job_id=job_id)
             return {
                 "status": "success",
                 "code": 202,
             }
         except Exception as exp:
-            job.status = job.status + " error: " + exp.__str__() #+ ' ' + filter_args
-            self.db.commit()
-            return exp
+            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
     @rpc
     def estimate(self, user_id: str, job_id: str) -> dict:
         """
-        Basic function to return default information about processng costs on back-end.
+        Basic function to return default information about processing costs on back-end.
         """
 
         default_out = {
@@ -311,7 +314,7 @@ class JobService:
     @rpc
     def get_results(self, user_id: str, job_id: str):
         try:
-            self.update_job_status(job_id=job_id)
+            self._update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
             if job.status != JobStatus.finished:
                 raise Exception(response)  # NB code proper response "JobNotFinished"
@@ -365,14 +368,33 @@ class JobService:
             return False, ServiceException(401, user_id, "You are not allowed to access this resource.",
                                            internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
 
+        LOGGER.info(f"User is authorized to access job {job_id}.")
         return True, None
 
-    def update_job_status(self, job_id: str):
+    def _update_job_status(self, job_id: str):
         """
         Get job status from airflow db and updates jobs db.
         """
-        # NB we need to push notification from the airflow db to the jobs db
+        new_status = self.airflow.check_dag_status(job_id)
+        if new_status:
+            job = self.db.query(Job).filter_by(id=job_id).first()
+            job.status = new_status
+            self.db.commit()
 
-        job = self.db.query(Job).filter_by(id=job_id).first()
-        job.status = self.airflow.check_dag_status(job_id)
-        self.db.commit()
+    def get_job_folder(self, user_id: str, job_id: str) -> str:
+        return os.path.join(os.environ["JOB_DATA"], user_id, "jobs", job_id)
+
+    def get_dag_path(self, dag_id: str) -> str:
+        return os.path.join(os.environ.get("AIRFLOW_DAGS"), dag_id)
+
+    def _stop_airflow_job(self, user_id: str, job_id: str):
+        # This should trigger the airflow observer to set all running task to failed.
+        # This will not stop the currently running task
+        self.files_service.upload_stop_job_file(user_id, job_id)
+
+        # Wait till job is stopped
+        job_stopped = False
+        while not job_stopped:
+            LOGGER.info(f"Waiting for airflow sensor to detect STOP file...")
+            sleep(self.check_stop_interval)
+            job_stopped = self.airflow.check_dag_status(job_id) != JobStatus.running

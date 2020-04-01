@@ -5,6 +5,7 @@ import logging
 import os
 import re
 from typing import List, Optional, Tuple
+import shutil
 
 from nameko.rpc import rpc
 from werkzeug.security import safe_join
@@ -72,7 +73,8 @@ class FilesService:
 
     @rpc
     def download(self, user_id: str, path: str, source_dir: str = 'files') -> dict:
-        """The request will ask the back-end to get the job using the job_id.
+        """
+        The request will ask the back-end to get the get the file stored at the given path.
 
         Arguments:
             user_id {str} -- The identifier of the user
@@ -83,24 +85,6 @@ class FilesService:
             if not valid:
                 return err
 
-            return {
-                "status": "success",
-                "code": 200,
-                "headers": {"Content-Type": "application/octet-stream"},
-                "file": complete_path,
-            }
-
-        except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
-            
-    @rpc
-    def download_result(self, user_id: str, job_id: str, path: str) -> dict:
-        """
-        
-        """
-        try:
-            complete_path = os.path.join(self.get_user_folder(user_id), "jobs", job_id, self.result_folder, path)
-            
             return {
                 "status": "success",
                 "code": 200,
@@ -189,41 +173,16 @@ class FilesService:
                 "status": "success",
                 "code": 200,
                 "data": {
-                    "path": complete_path[len(self.get_user_folder(user_id)) + 1:],
+                    "path": self.complete_to_public_path(user_id, complete_path),
                     "size": self.sizeof_fmt(os.path.getsize(complete_path)),
                 }
             }
 
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
-            
-            
-    @rpc
-    def get_job_output(self, user_id: str, job_id: str):
-        """
-        Returns a list of output files produced by a job.
-        """
-        try:            
-            file_list = glob.glob(os.path.join(self.get_user_folder(user_id=user_id), 'jobs', job_id, self.result_folder, '*'))
-            if file_list:
-                response = {
-                    "status": "success",
-                    "code": 200,
-                    "data": {"file_list": file_list}
-                }
-            else:
-                response = {
-                    "status": "error",
-                    "code": 500,
-                    "data": {"file_list": []}
-                }
-            return response
-
-        except Exception as exp:
-            return ServiceException(500, user_id, str(exp)).to_dict()
 
     @rpc
-    def setup_user_folder(self, user_id: str) -> list:
+    def setup_user_folder(self, user_id: str) -> List[str]:
         """
         Create user folder with files and jobs structure and return the paths.
 
@@ -242,20 +201,6 @@ class FilesService:
     @staticmethod
     def get_user_folder(user_id: str) -> str:
         return os.path.join(os.environ.get("OPENEO_FILES_DIR"), user_id)
-
-    @rpc
-    def setup_jobs_folder(self, user_id: str, job_id: str) -> None:
-        """
-        Create user folder structure with folder for the given job_id.
-
-        Arguments:
-            user_id {str} -- The identifier of the user
-            job_id {str} -- The identifier for the job
-        """
-        _, jobs_dir = self.setup_user_folder(user_id)
-        to_create = os.path.join(jobs_dir, job_id, self.result_folder)
-        if not os.path.exists(to_create):
-            os.makedirs(to_create)
 
     def authorize_file(self, user_id: str, path: str, source_dir: str = 'files') -> Tuple[bool, Optional[dict], Optional[str]]:
         """
@@ -323,6 +268,9 @@ class FilesService:
 
         return safe_join(out_dir, *parts, filename)
 
+    def complete_to_public_path(self, user_id: str, complete_path: str) -> str:
+        return complete_path[len(self.get_user_folder(user_id)) + 1:]
+
     @staticmethod
     def sizeof_fmt(num: float) -> str:
         """Return human readable file size.
@@ -335,3 +283,71 @@ class FilesService:
                 return "%3.1f%sB" % (num, unit)
             num /= 1024.0
         return "%.1f%sB" % (num, 'Yi')
+
+    # needed for job management
+    @rpc
+    def setup_jobs_result_folder(self, user_id: str, job_id: str) -> None:
+        """
+        Create user folder structure with folder for the given job_id.
+
+        Arguments:
+            user_id {str} -- The identifier of the user
+            job_id {str} -- The identifier for the job
+        """
+        self.setup_user_folder(user_id)
+        to_create = self.get_job_results_folder(user_id, job_id)
+        if not os.path.exists(to_create):
+            os.makedirs(to_create)
+
+    @rpc
+    def get_job_output(self, user_id: str, job_id: str):
+        """
+        Returns a list of output files produced by a job.
+        """
+        try:
+            file_list = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*'))
+            if not file_list:
+                return ServiceException(400, user_id, f"Job output folder is empty. No files generated.")
+
+            return {
+                "status": "success",
+                "code": 200,
+                "data": {"file_list": [self.complete_to_public_path(user_id, f) for f in file_list]}
+            }
+
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp)).to_dict()
+
+    @rpc
+    def download_result(self, user_id: str, path: str) -> dict:
+        """
+        The request will ask the back-end to get the get the job result stored at the given path.
+
+        Arguments:
+            user_id {str} -- The identifier of the user
+            path {str} -- The file path to the requested file
+        """
+        return self.download(user_id, path, source_dir='jobs')
+
+    @rpc
+    def upload_stop_job_file(self, user_id: str, job_id: str) -> None:
+        job_folder = self.get_job_id_folder(user_id, job_id)
+        LOGGER.info('Job folder: ' + str(job_folder))
+        open(os.path.join(job_folder, 'STOP'), 'a').close()
+        LOGGER.info('Is file: ' + str(os.path.isfile(os.path.join(job_folder, 'STOP'))))
+
+    @rpc
+    def delete_complete_job(self, user_id: str, job_id: str) -> None:
+        job_folder = self.get_job_id_folder(user_id, job_id)
+        shutil.rmtree(job_folder)
+
+    @rpc
+    def delete_job_without_results(self, user_id: str, job_id: str) -> None:
+        job_folder = self.get_job_id_folder(user_id, job_id)
+        # for everything besides results folder
+
+    def get_job_id_folder(self, user_id: str, job_id: str) -> str:
+        return os.path.join(self.get_user_folder(user_id), self.jobs_folder, job_id)
+
+    def get_job_results_folder(self, user_id: str, job_id: str) -> str:
+        return os.path.join(self.get_job_id_folder(user_id, job_id), self.result_folder)
