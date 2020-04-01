@@ -2,8 +2,8 @@ FROM puckel/docker-airflow:1.10.4
 ENV FLASK_ENV='production'
 USER root
 COPY airflow.cfg /usr/local/airflow/airflow.cfg
-RUN echo "deb http://http.us.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list && \
-    echo "deb-src http://http.us.debian.org/debian unstable main non-free contrib" >> /etc/apt/sources.list
+RUN echo "deb http://http.us.debian.org/debian bullseye main non-free contrib" >> /etc/apt/sources.list && \
+    echo "deb-src http://http.us.debian.org/debian bullseye main non-free contrib" >> /etc/apt/sources.list
 RUN apt-get update -y
 RUN apt-get install -y gdal-bin libgdal-dev git ssh && apt-get install -f
 RUN pip install --upgrade pip # uncomment when this issue is fixed: https://github.com/pypa/pip/issues/7217
