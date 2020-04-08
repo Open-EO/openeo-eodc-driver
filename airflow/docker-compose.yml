@@ -24,7 +24,7 @@ services:
         container_name: airflow_webserver
         build:
             context: ./build
-        image: openeo-eodc-airflow:latest
+        image: openeo-eodc-airflow:1.10.9
         restart: always
         depends_on:
             - postgres
@@ -44,7 +44,7 @@ services:
         ports:
             - "8080:8080"
         # todo: --ssl_cert path --ssl_key path
-        command: webserver -w 10 -d false 
+        command: webserver -w 10 -d false
         healthcheck:
             test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
             interval: 30s
@@ -57,7 +57,7 @@ services:
         container_name: airflow_flower
         build:
             context: ./build
-        image: openeo-eodc-airflow:latest
+        image: openeo-eodc-airflow:1.10.9
         restart: always
         environment:
             EXECUTOR: $EXECUTOR
@@ -75,11 +75,11 @@ services:
         container_name: airflow_scheduler
         build:
             context: ./build
-        image: openeo-eodc-airflow:latest
+        image: openeo-eodc-airflow:1.10.9
         restart: always
         depends_on:
             - webserver
-        environment: 
+        environment:
             POSTGRES_USER: $POSTGRES_USER
             POSTGRES_PASSWORD: $POSTGRES_PASSWORD
             POSTGRES_DB: $POSTGRES_DB
@@ -98,11 +98,11 @@ services:
     worker:
         build:
             context: ./build
-        image: openeo-eodc-airflow:latest
+        image: openeo-eodc-airflow:1.10.9
         restart: always
         depends_on:
             - scheduler
-        environment: 
+        environment:
             POSTGRES_USER: $POSTGRES_USER
             POSTGRES_PASSWORD: $POSTGRES_PASSWORD
             POSTGRES_DB: $POSTGRES_DB

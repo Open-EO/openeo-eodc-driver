@@ -1,7 +1,8 @@
-FROM puckel/docker-airflow:1.10.4
+FROM puckel/docker-airflow:1.10.9
 ENV FLASK_ENV='production'
 USER root
 COPY airflow.cfg /usr/local/airflow/airflow.cfg
+# Get GDAL dependencies for eoDataReaders
 RUN echo "deb http://http.us.debian.org/debian bullseye main non-free contrib" >> /etc/apt/sources.list && \
     echo "deb-src http://http.us.debian.org/debian bullseye main non-free contrib" >> /etc/apt/sources.list
 RUN apt-get update -y
