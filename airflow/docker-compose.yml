@@ -1,14 +1,14 @@
-version: '2.1'
+version: '2.2'
 services:
     redis:
-        container_name: airflow_redis
+        container_name: airflow-redis
         image: 'redis:latest'
         command: redis-server --requirepass ${REDIS_PASSWORD}
         networks:
              - default
 
     postgres:
-        container_name: airflow_postgres
+        container_name: airflow-postgres
         image: postgres:9.6
         environment:
             POSTGRES_USER: $POSTGRES_USER
@@ -21,7 +21,7 @@ services:
             - default
 
     webserver:
-        container_name: airflow_webserver
+        container_name: airflow-webserver
         build:
             context: ./build
         image: openeo-eodc-airflow:1.10.9
@@ -41,6 +41,7 @@ services:
         volumes:
             - $PLUGINS:/usr/local/airflow/plugins
             - $DAGS:/usr/local/airflow/dags
+            - ./build/airflow_worker_process.cfg:/usr/local/airflow/airflow.cfg
         ports:
             - "8080:8080"
         # todo: --ssl_cert path --ssl_key path
@@ -54,7 +55,7 @@ services:
             - default
 
     flower:
-        container_name: airflow_flower
+        container_name: airflow-flower
         build:
             context: ./build
         image: openeo-eodc-airflow:1.10.9
@@ -70,9 +71,11 @@ services:
         command: flower
         networks:
              - default
+        volumes:
+          - ./build/airflow_worker_process.cfg:/usr/local/airflow/airflow.cfg
 
     scheduler:
-        container_name: airflow_scheduler
+        container_name: airflow-scheduler
         build:
             context: ./build
         image: openeo-eodc-airflow:1.10.9
@@ -91,11 +94,13 @@ services:
         volumes:
             - $PLUGINS:/usr/local/airflow/plugins
             - $DAGS:/usr/local/airflow/dags
+            - ./build/airflow_worker_process.cfg:/usr/local/airflow/airflow.cfg
         command: scheduler
         networks:
             - default
 
     worker:
+        container_name: airflow-worker
         build:
             context: ./build
         image: openeo-eodc-airflow:1.10.9
@@ -120,7 +125,39 @@ services:
             - $DAGS:/usr/local/airflow/dags
             - $HOST_INPUT:$CONTAINER_INPUT
             - files-data:$CONTAINER_OUTPUT
-        command: worker
+            - ./build/airflow_worker_process.cfg:/usr/local/airflow/airflow.cfg
+        command: worker -q process
+        networks:
+            - default
+
+    worker-sensor:
+        container_name: airflow-worker-sensor
+        build:
+            context: ./build
+        image: openeo-eodc-airflow:1.10.9
+        restart: always
+        depends_on:
+            - scheduler
+        environment:
+            POSTGRES_USER: $POSTGRES_USER
+            POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+            POSTGRES_DB: $POSTGRES_DB
+            REDIS_PASSWORD: $REDIS_PASSWORD
+            LOAD_EX: $LOAD_EX
+            FERNET_KEY: $FERNET_KEY
+            EXECUTOR: $EXECUTOR
+            GDAL_VRT_ENABLE_PYTHON: $GDAL_VRT_ENABLE_PYTHON
+            GDAL_VRT_PYTHON_TRUSTED_MODULES: $GDAL_VRT_PYTHON_TRUSTED_MODULES
+            FLASK_ENV: $FLASK_ENV
+            OPENEO_PYTHON_UDF_URL: $OPENEO_PYTHON_UDF_URL
+            OPENEO_R_UDF_URL: $OPENEO_R_UDF_URL
+        volumes:
+            - $PLUGINS:/usr/local/airflow/plugins
+            - $DAGS:/usr/local/airflow/dags
+            - $HOST_INPUT:$CONTAINER_INPUT
+            - files-data:$CONTAINER_OUTPUT
+            - ./build/airflow_worker_sensor.cfg:/usr/local/airflow/airflow.cfg
+        command: worker -q sensor
         networks:
             - default
             
