@@ -11,7 +11,7 @@ class JobStatus(enum.Enum):
     def __str__(self):
         return str(self.value)
 
-    created = "created"
+    created = "created"  # JobStatus should never be queued -> does not exist for a dag in airflow
     queued = "queued"
     running = "running"
     canceled = "canceled"

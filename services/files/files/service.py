@@ -332,9 +332,8 @@ class FilesService:
     @rpc
     def upload_stop_job_file(self, user_id: str, job_id: str) -> None:
         job_folder = self.get_job_id_folder(user_id, job_id)
-        LOGGER.info('Job folder: ' + str(job_folder))
         open(os.path.join(job_folder, 'STOP'), 'a').close()
-        LOGGER.info('Is file: ' + str(os.path.isfile(os.path.join(job_folder, 'STOP'))))
+        LOGGER.info('STOP file in Job folder: ' + str(job_folder))
 
     @rpc
     def delete_complete_job(self, user_id: str, job_id: str) -> None:
@@ -342,12 +341,28 @@ class FilesService:
         shutil.rmtree(job_folder)
 
     @rpc
-    def delete_job_without_results(self, user_id: str, job_id: str) -> None:
-        job_folder = self.get_job_id_folder(user_id, job_id)
-        # for everything besides results folder
+    def delete_job_without_results(self, user_id: str, job_id: str) -> bool:
+        job_result_folder = self.get_job_results_folder(user_id, job_id)
+        if os.listdir(job_result_folder) == 0:
+            self.delete_complete_job(user_id, job_id)
+            self.setup_jobs_result_folder(user_id, job_id)
+        else:
+            with self.job_result_bak_folder(user_id, job_id) as bak_result_folder:
+                os.rename(job_result_folder, bak_result_folder)
+                self.delete_complete_job(user_id, job_id)
+                self.setup_jobs_result_folder(user_id, job_id)
+                os.rename(bak_result_folder, job_result_folder)
+
+        return os.listdir(job_result_folder) != 0
 
     def get_job_id_folder(self, user_id: str, job_id: str) -> str:
         return os.path.join(self.get_user_folder(user_id), self.jobs_folder, job_id)
 
     def get_job_results_folder(self, user_id: str, job_id: str) -> str:
         return os.path.join(self.get_job_id_folder(user_id, job_id), self.result_folder)
+
+    def job_result_bak_folder(self, user_id: str, job_id: str):
+        bak_folder = os.path.join(self.get_user_folder(user_id=user_id), f"{job_id}_backup")
+        os.mkdir(bak_folder)
+        yield os.path.join(bak_folder, self.result_folder)
+        shutil.rmtree(bak_folder)
