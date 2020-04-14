@@ -27,43 +27,31 @@ class MoneyConverter:
         if obj:
             return int(obj * 100)
 
-    def to_euro(self, obj):
-        if obj:
+    def to_euro_budget(self, obj):
+        if obj.budget:
             return obj.budget / 100.0
 
+    def to_euro_cost(self, obj):
+        if obj.current_costs:
+            return obj.current_costs / 100.0
 
-class JobSchema(BaseSchema):
+
+class JobShortSchema(BaseSchema, MoneyConverter):
     id = fields.String(required=True)
     title = fields.String()
     description = fields.String()
     status = fields.String(required=True)
     created = fields.DateTime(attribute="created_at", required=True)
-    updated = fields.DateTime(attribute="updated_at")
+    # database is updated on REST call does not correspond to when the status changed on airflow
+    # updated = fields.DateTime(attribute="status_updated_at")
     plan = fields.String()
-    costs = fields.Integer(attribute="current_costs")
-    budget = fields.Integer()
+    costs = fields.Method('to_euro_cost', deserialize='to_cent', attribute="current_costs")
+    budget = fields.Method('to_euro_budget', deserialize='to_cent')
 
 
-class JobSchemaFull(Schema, MoneyConverter):
-    id = fields.String(required=True)
-    title = fields.String()
-    description = fields.String()
+class JobFullSchema(JobShortSchema):
     process = fields.Dict(required=True)
-    status = fields.String(required=True)
-    progress = fields.Float()  # in database?
-    created = fields.DateTime(attribute="created_at", required=True)
-    updated = fields.DateTime(attribute="updated_at")
-    plan = fields.String()
-    costs = fields.Method('to_euro', deserialize='to_cent', attribute="current_costs")
-    budget = fields.Method('to_euro', deserialize='to_cent')
-
-
-class JobSchemaShort(Schema):
-    id = fields.Str(required=True)
-    title = fields.Str(required=False)
-    description = fields.Str(required=False)
-    status = fields.Str(required=True)
-    updated = fields.DateTime(attribute="updated_at", required=False)
+    progress = fields.Float()
 
 
 class JobCreateSchema(BaseSchema, MoneyConverter):
@@ -75,9 +63,11 @@ class JobCreateSchema(BaseSchema, MoneyConverter):
     description = fields.String()
     process_graph_id = fields.String(required=True)
     plan = fields.String()
-    budget = fields.Method('to_euro', deserialize='to_cent')
+    budget = fields.Method('to_euro_budget', deserialize='to_cent')
 
     @pre_load
     def add_process_graph_id(self, in_data, **kwargs):
         in_data['id'] = 'jb-' + str(uuid4())
         return in_data
+class JobResultsSchema(BaseSchema):
+    id = fields.String(required=True)

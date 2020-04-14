@@ -13,7 +13,7 @@ from nameko_sqlalchemy import DatabaseSession
 
 from .dependencies.airflow_conn import Airflow
 from .models import Base, Job, JobStatus
-from .schema import JobSchema, JobSchemaFull, JobSchemaShort, JobCreateSchema
+from .schema import JobShortSchema, JobFullSchema, JobResultsSchema, JobCreateSchema
 
 service_name = "jobs"
 LOGGER = logging.getLogger('standardlog')
@@ -78,7 +78,7 @@ class JobService:
     processes_service = RpcProxy("processes")
     files_service = RpcProxy("files")
     airflow = Airflow()
-    check_stop_interval = 10
+    check_stop_interval = 5  # should be similar or smaller than Airflow sensor's poke interval
 
     @rpc
     def get(self, user_id: str, job_id: str) -> dict:
@@ -103,7 +103,7 @@ class JobService:
             return {
                 "status": "success",
                 "code": 200,
-                "data": JobSchemaFull().dump(job)
+                "data": JobFullSchema().dump(job)
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
@@ -209,7 +209,7 @@ class JobService:
                 "status": "success",
                 "code": 200,
                 "data": {
-                    "jobs": JobSchema(many=True).dump(jobs),
+                    "jobs": JobShortSchema(many=True).dump(jobs),
                     "links": []
                 }
             }

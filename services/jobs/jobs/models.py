@@ -29,7 +29,7 @@ class Job(Base):
     process_graph_id = Column(String, nullable=False)
     status = Column(Enum(JobStatus), default=JobStatus.created, nullable=False)
     status_updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    progress = Column(Integer, nullable=True)
+    progress = Column(Integer, nullable=True)  # Should be filled persistently
     error = Column(JSON, nullable=True)  # store last error of job > needed for results response
     plan = Column(String, nullable=True)  # Implement plans in database/service
     budget = Column(Integer, nullable=True)
