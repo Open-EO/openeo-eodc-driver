@@ -17,16 +17,16 @@ class CancelOp(BaseSensorOperator):
 
     @apply_defaults
     def __init__(self, stop_file: str, *args, **kwargs):
+        # TODO check if poke interval is feasible for bigger setup
         super().__init__(mode='poke', poke_interval=5, *args, **kwargs)
         self.stop_file = stop_file
 
     def poke(self, context):
         # Check if sensor and following worker are the last running tasks
         # happens if dag succeeds or fails (without being stopped manually)
-        num_active_tasks = DAG.get_num_task_instances(
-            dag_id=context['ti'].dag_id,
-            states=['running', 'queued', 'up_for_reschedule', 'up_for_retry', 'scheduled', None])
-        if num_active_tasks == 2:
+        active_tasks = context['dag_run'].get_task_instances(
+            state=['running', 'queued', 'up_for_reschedule', 'up_for_retry', 'scheduled', None])
+        if len(active_tasks) == 2:
             return True
 
         # Check if dag should be stopped
