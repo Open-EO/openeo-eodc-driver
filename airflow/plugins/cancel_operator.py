@@ -21,20 +21,17 @@ class CancelOp(BaseSensorOperator):
         self.stop_file = stop_file
 
     def poke(self, context):
+        # Check if sensor and following worker are the last running tasks
+        # happens if dag succeeds or fails (without being stopped manually)
+        num_active_tasks = DAG.get_num_task_instances(
+            dag_id=context['ti'].dag_id,
+            states=['running', 'queued', 'up_for_reschedule', 'up_for_retry', 'scheduled', None])
+        if num_active_tasks == 2:
+            return True
+
+        # Check if dag should be stopped
         self.log.info('Poking for file')
         return os.path.isfile(self.stop_file)
-
-
-def add_stop_file(stop_file: str, **kwargs) -> None:
-    """Adds STOP file to job.
-    Job finished successful, cancel sensor needs to finish with success. > Satisfy success criteria.
-    This will trigger the cancel action (set all running tasks to failed). This has no effect as all tasks are finished.
-
-    Arguments:
-        stop_file {str} -- File path to STOP file (needs to be equal to the one used in the cancel sensor!)
-    """
-    if not os.path.isfile(stop_file):
-        open(stop_file, 'a').close()
 
 
 def flag_running_tasks_as_failed(dag: DAG, **kwargs) -> None:
@@ -48,14 +45,6 @@ def flag_running_tasks_as_failed(dag: DAG, **kwargs) -> None:
         task.set_state('failed')
 
 
-class AddStopFileOp(PythonOperator):
-    @apply_defaults
-    def __init__(self, stop_file: str, *args, **kwargs):
-        super().__init__(python_callable=add_stop_file,
-                         op_kwargs={'stop_file': stop_file},
-                         provide_context=True, *args, **kwargs)
-
-
 class StopDagOp(PythonOperator):
     @apply_defaults
     def __init__(self, *args, **kwargs):
@@ -65,4 +54,4 @@ class StopDagOp(PythonOperator):
 
 class CancelPlugin(AirflowPlugin):
     name = "cancel_plugin"
-    operators = [CancelOp, AddStopFileOp, StopDagOp]
+    operators = [CancelOp, StopDagOp]
