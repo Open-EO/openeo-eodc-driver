@@ -41,6 +41,7 @@ services:
         volumes:
             - $PLUGINS:/usr/local/airflow/plugins
             - $DAGS:/usr/local/airflow/dags
+            - $LOG_DIR_AIRFLOW:/usr/local/airflow/logs
             - ./build/airflow_worker_process.cfg:/usr/local/airflow/airflow.cfg
         ports:
             - "8080:8080"
@@ -94,6 +95,7 @@ services:
         volumes:
             - $PLUGINS:/usr/local/airflow/plugins
             - $DAGS:/usr/local/airflow/dags
+            - $LOG_DIR_AIRFLOW:/usr/local/airflow/logs
             - ./build/airflow_worker_process.cfg:/usr/local/airflow/airflow.cfg
         command: scheduler
         networks:
@@ -125,6 +127,7 @@ services:
             - $DAGS:/usr/local/airflow/dags
             - $HOST_INPUT:$CONTAINER_INPUT
             - files-data:$CONTAINER_OUTPUT
+            - $LOG_DIR_AIRFLOW:/usr/local/airflow/logs
             - ./build/airflow_worker_process.cfg:/usr/local/airflow/airflow.cfg
         command: worker -q process
         networks:
@@ -156,6 +159,7 @@ services:
             - $DAGS:/usr/local/airflow/dags
             - $HOST_INPUT:$CONTAINER_INPUT
             - files-data:$CONTAINER_OUTPUT
+            - $LOG_DIR_AIRFLOW:/usr/local/airflow/logs
             - ./build/airflow_worker_sensor.cfg:/usr/local/airflow/airflow.cfg
         command: worker -q sensor
         networks:

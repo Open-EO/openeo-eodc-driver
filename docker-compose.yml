@@ -143,6 +143,7 @@ services:
     environment:
       AIRFLOW_DAGS: /usr/src/dags/
       SYNC_RESULTS_FOLDER: /usr/src/sync-results
+      AIRFLOW_LOG_DIR: /usr/src/logs/airflow
     volumes:
       - ./services/jobs:/usr/src/app
       - $AIRFLOW_DAGS:/usr/src/dags/

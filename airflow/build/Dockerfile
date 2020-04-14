@@ -39,6 +39,7 @@ RUN git apply gevent_pool.patch
 RUN rm gevent_pool.patch
 # Gevent pool Monkey patch end
 
+RUN mkdir /usr/local/airflow/logs
 RUN apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
 RUN chown -R airflow: /usr/local/airflow
