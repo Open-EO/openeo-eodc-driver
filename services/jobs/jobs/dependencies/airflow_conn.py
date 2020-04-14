@@ -1,11 +1,10 @@
+from datetime import datetime
 from os import environ
-from typing import Optional
+from typing import Optional, Tuple
 
 import requests
 
-
 from ..models import JobStatus
-
 
 airflow_job_status_mapper = {
     "running": JobStatus.running,
@@ -52,11 +51,12 @@ class Airflow:
         response = requests.post(job_url, headers=self.header, data=self.data)
         return response.status_code == 200
 
-    def check_dag_status(self, job_id: str) -> Optional[JobStatus]:
+    def check_dag_status(self, job_id: str) -> Tuple[Optional[JobStatus], Optional[datetime]]:
         """
         Check status of airflow DAG
         """
         dag_status = None
+        execution_date = None
 
         job_url = f"{self.dags_url}/{job_id}/dag_runs"
         response = requests.get(job_url, headers=self.header, data=self.data)
@@ -65,10 +65,14 @@ class Airflow:
                 # empty list is returned > no dag run, only created
                 dag_status = JobStatus.created
             else:
-                state = response.json()[-1]['state']  # TODO shouldn't this be the max?
-                dag_status = airflow_job_status_mapper[state]
+                last_run = response.json()[-1]
+                dag_status = airflow_job_status_mapper[last_run["state"]]
+                try:
+                    execution_date = datetime.strptime(last_run["execution_date"], "%Y-%m-%dT%H:%M:%S+00:00")
+                except ValueError:
+                    execution_date = datetime.strptime(last_run["execution_date"], "%Y-%m-%dT%H:%M:%S.%f+00:00")
 
-        return dag_status
+        return dag_status, execution_date
 
     def delete_dag(self, job_id: str) -> bool:
         """

@@ -28,6 +28,7 @@ class Job(Base):
     description = Column(String, nullable=True)
     process_graph_id = Column(String, nullable=False)
     status = Column(Enum(JobStatus), default=JobStatus.created, nullable=False)
+    status_updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     progress = Column(Integer, nullable=True)
     error = Column(JSON, nullable=True)  # store last error of job > needed for results response
     plan = Column(String, nullable=True)  # Implement plans in database/service

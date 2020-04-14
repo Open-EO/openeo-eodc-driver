@@ -2,7 +2,9 @@
 
 import logging
 import os
+from datetime import datetime
 from time import sleep
+from typing import Tuple, Optional
 from uuid import uuid4
 
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
@@ -437,15 +439,35 @@ class JobService:
         LOGGER.info(f"User is authorized to access job {job_id}.")
         return True, None
 
-    def _update_job_status(self, job_id: str):
+    def _update_job_status(self, job_id: str, manual_status: JobStatus = None) -> None:
+        """Updates the job status.
+
+        Whenever the job status is updated this method should be used to ensure the status_updated_at column is properly
+        set!
+        Either a status can be set manually or it is retrieved from airflow.
+
+        Arguments:
+            job_id {str} -- The id of the job
+
+        Keyword Arguments:
+            manual_status {JobStatus} -- The JobStatus to set for the job
         """
-        Get job status from airflow db and updates jobs db.
-        """
-        new_status = self.airflow.check_dag_status(job_id)
-        if new_status:
-            job = self.db.query(Job).filter_by(id=job_id).first()
-            job.status = new_status
-            self.db.commit()
+        job = self.db.query(Job).filter_by(id=job_id).first()
+        if manual_status:
+            job.status = manual_status
+        else:
+            new_status, execution_time = self.airflow.check_dag_status(job_id)
+            if new_status and (not job.status
+                               or job.status in [JobStatus.queued, JobStatus.running, JobStatus.error]
+                               # Job status created or canceled, when job is canceled:
+                               # > state in airflow set to failed though locally is stored as created or canceled
+                               # > the state should only be updated if there was a new dag run since the canceled one
+                               # - all times are stored in UTC
+                               or (execution_time and job.status_updated_at < execution_time)):
+                job.status = new_status
+
+        job.status_updated_at = datetime.utcnow()
+        self.db.commit()
         LOGGER.debug(f"Job Status of job {job_id} is {job.status}")
 
     def get_job_folder(self, user_id: str, job_id: str) -> str:
