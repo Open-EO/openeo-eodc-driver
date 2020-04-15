@@ -79,7 +79,7 @@ class CapabilitiesService:
                 "description": api_spec["info"]["description"],
                 "endpoints": endpoints,
                 "stac_version": api_spec["info"]["stac_version"],
-                "id": api_spec["info"]["stac_id"],
+                "id": api_spec["info"]["id"],
                 "links": [],  # TODO add links
             }
 

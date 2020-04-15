@@ -19,7 +19,7 @@ info:
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
   x-backend_version: 1.0.0
   x-stac_version: 0.6.2
-  x-stac_id: 'x.x.x'  # needs to be added
+  x-id: 'x.x.x'  # needs to be added - same as in stac
   x-production: true  # for openEO 1.0.0 false may make sense
   # billing?
   x-file_formats:
@@ -33,26 +33,8 @@ info:
         title: GeoTiff
         gis_data_types:
           - raster
-      - name: png
-        title: PNG
-        gis_data_types:
-          - raster
-      - name: jpeg
-        title: JPEG
-        gis_data_types:
-          - raster
-
   x-udf:
-    - name: Python
-      default: 3.6
-      versions:
-        - 3.6:
-            libraries:
-              numpy:
-                version: 1.18.1
-                links:
-                  href: https://docs.scipy.org/doc/
-                  rel: about
+
 
 # add service types
 
