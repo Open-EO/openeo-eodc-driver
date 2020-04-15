@@ -85,6 +85,7 @@ class FilesService:
             if not valid:
                 return err
 
+            LOGGER.info(f"Download file {path}")
             return {
                 "status": "success",
                 "code": 200,
@@ -107,7 +108,9 @@ class FilesService:
             valid, err, complete_path = self.authorize_existing_file(user_id, path)
             if not valid:
                 return err
+
             os.remove(complete_path)
+            LOGGER.info(f"File {path} successfully deleted.")
             return {
                 "status": "success",
                 "code": 204
@@ -135,7 +138,7 @@ class FilesService:
                             "size": self.sizeof_fmt(os.path.getsize(os.path.join(root, f)))
                         }
                     )
-
+            LOGGER.info(f"Found {len(file_list)} files in workspace of User {user_id}.")
             return {
                 "status": "success",
                 "code": 200,
@@ -168,7 +171,7 @@ class FilesService:
                 os.makedirs(dirs, mode=664)
 
             os.rename(tmp_path, complete_path)
-
+            LOGGER.info(f"File {path} successfully uploaded to User {user_id} workspace.")
             return {
                 "status": "success",
                 "code": 200,
@@ -194,8 +197,10 @@ class FilesService:
 
         for d in dirs_to_create:
             if not os.path.exists(d):
+                LOGGER.info(f"Folder {d} successfully created")
                 os.makedirs(d)
 
+        LOGGER.info(f"User folder successfully setup for User {user_id}.")
         return dirs_to_create
 
     @staticmethod
@@ -223,6 +228,7 @@ class FilesService:
         if os.path.isdir(complete_path):
             return False, FileOperationUnsupported(400, user_id, f"{path}: Must be a file, no directory.",
                                                    internal=False, links=[]).to_dict(), None
+        LOGGER.info(f'User {user_id} is granted access to {path}')
         return True, None, complete_path
 
     def authorize_existing_file(self, user_id: str, path: str, source_dir: str = 'files') -> Tuple[bool, Optional[dict], Optional[str]]:
@@ -242,6 +248,7 @@ class FilesService:
             if not os.path.exists(complete_path):
                 return False, FileOperationUnsupported(404, user_id, f"{path}: No such file or directory.",
                                                        internal=False, links=[]).to_dict(), None
+        LOGGER.info(f"File {path} exists.")
         return valid, err, complete_path
 
     def get_allowed_path(self, user_id: str, parts: List[str], source_dir: str = 'files') -> Optional[str]:
@@ -269,6 +276,16 @@ class FilesService:
         return safe_join(out_dir, *parts, filename)
 
     def complete_to_public_path(self, user_id: str, complete_path: str) -> str:
+        """
+        Creates the public path seen by the user from a path on the file system.
+
+        Arguments:
+            user_id {str} -- The identifier of the user
+            complete_path {str} -- A complete file path on the file system
+
+        Returns:
+            {str} -- The corresponding public path to the file visible to the user
+        """
         return complete_path[len(self.get_user_folder(user_id)) + 1:]
 
     @staticmethod
@@ -297,7 +314,9 @@ class FilesService:
         self.setup_user_folder(user_id)
         to_create = self.get_job_results_folder(user_id, job_id)
         if not os.path.exists(to_create):
+            LOGGER.debug(f"Creating Job results folder {to_create}.")
             os.makedirs(to_create)
+        LOGGER.info(f"Job results folder {to_create} exists.")
 
     @rpc
     def get_job_output(self, user_id: str, job_id: str):
@@ -309,6 +328,7 @@ class FilesService:
             if not file_list:
                 return ServiceException(400, user_id, f"Job output folder is empty. No files generated.")
 
+            LOGGER.info(f"Found {len(file_list)} output files for job {job_id}.")
             return {
                 "status": "success",
                 "code": 200,
@@ -331,22 +351,51 @@ class FilesService:
 
     @rpc
     def upload_stop_job_file(self, user_id: str, job_id: str) -> None:
+        """
+        Creates an empty file called STOP in a job directory.
+
+        This is used in the current Airflow setup to stop a dag.
+
+        Arguments:
+            user_id {str} - The identifier of the user
+            job_id {str} -- The  identifier of the job
+        """
         job_folder = self.get_job_id_folder(user_id, job_id)
         open(os.path.join(job_folder, 'STOP'), 'a').close()
-        LOGGER.info('STOP file in Job folder: ' + str(job_folder))
+        LOGGER.info(f"STOP file added to job folder {job_folder}.")
 
     @rpc
     def delete_complete_job(self, user_id: str, job_id: str) -> None:
+        """
+        Deletes the complete job folder of the given job.
+
+        Arguments:
+            user_id {str} - The identifier of the user
+            job_id {str} -- The  identifier of the job
+        """
         job_folder = self.get_job_id_folder(user_id, job_id)
         shutil.rmtree(job_folder)
+        LOGGER.info(f"Complete job folder for job {job_id} deleted.")
 
     @rpc
     def delete_job_without_results(self, user_id: str, job_id: str) -> bool:
+        """
+        Deletes everything in the job folder but the results folder of the given job.
+
+        Arguments:
+            user_id {str} - The identifier of the user
+            job_id {str} -- The  identifier of the job
+
+        Returns:
+            {bool} -- Whether there are results available or not
+        """
         job_result_folder = self.get_job_results_folder(user_id, job_id)
         if os.listdir(job_result_folder) == 0:
+            LOGGER.info(f"No results exist for job {job_id}.")
             self.delete_complete_job(user_id, job_id)
             self.setup_jobs_result_folder(user_id, job_id)
         else:
+            LOGGER.info(f"Job {job_id} has results.")
             with self.job_result_bak_folder(user_id, job_id) as bak_result_folder:
                 os.rename(job_result_folder, bak_result_folder)
                 self.delete_complete_job(user_id, job_id)
@@ -356,13 +405,36 @@ class FilesService:
         return os.listdir(job_result_folder) != 0
 
     def get_job_id_folder(self, user_id: str, job_id: str) -> str:
+        """
+        Creates the complete path to a specific job folder.
+
+        Arguments:
+            user_id {str} - The identifier of the user
+            job_id {str} -- The  identifier of the job
+        """
         return os.path.join(self.get_user_folder(user_id), self.jobs_folder, job_id)
 
     def get_job_results_folder(self, user_id: str, job_id: str) -> str:
+        """
+        Create the path to a result folder in a specific job folder.
+
+        Arguments:
+            user_id {str} - The identifier of the user
+            job_id {str} -- The  identifier of the job
+        """
         return os.path.join(self.get_job_id_folder(user_id, job_id), self.result_folder)
 
     def job_result_bak_folder(self, user_id: str, job_id: str):
+        """
+        Creates an emtpy backup folder for a specific results folder, yields its path and removes everything again.
+
+        Arguments:
+            user_id {str} - The identifier of the user
+            job_id {str} -- The  identifier of the job
+        """
         bak_folder = os.path.join(self.get_user_folder(user_id=user_id), f"{job_id}_backup")
         os.mkdir(bak_folder)
+        LOGGER.debug(f"Results backup folder created for job {job_id}.")
         yield os.path.join(bak_folder, self.result_folder)
         shutil.rmtree(bak_folder)
+        LOGGER.debug(f"Results backup folder delete for job {job_id}.")

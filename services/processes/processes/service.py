@@ -68,7 +68,7 @@ class ProcessesService:
     def get_user_defined(self, user_id: str, process_graph_id: str) -> dict:
         """The request will ask the back-end to get the process graph using the process_graph_id.
 
-        Keyword Arguments:
+        Arguments:
             user_id {str} -- The identifier of the user
             process_graph_id {str} -- The id of the process graph
         """
@@ -80,7 +80,7 @@ class ProcessesService:
             valid, response = self._exist_and_authorize(user_id, process_graph_id, process_graph)
             if not valid:
                 return response
-
+            LOGGER.info(f"Return user-defined ProcessGraph {process_graph_id}.")
             return {
                 "status": "success",
                 "code": 200,
@@ -93,7 +93,7 @@ class ProcessesService:
     def delete(self, user_id: str, process_graph_id: str) -> dict:
         """The request will ask the back-end to delete the process graph with the given process_graph_id.
 
-        Keyword Arguments:
+        Arguments:
             user_id {str} -- The identifier of the user
             process_graph_id {str} -- The id of the process graph
         """
@@ -106,6 +106,7 @@ class ProcessesService:
 
             self.db.delete(process_graph)
             self.db.commit()
+            LOGGER.info(f"User-defined ProcessGraph {process_graph_id} successfully deleted.")
             return {
                 "status": "success",
                 "code": 204
@@ -119,7 +120,7 @@ class ProcessesService:
     def get_all_predefined(self, user_id: str = None) -> dict:
         """The request asks the back-end for available predefined processes and returns detailed process descriptions.
 
-        Keyword Arguments:
+        Arguments:
             user_id {str} -- The identifier of the user (default: {None})
         """
 
@@ -127,6 +128,7 @@ class ProcessesService:
             process_graphs = self.db.query(ProcessGraph) \
                 .filter_by(process_definition=ProcessDefinitionEnum.predefined) \
                 .order_by(ProcessGraph.created_at).all()
+            LOGGER.debug(f"Found {len(process_graphs)} pre-defined processes.")
             return {
                 "status": "success",
                 "code": 200,
@@ -143,7 +145,7 @@ class ProcessesService:
     def get_all_user_defined(self, user_id: str) -> dict:
         """The request will ask the back-end to get all available process graphs for the given user.
 
-        Keyword Arguments:
+        Arguments:
             user_id {str} -- The identifier of the user
         """
         try:
@@ -151,6 +153,7 @@ class ProcessesService:
                 .filter_by(process_definition=ProcessDefinitionEnum.user_defined) \
                 .filter_by(user_id=user_id) \
                 .order_by(ProcessGraph.created_at).all()
+            LOGGER.info(f"Found {len(process_graphs)} ProcessGraphs for User {user_id}.")
             return {
                 "status": "success",
                 "code": 200,
@@ -181,17 +184,20 @@ class ProcessesService:
             if process_graph_response.status_code != 200:
                 return ServiceException(ProcessesService.name, process_graph_response.status_code,
                                         user_id, str(process_graph_response.text)).to_dict()
+            LOGGER.debug(f"Pre-defined Process {process_name} description is available in GitHub.")
 
             process_graph = self.db.query(ProcessGraph).filter_by(id_openeo=process_name).first()
             if process_graph:
                 self.db.delete(process_graph)
                 self.db.commit()
+                LOGGER.debug(f"Pre-defined Process {process_name} delete to create new one with the same id.")
 
             process_graph_json = json.loads(process_graph_response.content)
             process_graph_json['process_definition'] = ProcessDefinitionEnum.predefined
             process_graph = ProcessGraphPredefinedSchema().load(process_graph_json)
             self.db.add(process_graph)
             self.db.commit()
+            LOGGER.info(f"Pre-defined Process {process_name} successfully created.")
 
             return {
                 "status": "success",
@@ -207,8 +213,9 @@ class ProcessesService:
     def put_user_defined(self, user_id: str, process_graph_id: str, **process_graph_args) -> dict:
         """The request will ask the back-end to create a new process graph using the description send in the request body.
 
-        Keyword Arguments:
+        Arguments:
             user_id {str} -- The identifier of the user
+            process_graph_id {str} -- The identifier of the process graph
             **process_graph_args {dict} -- The dictionary containing information needed to create a ProcessGraph
         """
 
@@ -231,12 +238,14 @@ class ProcessesService:
 
                 self.db.delete(process_graph)
                 self.db.commit()
+                LOGGER.debug(f"User-defined ProcessGraph {process_graph_id} delete to create new one with the same id.")
 
             process_graph_args['process_definition'] = ProcessDefinitionEnum.user_defined
             process_graph_args['user_id'] = user_id
             process_graph = ProcessGraphPredefinedSchema().load(process_graph_args)
             self.db.add(process_graph)
             self.db.commit()
+            LOGGER.info(f"User-defined ProcessGraph {process_graph_id} successfully created.")
 
             return {
                 "status": "success",
@@ -249,8 +258,9 @@ class ProcessesService:
     def validate(self, user_id: str, process_graph: dict) -> dict:
         """The request will ask the back-end to create a new process using the description send in the request body.
 
-        Keyword Arguments:
+        Arguments:
             user_id {str} -- The identifier of the user (default: {None})
+            process_graph {dict} -- The process graph to validated
         """
         # TODO: RESPONSE HEADERS -> OpenEO-Costs
 
@@ -296,7 +306,7 @@ class ProcessesService:
             -> Tuple[bool, Optional[dict]]:
         """Return Exception if given ProcessGraph does not exist or User is not allowed to access this ProcessGraph.
 
-        Keyword Arguments:
+        Arguments:
             user_id {str} -- The identifier of the user
             process_graph_id {str} -- The id of the process graph
             process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
@@ -313,14 +323,28 @@ class ProcessesService:
 
     def _check_exists(self, user_id: str, process_graph_id: str, process_graph: ProcessGraph) \
             -> Tuple[bool, Optional[dict]]:
+        """Return Exception if given ProcessGraph does not exist.
+
+        Arguments:
+            user_id {str} -- The identifier of the user
+            process_graph_id {str} -- The id of the process graph
+            process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
+        """
         if process_graph is None:
             return False, ServiceException(ProcessesService.name, 400, user_id,
                                            f"The process_graph with id '{process_graph_id}' does not exist.",
                                            internal=False,
                                            links=[]).to_dict()
+        LOGGER.info(f"ProcessGraph {process_graph_id} exists.")
         return True, None
 
     def _authorize(self, user_id: str, process_graph: ProcessGraph) -> Tuple[bool, Optional[dict]]:
+        """Return Exception if the User is not allowed to access this ProcessGraph.
+
+        Arguments:
+            user_id {str} -- The identifier of the user
+            process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
+        """
         if not process_graph:
             return True, None
         # TODO: Permission (e.g admin)
@@ -328,9 +352,17 @@ class ProcessesService:
             return False, ServiceException(ProcessesService.name, 401, user_id,
                                            "You are not allowed to access this resource.", internal=False,
                                            links=[]).to_dict()
+        LOGGER.info(f"User {user_id} is authorized to access ProcesGraph {process_graph.id}")
         return True, None
 
     def _check_not_in_predefined(self, user_id: str, process_graph_id: str):
+        """
+        Return Exception if the process_graph_id is defined as pre-defined process.
+
+        Arguments:
+            user_id {str} -- The identifier of the user
+            process_graph_id {str} -- The id of the user-defined process graph
+        """
         predefined = list(map(lambda rec: rec[0],
                               self.db.query(ProcessGraph.id_openeo)
                               .filter_by(process_definition=ProcessDefinitionEnum.predefined).all()))
@@ -339,4 +371,5 @@ class ProcessesService:
                                            f"The process_graph_id {process_graph_id} is not allowed, as it corresponds"
                                            f" to a predefined process. Please use another process_graph_id. E.g. "
                                            f"user_{process_graph_id}", internal=False, links=[]).to_dict()
+        LOGGER.debug(f"ProcessGraphId {process_graph_id} is not a predefined process")
         return True, None
