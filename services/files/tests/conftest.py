@@ -79,3 +79,8 @@ def user_folder(request):
 @pytest.fixture()
 def user_id():
     return 'test-user'
+
+
+@pytest.fixture()
+def upload_file():
+    return os.path.join(get_input_folder(), 'upload.txt')
