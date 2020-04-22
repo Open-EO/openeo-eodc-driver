@@ -9,7 +9,7 @@ import requests
 from jsonschema import ValidationError
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
-from openeo_pg_parser_python.validate_process_graph import validate_graph
+from openeo_pg_parser_python.validate import validate_process_graph
 
 from .dependencies import NodeParser, Validator
 from .models import Base, ProcessGraph, ProcessDefinitionEnum
@@ -277,7 +277,7 @@ class ProcessesService:
                 return product_response
             products = product_response["data"]
 
-            valid = validate_graph(process_graph, processes_list=processes)
+            valid = validate_process_graph(process_graph, processes_list=processes)
             if valid:
                 output_errors = []
             else:
