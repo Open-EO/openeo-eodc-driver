@@ -37,7 +37,7 @@
     "power", 
     "product",
     "quantiles", 
-    "reduce", 
+    "reduce_dimension", 
     "round", 
     "save_result", 
     "sd", 
