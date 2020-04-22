@@ -159,7 +159,7 @@ paths:
 
   /files:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files
-  /files/{path}:
+  /files/{path:path}:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files~1{path}
 
   /downloads/{job_id}/{path}:

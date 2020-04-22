@@ -41,9 +41,9 @@ with ctx:
 
     # File Management
     gateway.add_endpoint("/files", func=rpc.files.get_all, auth=True, validate=True)
-    gateway.add_endpoint("/files/<path>", func=rpc.files.download, auth=True, validate=True)
-    gateway.add_endpoint("/files/<path>", func=rpc.files.upload, auth=True, validate=True, methods=["PUT"])
-    gateway.add_endpoint("/files/<path>", func=rpc.files.delete, auth=True, validate=True, methods=["DELETE"])
+    gateway.add_endpoint("/files/<path:path>", func=rpc.files.download, auth=True, validate=True)
+    gateway.add_endpoint("/files/<path:path>", func=rpc.files.upload, auth=True, validate=True, methods=["PUT"])
+    gateway.add_endpoint("/files/<path:path>", func=rpc.files.delete, auth=True, validate=True, methods=["DELETE"])
     gateway.add_endpoint("/downloads/<job_id>/<path>", func=rpc.files.download_result, auth=True, validate=True)
 
     # Process Discovery
@@ -66,6 +66,7 @@ with ctx:
     gateway.add_endpoint("/jobs/<job_id>", func=rpc.jobs.delete, auth=True, validate=True, methods=["DELETE"])
     gateway.add_endpoint("/jobs/<job_id>", func=rpc.jobs.modify, auth=True, validate=True, methods=["PATCH"])
     gateway.add_endpoint("/jobs/<job_id>/estimate", func=rpc.jobs.estimate, auth=True, validate=True)
+    # gateway.add_endpoint("/jobs/<job_id>/logs", func=rpc.jobs.estimate, auth=True, validate=True)
     gateway.add_endpoint("/jobs/<job_id>/results", func=rpc.jobs.get_results, auth=True, validate=True)
     gateway.add_endpoint("/jobs/<job_id>/results", func=rpc.jobs.process, auth=True, validate=True, methods=["POST"], is_async=True)
     gateway.add_endpoint("/jobs/<job_id>/results", func=rpc.jobs.cancel_processing, auth=True, validate=True, methods=["DELETE"])

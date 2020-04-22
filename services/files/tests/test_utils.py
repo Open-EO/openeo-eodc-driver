@@ -44,7 +44,7 @@ def test_authorize_file_path(file_service, user_folder, user_id):
     assert error_dict == {
         'status': 'error',
         'service': 'files',
-        'code': 404,
+        'code': 401,
         'user_id': 'test-user',
         'msg': 'somefile_without_extension: This path is not valid.',
         'internal': False,
