@@ -16,7 +16,7 @@ In order to start the API web app and its micro-services, a simple docker-compos
 
 Copy the `sample.env` file and the `/sample-envs` folder to to `.env` and `/envs`, respectively. The latter are included in the `.gitignore` by default. Do not change this. Variables in the `.env`file are used in `docker-compose.yml` when bringing up the project, while variables in the individual env files in `/envs` are available within each respective container. The following is the list of files to updte:
 
-- `.env` : note that you MUST create manally the folder specififed for 'LOG_DIR'
+- `.env` : note that you MUST create manually the folder specififed for 'LOG_DIR'
 - `envs/data.env`
 - `envs/eodatareaders.env`: do not change the content in this env file
 - `envs/gateway.env`
