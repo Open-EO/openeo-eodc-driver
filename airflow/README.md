@@ -2,7 +2,7 @@
 
 ## Edit Environment variables
 
-Copy `/airflow/sample.env` to `/airflow/.env` and update the file as needed. This file is included in the `.gitignore`
+Copy `/airflow/sample.env` to `/airflow/.env` and update the file as needed. Note that you MUST create manually the folder specififed for 'LOG_DIR_AIRFLOW'. The `/airflow/.env` file is included in the `.gitignore`
 by default. Do not change this.
 
 ### Build the Docker Image
