@@ -143,13 +143,21 @@ class AuthenticationHandler:
         """
 
         # Get user_id from OIDC /userinfo endpoint
+        user_id = None
         id_flag, provider_wellknown = self._check_oidc_issuer_exists(provider)
         if id_flag:
             id_oidc_config = requests.get(provider_wellknown)
-            userinfo_url = id_oidc_config.json()['userinfo_endpoint']
-            userinfo = requests.get(userinfo_url, headers={'Authorization': 'Bearer ' + token})
-            user_id = self._get_user_id_from_email(userinfo.json()['email'])
-        
+            userinfo_url = id_oidc_config.json()["userinfo_endpoint"]
+            userinfo = requests.get(userinfo_url, headers={"Authorization": "Bearer " + token})
+            if userinfo.status_code != 200:
+                raise APIException(
+                    msg="OIDC access token is invalid.",
+                    code=401,
+                    service="gateway",
+                    internal=False,
+                )
+            user_id = self._get_user_id_from_email(userinfo.json()["email"])
+
         return user_id
 
     def _get_user_id_from_email(self, user_email: str) -> str:
