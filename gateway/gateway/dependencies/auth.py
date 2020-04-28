@@ -1,13 +1,11 @@
 """ AuthenticationHandler """
 
-from typing import Union, Optional, Callable
+from typing import Union, Optional, Callable, Tuple
 
-import jwt
 import requests
 from flask import request
 from flask.wrappers import Request, Response
 
-from .jwksutils import rsa_pem_from_jwk
 from .response import ResponseParser, APIException
 
 
@@ -85,7 +83,7 @@ class AuthenticationHandler:
         """
 
         try:
-            method, provider, token = token.split('/')
+            method, provider, token = token.split("/")
         except ValueError:
             raise APIException(
                 msg="The token must be structured as following <authentication method>/<provider ID>/<token>!",
@@ -93,9 +91,9 @@ class AuthenticationHandler:
                 service="gateway",
                 internal=False)
 
-        if method == 'basic':
+        if method == "basic":
             user_id = self._verify_basic_token(token)
-        elif method == 'oidc':
+        elif method == "oidc":
             user_id = self._verify_oidc_token(token, provider)
         else:
             raise APIException(
@@ -104,13 +102,13 @@ class AuthenticationHandler:
                 service="gateway",
                 internal=False)
 
-        if not role == 'user':
-            if not self._check_user_role(user_id, role=role):
-                user_id = None  # User does not have 'admin' role and is therefore not allowed to access the endpoint
+        if not role == "user":
+            # If "admin" role is required and the user only has the "user" role this will through an exception
+            self._check_user_role(user_id, role=role)
 
         if not user_id:
             raise APIException(
-                msg='Invalid token. User could not be authenticated.',
+                msg="Invalid token. User could not be authenticated.",
                 code=401,
                 service="gateway",
                 internal=False)
@@ -141,33 +139,23 @@ class AuthenticationHandler:
             str -- The user_id corresponding to the token
         """
 
-        # TODO change from id to access token
-
-        token_header = jwt.get_unverified_header(token)
-        token_unverified = jwt.decode(token, verify=False)
-
-        user_id = self._get_user_id_from_email(token_unverified['email'])
-        _ = self._check_oidc_issuer_exists(token_unverified['iss'])
-
-        jwks = self._get_auth_jwks(token_unverified['iss'] + "/.well-known/openid-configuration")
-        if jwks:
-            public_key = None
-            for key in jwks['keys']:
-                if key['kid'] == token_header['kid']:
-                    public_key = rsa_pem_from_jwk(key)
-
-            if not jwt.decode(token,
-                              public_key,
-                              verify=True,
-                              algorithms=token_header['alg'],
-                              audience=token_unverified['azp'],
-                              issuer=token_unverified['iss']):
+        # Get user_id from OIDC /userinfo endpoint
+        user_id = None
+        id_flag, provider_wellknown = self._check_oidc_issuer_exists(provider)
+        if id_flag:
+            id_oidc_config = requests.get(provider_wellknown)
+            userinfo_url = id_oidc_config.json()["userinfo_endpoint"]
+            userinfo = requests.get(userinfo_url, headers={"Authorization": "Bearer " + token})
+            if userinfo.status_code != 200:
                 raise APIException(
-                    msg="Invalid OIDC token (cannot be decoded). User cannot be authenticated.",
+                    msg="OIDC access token is invalid.",
                     code=401,
                     service="gateway",
-                    internal=False)
-            return user_id
+                    internal=False,
+                )
+            user_id = self._get_user_id_from_email(userinfo.json()["email"])
+
+        return user_id
 
     def _get_user_id_from_email(self, user_email: str) -> str:
         """
@@ -199,7 +187,7 @@ class AuthenticationHandler:
             role {str} -- The required to role
 
         Raises:
-            APIException -- If the user does not have the reuqired role
+            APIException -- If the user does not have the required role
 
         Returns:
             bool -- Whether the user has the required role
@@ -215,37 +203,26 @@ class AuthenticationHandler:
                 internal=False)
         return True
 
-    def _check_oidc_issuer_exists(self, issuer_url: str) -> bool:
+    def _check_oidc_issuer_exists(self, id_openeo: str) -> Tuple[bool, str]:
         """
         Checks the given issuer_url exists in the database.
 
         Arguments:
-            issuer_url {str} -- The issuer_url to check
+            id_openeo {str} -- The id to check
 
         Raises:
             APIException -- If the issuer_url is not supported
 
         Returns:
-            str -- Whether the issuer_url is supported
+            Tuple[bool, str] -- Whether the issuer_url is supported and its well-known url
         """
+
         from gateway.users.models import db, IdentityProviders
-        identity_provider = db.session.query(IdentityProviders).filter(IdentityProviders.issuer_url == issuer_url).first()
+        identity_provider = db.session.query(IdentityProviders).filter(IdentityProviders.id_openeo == id_openeo).first()
         if not identity_provider:
             raise APIException(
-                msg=f"The given issuer url '{issuer_url}' is not supported.",
+                msg=f"The given Identity Provider '{id_openeo}' is not supported.",
                 code=401,
                 service="gateway",
                 internal=False)
-        return True
-
-    def _get_auth_jwks(self, oidc_well_known_url: str) -> dict:
-
-        jwks = None
-        response = requests.get(oidc_well_known_url)
-        if response.status_code == 200:
-            jwks_uri = response.json()['jwks_uri']
-            response = requests.get(jwks_uri)
-            if response.status_code == 200:
-                jwks = response.json()
-
-        return jwks
+        return True, identity_provider.issuer_url + "/.well-known/openid-configuration"

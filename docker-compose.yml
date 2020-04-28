@@ -58,7 +58,6 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/gateway.env
-      - ./envs/oidc.env
       - ./envs/users.env
     volumes:
       - ./gateway:/usr/src/app
