@@ -1,13 +1,11 @@
 """ AuthenticationHandler """
 
-from typing import Union, Optional, Callable
+from typing import Union, Optional, Callable, Tuple
 
-import jwt
 import requests
 from flask import request
 from flask.wrappers import Request, Response
 
-from .jwksutils import rsa_pem_from_jwk
 from .response import ResponseParser, APIException
 
 
@@ -85,7 +83,7 @@ class AuthenticationHandler:
         """
 
         try:
-            method, provider, token = token.split('/')
+            method, provider, token = token.split("/")
         except ValueError:
             raise APIException(
                 msg="The token must be structured as following <authentication method>/<provider ID>/<token>!",
@@ -93,9 +91,9 @@ class AuthenticationHandler:
                 service="gateway",
                 internal=False)
 
-        if method == 'basic':
+        if method == "basic":
             user_id = self._verify_basic_token(token)
-        elif method == 'oidc':
+        elif method == "oidc":
             user_id = self._verify_oidc_token(token, provider)
         else:
             raise APIException(
@@ -104,14 +102,13 @@ class AuthenticationHandler:
                 service="gateway",
                 internal=False)
 
-        if not role == 'user':
-            if not self._check_user_role(user_id, role=role):
-                user_id = None  # User does not have 'admin' role and is therefore not allowed to access the endpoint
-                # NB this will cause an "invalid token" error, should be updated to specify that the user has no admin role
+        if not role == "user":
+            # If "admin" role is required and the user only has the "user" role this will through an exception
+            self._check_user_role(user_id, role=role)
 
         if not user_id:
             raise APIException(
-                msg='Invalid token. User could not be authenticated.',
+                msg="Invalid token. User could not be authenticated.",
                 code=401,
                 service="gateway",
                 internal=False)
@@ -190,7 +187,7 @@ class AuthenticationHandler:
             role {str} -- The required to role
 
         Raises:
-            APIException -- If the user does not have the reuqired role
+            APIException -- If the user does not have the required role
 
         Returns:
             bool -- Whether the user has the required role
@@ -206,7 +203,7 @@ class AuthenticationHandler:
                 internal=False)
         return True
 
-    def _check_oidc_issuer_exists(self, id_openeo: str) -> bool:
+    def _check_oidc_issuer_exists(self, id_openeo: str) -> Tuple[bool, str]:
         """
         Checks the given issuer_url exists in the database.
 
@@ -217,9 +214,9 @@ class AuthenticationHandler:
             APIException -- If the issuer_url is not supported
 
         Returns:
-            str -- Whether the issuer_url is supported
+            Tuple[bool, str] -- Whether the issuer_url is supported and its well-known url
         """
-        
+
         from gateway.users.models import db, IdentityProviders
         identity_provider = db.session.query(IdentityProviders).filter(IdentityProviders.id_openeo == id_openeo).first()
         if not identity_provider:
@@ -228,4 +225,4 @@ class AuthenticationHandler:
                 code=401,
                 service="gateway",
                 internal=False)
-        return True, identity_provider.issuer_url + '/.well-known/openid-configuration'
+        return True, identity_provider.issuer_url + "/.well-known/openid-configuration"
