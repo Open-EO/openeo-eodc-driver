@@ -35,7 +35,6 @@ class LinkSchema(BaseSchema):
 class IdentityProviderSchema(BaseSchema):
     __model__ = IdentityProviders
 
-    id_internal = fields.String(attribute='id', required=True)
     id = fields.String(attribute='id_openeo', required=True)
     issuer = fields.String(attribute='issuer_url', required=True)
     scopes = fields.String(required=True)
