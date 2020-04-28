@@ -56,9 +56,10 @@ def test_get_all(file_service, user_folder, user_id, upload_file):
         'data': {
             'files': [
                 {'path': '1.txt', 'size': '15.0B'},
+                {'path': 'folder1/folder2/2.txt', 'size': '15.0B'},
                 {'path': 'folder3/3.txt', 'size': '15.0B'},
                 {'path': 'folder3/4.txt', 'size': '15.0B'},
-                {'path': 'folder1/folder2/2.txt', 'size': '15.0B'}],
+            ],
             'links': []}}
 
 

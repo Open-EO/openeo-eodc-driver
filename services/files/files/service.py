@@ -143,7 +143,7 @@ class FilesService:
                 "status": "success",
                 "code": 200,
                 "data": {
-                    "files": file_list,
+                    "files": sorted(file_list, key=lambda file: file['path']),
                     "links": [],
                 }
             }
