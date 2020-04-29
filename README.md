@@ -116,15 +116,17 @@ python api_setup.py
 In order to run the unit tests of each microservice, first create an environment for it and install the dependencies. For example, for the files service do the following:
 
 ```
+cd /path/to/openeo-openshift-driver/services/files
 conda create -n files-service python=3.6
 source activate files-service
-pip install files/requirements.txt
-pip install files/requirements_test.txt
+pip install requirements.txt
+pip install requirements_test.txt
 ```
 
 Run the tests with `pytest` from within that environment:
 
 ```
+cd /path/to/openeo-openshift-driver/services/files
 source activate files-service
 pytest tests/test_files_api.py
 pytest tests/test_job_file_utils.py
