@@ -1,0 +1,23 @@
+{
+    "x": {
+        "type": "spatial",
+        "axis": "x",
+        "extent": [-180, 180]
+    },
+    "y": {
+        "type": "spatial",
+        "axis": "y",
+        "extent": [-90, 90]
+    },
+    "bands": {
+        "type": "bands",
+        "values": ["Oa01", "Oa02", "Oa03", "Oa04", "Oa05", "Oa06", "Oa07", "Oa08", "Oa09", "Oa10", "Oa11", "Oa12", "Oa13", "Oa14", "Oa15", "Oa16", "Oa17", "Oa18", "Oa19", "Oa20", "Oa21"]
+    },
+    "t": {
+        "type": "temporal",
+        "extent": [
+            "2016-02-16T00:00:00Z",
+            null
+        ]
+    }
+}

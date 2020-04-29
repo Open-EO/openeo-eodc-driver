@@ -4,6 +4,7 @@ from json import loads, dumps
 from os import environ, path, makedirs
 from typing import Union, Tuple
 from xml.dom.minidom import parseString
+import logging
 
 from nameko.extensions import DependencyProvider
 from requests import post
@@ -11,8 +12,18 @@ from requests import post
 from .bands import BandsExtractor
 from .cache import cache_json, get_cache_path, get_json_cache
 from .links import LinkHandler
-from .xml_templates import xml_base, xml_and, xml_series, xml_product, xml_begin, xml_end, xml_bbox
+from .xml_templates import (
+    xml_base,
+    xml_and,
+    xml_series,
+    xml_product,
+    xml_begin,
+    xml_end,
+    xml_bbox,
+)
 from ..models import Collection, Collections
+
+LOGGER = logging.getLogger("standardlog")
 
 
 class CSWError(Exception):
@@ -36,6 +47,10 @@ class CSWHandler:
         self.link_handler = LinkHandler(service_uri)
 
         self._create_path(self.cache_path)
+        LOGGER.debug("Initialized %s", self)
+
+    def __repr__(self):
+        return "CSWHandler('{}')".format(self.csw_server_uri)
 
     def _create_path(self, cur_path: str):
         if not path.isdir(cur_path):
@@ -87,7 +102,7 @@ class CSWHandler:
             extent=data["extent"],
             links=data["links"],
             title=data["title"],
-            keywords=data["keywords"]
+            keywords=data["keywords"],
         )
 
         return collection
@@ -99,12 +114,20 @@ class CSWHandler:
             use_cache {bool} -- Specifies whether to or not to refresh the cache.
             A bit redundant because submitted through an additional POST
         """
+        LOGGER.debug("Refreshing cache %s", use_cache)
         data = self._get_records(series=True, use_cache=use_cache)
         for collection in data:
-            _ = self._get_records(collection['id'], series=True, use_cache=use_cache)[0]
+            _ = self._get_records(collection["id"], series=True, use_cache=use_cache)[0]
 
-    def _get_records(self, product: str = None, bbox: list = None, start: str = None, end: str = None,
-                     series: bool = False, use_cache: bool = True) -> Union[list, CSWError]:
+    def _get_records(
+        self,
+        product: str = None,
+        bbox: list = None,
+        start: str = None,
+        end: str = None,
+        series: bool = False,
+        use_cache: bool = True,
+    ) -> Union[list, CSWError]:
         """Parses the XML request for the CSW server and collects the response by the
         batch triggered _get_single_records function.
 
@@ -117,11 +140,21 @@ class CSWHandler:
             use_cache {bool} -- Specifies whether to use the
 
         Raises:
-            CWSError -- If a problem occurs while communicating with the CSW server or no filter is provided
+            CSWError -- If a problem occurs while communicating with the CSW server or no filter is provided
 
         Returns:
             list -- The records data
         """
+
+        LOGGER.debug(
+            "_get_records() parameters: product: %s, bbox:%s, start:%s, end:%s, series:%s, use_cache:%s",
+            product,
+            bbox,
+            start,
+            end,
+            series,
+            use_cache,
+        )
         all_records = []
         path_to_cache = get_cache_path(self.cache_path, product, series)
 
@@ -136,7 +169,9 @@ class CSWHandler:
             # While still data is available send requests to the CSW server (-1 if not more data is available)
             record_next = 1
             while int(record_next) > 0:
-                record_next, records = self._get_single_records(record_next, cur_filter, output_schema)
+                record_next, records = self._get_single_records(
+                    record_next, cur_filter, output_schema
+                )
                 all_records += records
             # additionally add the links to each record and collection
             all_records = self.link_handler.get_links(all_records)
@@ -146,8 +181,14 @@ class CSWHandler:
 
         return all_records
 
-    def _get_csw_filter(self, product: str = None, bbox: list = None, start: str = None, end: str = None,
-                        series: bool = False) -> Union[dict, CSWError]:
+    def _get_csw_filter(
+        self,
+        product: str = None,
+        bbox: list = None,
+        start: str = None,
+        end: str = None,
+        series: bool = False,
+    ) -> Union[dict, CSWError]:
         """
         Create a CSW filter based on the given parameters.
 
@@ -172,11 +213,15 @@ class CSWHandler:
 
         if product:
             if series:
-                xml_filters.append(xml_product.format(
-                    property="dc:identifier", product=product))
+                xml_filters.append(
+                    xml_product.format(property="dc:identifier", product=product)
+                )
             else:
-                xml_filters.append(xml_product.format(
-                    property="apiso:ParentIdentifier", product=product))
+                xml_filters.append(
+                    xml_product.format(
+                        property="apiso:ParentIdentifier", product=product
+                    )
+                )
 
         if start and not series:
             xml_filters.append(xml_begin.format(start=start))
@@ -188,7 +233,9 @@ class CSWHandler:
             xml_filters.append(xml_bbox.format(bbox=bbox))
 
         if len(xml_filters) == 0:
-            return CSWError("Please provide filters on the data (e.g. product, bounding box, start, end)")
+            return CSWError(
+                "Please provide filters on the data (e.g. product, bounding box, start, end)"
+            )
 
         if len(xml_filters) == 1:
             filter_parsed = xml_filters[0]
@@ -200,7 +247,9 @@ class CSWHandler:
 
         return filter_parsed
 
-    def _get_single_records(self, start_position: int, filter_parsed: dict, output_schema: str) -> Tuple[int, list]:
+    def _get_single_records(
+        self, start_position: int, filter_parsed: dict, output_schema: str
+    ) -> Tuple[int, list]:
         """Sends a single request to the CSW server, requesting data about records or products.
 
         Arguments:
@@ -217,24 +266,27 @@ class CSWHandler:
 
         # Parse the XML by injecting iteration depended variables
         xml_request = xml_base.format(
-            children=filter_parsed, output_schema=output_schema, start_position=start_position)
+            children=filter_parsed,
+            output_schema=output_schema,
+            start_position=start_position,
+        )
+        LOGGER.debug("POST:\n%s", xml_request)
         response = post(self.csw_server_uri, data=xml_request)
 
         # Response error handling
         if not response.ok:
-            print("Server Error {0}: {1}".format(
-                response.status_code, response.text))
+            LOGGER.error("Server Error %s: %s", response.status_code, response.text)
             raise CSWError("Error while communicating with CSW server.")
 
         if response.text.startswith("<?xml"):
             xml = parseString(response.text)
-            print("{0}".format(xml.toprettyxml()))
+            LOGGER.error("%s", xml.toprettyxml())
             raise CSWError("Error while communicating with CSW server.")
 
         response_json = loads(response.text)
 
         if "ows:ExceptionReport" in response_json:
-            print("{0}".format(dumps(response_json, indent=4, sort_keys=True)))
+            LOGGER.error("%s", dumps(response_json, indent=4, sort_keys=True))
             raise CSWError("Error while communicating with CSW server.")
 
         # Get the response data
@@ -270,4 +322,8 @@ class CSWSession(DependencyProvider):
             CSWHandler -- The instantiated CSWHandler object
         """
 
-        return CSWHandler(environ.get("CSW_SERVER"), environ.get("CACHE_PATH"), environ.get("GATEWAY_URL"))
+        return CSWHandler(
+            environ.get("CSW_SERVER"),
+            environ.get("CACHE_PATH"),
+            environ.get("GATEWAY_URL"),
+        )

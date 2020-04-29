@@ -22,3 +22,4 @@ auth
 udf/openeo-r-udf/
 udf/examples/
 oidc/
+config-debug.yaml
