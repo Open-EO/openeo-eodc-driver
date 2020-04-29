@@ -143,7 +143,7 @@ class FilesService:
                 "status": "success",
                 "code": 200,
                 "data": {
-                    "files": file_list,
+                    "files": sorted(file_list, key=lambda file: file['path']),
                     "links": [],
                 }
             }
@@ -168,7 +168,7 @@ class FilesService:
 
             dirs, filename = os.path.split(complete_path)
             if not os.path.exists(dirs):
-                os.makedirs(dirs, mode=664)
+                os.makedirs(dirs, mode=0o700)
 
             os.rename(tmp_path, complete_path)
             LOGGER.info(f"File {path} successfully uploaded to User {user_id} workspace.")
@@ -222,7 +222,7 @@ class FilesService:
         # check pattern
         complete_path = self.get_allowed_path(user_id, path.split('/'), source_dir=source_dir)
         if not complete_path:
-            return False, FileOperationUnsupported(404, user_id, f"{path}: This path is not valid.",
+            return False, FileOperationUnsupported(401, user_id, f"{path}: This path is not valid.",
                                                    internal=False, links=[]).to_dict(), None
 
         if os.path.isdir(complete_path):
@@ -396,11 +396,18 @@ class FilesService:
             self.setup_jobs_result_folder(user_id, job_id)
         else:
             LOGGER.info(f"Job {job_id} has results.")
-            with self.job_result_bak_folder(user_id, job_id) as bak_result_folder:
-                os.rename(job_result_folder, bak_result_folder)
-                self.delete_complete_job(user_id, job_id)
-                self.setup_jobs_result_folder(user_id, job_id)
-                os.rename(bak_result_folder, job_result_folder)
+            bak_result_folder = os.path.join(self.get_user_folder(user_id=user_id), f"{job_id}_backup")
+            os.makedirs(bak_result_folder)
+            LOGGER.debug(f"Results backup folder created for job {job_id}.")
+
+            os.rename(job_result_folder, bak_result_folder)
+            self.delete_complete_job(user_id, job_id)
+            self.setup_jobs_result_folder(user_id, job_id)
+            os.rename(bak_result_folder, job_result_folder)
+
+            if os.path.isdir(bak_result_folder):
+                shutil.rmtree(bak_result_folder)
+            LOGGER.debug(f"Results backup folder delete for job {job_id}.")
 
         return os.listdir(job_result_folder) != 0
 
@@ -423,18 +430,3 @@ class FilesService:
             job_id {str} -- The  identifier of the job
         """
         return os.path.join(self.get_job_id_folder(user_id, job_id), self.result_folder)
-
-    def job_result_bak_folder(self, user_id: str, job_id: str):
-        """
-        Creates an emtpy backup folder for a specific results folder, yields its path and removes everything again.
-
-        Arguments:
-            user_id {str} - The identifier of the user
-            job_id {str} -- The  identifier of the job
-        """
-        bak_folder = os.path.join(self.get_user_folder(user_id=user_id), f"{job_id}_backup")
-        os.mkdir(bak_folder)
-        LOGGER.debug(f"Results backup folder created for job {job_id}.")
-        yield os.path.join(bak_folder, self.result_folder)
-        shutil.rmtree(bak_folder)
-        LOGGER.debug(f"Results backup folder delete for job {job_id}.")

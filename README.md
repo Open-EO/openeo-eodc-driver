@@ -112,6 +112,36 @@ source auth
 python api_setup.py
 ```
 
+#### Run unit tests for microservices
+In order to run the unit tests of each microservice, first create an environment for it and install the dependencies. For example, for the files service do the following:
+
+```
+cd /path/to/openeo-openshift-driver/services/files
+conda create -n files-service python=3.6
+source activate files-service
+pip install requirements.txt
+pip install requirements_test.txt
+```
+
+Run the tests with `pytest` from within that environment:
+
+```
+cd /path/to/openeo-openshift-driver/services/files
+source activate files-service
+pytest tests/test_files_api.py
+pytest tests/test_job_file_utils.py
+pytest tests/test_utils.py
+```
+
+#### Run integration tests
+
+To be updated.
+A first implementation is found in some micro-services. In the tests folder of the microservice copy the file `sample-auth` to `auth` (which is not tracked by git) and fill the credentials of an existing user in your users-db. With the API running, run the following (e.g. in the files microservice):
+
+```
+python tests/rest_calls.py
+```
+
 #### Bring down web app and services
 
 In order to bring down the API, run the following docker compose from the main folder:
