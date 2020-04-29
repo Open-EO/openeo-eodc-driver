@@ -32,15 +32,15 @@ def check_files():
     print(f'Response upload: {response_upload.status_code}')
     assert response_upload.status_code == 200
 
-    response_get_all = requests.get(files_url, headers=get_auth())
+    response_get_all = requests.get(files_url, headers=auth_header)
     print(f'Response get all: {response_get_all.status_code}')
     assert response_get_all.status_code == 200
 
-    response_download = requests.get(file_single_url, headers=get_auth())
+    response_download = requests.get(file_single_url, headers=auth_header)
     print(f'Response download: {response_download.status_code}')
     assert response_download.status_code == 200
 
-    response_delete = requests.delete(file_single_url, headers=get_auth())
+    response_delete = requests.delete(file_single_url, headers=auth_header)
     print(f'Response delete: {response_delete.status_code}')
     assert response_delete.status_code == 204
 
