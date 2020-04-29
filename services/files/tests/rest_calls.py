@@ -23,19 +23,26 @@ def get_auth():
 
 
 def check_files():
+    auth_header = get_auth()
     upload_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'input', 'upload.txt')
     with open(upload_file) as f:
-        response_upload = requests.put(file_single_url, headers=get_auth().update({"Content-Type": "application/octet-stream"}), data=f)
+        auth_header["Content-Type"] = "application/octet-stream"
+        response_upload = requests.put(file_single_url, headers=auth_header, data=f)
+        auth_header.pop("Content-Type")
     print(f'Response upload: {response_upload.status_code}')
+    assert response_upload.status_code == 200
 
     response_get_all = requests.get(files_url, headers=get_auth())
     print(f'Response get all: {response_get_all.status_code}')
+    assert response_get_all.status_code == 200
 
     response_download = requests.get(file_single_url, headers=get_auth())
     print(f'Response download: {response_download.status_code}')
+    assert response_download.status_code == 200
 
     response_delete = requests.delete(file_single_url, headers=get_auth())
     print(f'Response delete: {response_delete.status_code}')
+    assert response_delete.status_code == 204
 
 
 if __name__ == '__main__':
