@@ -56,6 +56,7 @@ class OpenAPISpecParser:
         # Extract the target specified blueprint of the API
         target = {}
         for endpoint, methods in self._specs["paths"].items():
+            endpoint = f"/{environ['OPENEO_VERSION']}{endpoint}"
             target[endpoint] = []
             for method in methods:
                 if method in allowed_methods:
@@ -126,10 +127,11 @@ class OpenAPISpecParser:
         """
 
         def get_parameter_specs(req_path, req_method, route_specs):
-            # # Get the OpenAPI parameter specifications for the route and method
-            # req_path = str(request.url_rule).replace("<","{").replace(">","}")
-            # req_method = request.method.lower()
-            # route_specs = self._route(req_path)
+            # Get the OpenAPI parameter specifications for the route and method
+            req_path = str(request.url_rule).replace("<","{").replace(">","}")
+            req_path = req_path.replace(f"/{environ['OPENEO_VERSION']}", "")
+            req_method = request.method.lower()
+            route_specs = self._route(req_path)
 
             # Check if parameters requried in request specification
             in_root = route_specs.keys() & {"parameters"}
