@@ -14,7 +14,7 @@ from .models import Base, ProcessGraph
 from .schema import ProcessGraphShortSchema, ProcessGraphFullSchema
 from .dependencies import NodeParser, Validator
 from jsonschema import ValidationError
-from openeo_pg_parser_python.validate_process_graph import validate_graph 
+from openeo_pg_parser_python.validate import validate_process_graph
 
 service_name = "processes"
 LOGGER = logging.getLogger('standardlog')
@@ -286,7 +286,7 @@ class ProcessesGraphService:
             #     return product_response
             # products = product_response["data"]
             
-            valid = validate_graph(process_graph, processes_list=processes)
+            valid = validate_process_graph(process_graph, processes_list=processes)
             if valid:
                 output_errors = []
             else:
