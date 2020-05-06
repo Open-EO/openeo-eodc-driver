@@ -14,9 +14,6 @@ services:
     hostname: rabbitmq
     env_file:
       - ./envs/rabbitmq.env
-    ports:
-      - $RABBIT_PORT:$RABBIT_PORT
-      - $RABBIT_PORT_MNG:$RABBIT_PORT_MNG
 
   jobs_db:
     image: postgres
@@ -72,7 +69,7 @@ services:
       OPENEO_VERSION: $OPENEO_VERSION
       UPLOAD_TMP_DIR: /usr/src/files/tmp
     ports:
-      - $GATEWAY_PORT:$GATEWAY_PORT
+      - $GATEWAY_PORT:3000
 
   openeo-capabilities:
     build:
@@ -217,11 +214,6 @@ services:
       - files-data:/usr/src/files
       - ./services/files:/usr/src/app
       - $LOG_DIR:/usr/src/logs
-
-networks:
-  default:
-    external:
-      name: ${PROJECT_NAME}-${OPENEO_VERSION}
 
 volumes:
   process-api-data:
