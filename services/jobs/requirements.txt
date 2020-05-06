@@ -1,5 +1,5 @@
 alembic==0.9.9
-marshmallow==2.15.3
+marshmallow>=3.0
 nameko-sqlalchemy==1.4.0
 pyproj==1.9.6
 psycopg2==2.7.4

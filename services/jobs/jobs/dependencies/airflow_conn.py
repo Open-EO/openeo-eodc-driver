@@ -1,11 +1,23 @@
+from datetime import datetime
 from os import environ
+from typing import Optional, Tuple
+
 import requests
 
-class Airflow():
+from ..models import JobStatus
+
+airflow_job_status_mapper = {
+    "running": JobStatus.running,
+    "success": JobStatus.finished,
+    "failed": JobStatus.error
+}
+
+
+class Airflow:
     """
 
     """
-    
+
     def __init__(self):
         """
         
@@ -15,53 +27,57 @@ class Airflow():
         self.dags_url = environ.get('AIRFLOW_HOST') + "/api/experimental/dags"
         self.header = {'Cache-Control': 'no-cache ', 'content-type': 'application/json'}
         self.data = '{}'
-        
+
     def check_api(self):
         """
         
         """
-        
-        response = requests.get(self.api_url + "/test")
-        
-        return response
+        return requests.get(self.api_url + "/test")
 
-    def unpause_dag(self, job_id, unpause=True):
+    def unpause_dag(self, job_id: str, unpause: bool = True) -> bool:
         """
         Pause/unpause DAG
         """
-
-        request_url = self.dags_url + "/" + job_id + "/paused/" + str(not unpause)
+        request_url = f"{self.dags_url}/{job_id}/paused/{str(not unpause)}"
         response = requests.get(request_url, headers=self.header, data=self.data)
+        return response.status_code == 200
 
-        return response
-          
-          
-    def trigger_dag(self, job_id):
+    def trigger_dag(self, job_id: str) -> bool:
         """
         Trigger airflow DAG (only works if it is unpaused already)
         """
-
-        job_url = self.dags_url + "/" + job_id + "/dag_runs"
+        self.unpause_dag(job_id)
+        job_url = f"{self.dags_url}/{job_id}/dag_runs"
         response = requests.post(job_url, headers=self.header, data=self.data)
+        return response.status_code == 200
 
-        return response
-      
-
-    def check_dag_status(self, job_id):
+    def check_dag_status(self, job_id: str) -> Tuple[Optional[JobStatus], Optional[datetime]]:
         """
         Check status of airflow DAG
         """
-        
-        job_url = self.dags_url + "/" + job_id + "/dag_runs"
+        dag_status = None
+        execution_date = None
+
+        job_url = f"{self.dags_url}/{job_id}/dag_runs"
         response = requests.get(job_url, headers=self.header, data=self.data)
-        if response.status_code == 400:
-            if 'not found' in response.json()['error']:
-                dag_status = 'cancelled'
-        else:
-            if response.json():
-                dag_status = response.json()[0]['state']
+        if response.status_code == 200:
+            if not response.json():
+                # empty list is returned > no dag run, only created
+                dag_status = JobStatus.created
             else:
-                dag_status = 'submitted'
-        dag_status = dag_status.replace('success', 'finished')
-            
-        return dag_status
+                last_run = response.json()[-1]
+                dag_status = airflow_job_status_mapper[last_run["state"]]
+                try:
+                    execution_date = datetime.strptime(last_run["execution_date"], "%Y-%m-%dT%H:%M:%S+00:00")
+                except ValueError:
+                    execution_date = datetime.strptime(last_run["execution_date"], "%Y-%m-%dT%H:%M:%S.%f+00:00")
+
+        return dag_status, execution_date
+
+    def delete_dag(self, job_id: str) -> bool:
+        """
+        Delete the dag with the given id.
+        """
+        job_url = f"{self.dags_url}/{job_id}"
+        response = requests.delete(job_url)
+        return response.status_code == 200

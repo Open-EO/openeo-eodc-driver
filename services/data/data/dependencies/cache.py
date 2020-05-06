@@ -2,6 +2,9 @@
 
 from json import dumps, loads
 from os import path
+import logging
+
+LOGGER = logging.getLogger("standardlog")
 
 
 def cache_json(records: list, path_to_cache: str):
@@ -17,7 +20,7 @@ def cache_json(records: list, path_to_cache: str):
         return
 
     json_dump = dumps(records)
-    with open(path_to_cache, 'w') as f:
+    with open(path_to_cache, "w") as f:
         f.write(json_dump)
 
 
@@ -31,14 +34,17 @@ def get_json_cache(path_to_cache: str) -> list:
         list -- List of dictionaries containing cached data
     """
     try:
-        with open(path_to_cache, 'r') as f:
+        LOGGER.debug("Getting json cache %s", path_to_cache)
+        with open(path_to_cache, "r") as f:
             data = loads(f.read())
     except FileNotFoundError:
         data = []
     return data
 
 
-def get_cache_path(cache_path_dir: str, product: str=None, series: bool=False) -> str:
+def get_cache_path(
+    cache_path_dir: str, product: str = None, series: bool = False
+) -> str:
     """Get the path of the cache depending on whether series or
     product were passed
 
@@ -53,8 +59,8 @@ def get_cache_path(cache_path_dir: str, product: str=None, series: bool=False) -
     """
 
     if series and not product:
-        path_to_cache = path.join(cache_path_dir, 'collections.json')
+        path_to_cache = path.join(cache_path_dir, "collections.json")
     else:
-        path_to_cache = path.join(cache_path_dir, product + '.json')
+        path_to_cache = path.join(cache_path_dir, product + ".json")
 
     return path_to_cache

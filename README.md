@@ -1,6 +1,7 @@
 # openEO EODC Driver
 
-- version: 0.4.x
+- openEO version: 1.0.x (currently in development)
+- openEO version: 0.4.2 (legacy, see openeo-openshift-driver tag v1.0.0)
 
 ## Information
 
@@ -16,7 +17,7 @@ In order to start the API web app and its micro-services, a simple docker-compos
 
 Copy the `sample.env` file and the `/sample-envs` folder to to `.env` and `/envs`, respectively. The latter are included in the `.gitignore` by default. Do not change this. Variables in the `.env`file are used in `docker-compose.yml` when bringing up the project, while variables in the individual env files in `/envs` are available within each respective container. The following is the list of files to updte:
 
-- `.env` : note that you MUST create manally the folder specififed for 'LOG_DIR'
+- `.env` : note that you MUST create manually the folder specififed for 'LOG_DIR'
 - `envs/data.env`
 - `envs/eodatareaders.env`: do not change the content in this env file
 - `envs/gateway.env`
@@ -110,6 +111,36 @@ Copy the `sample-auth` file to `auth` and fill the back-end URL and user credent
 ```
 source auth
 python api_setup.py
+```
+
+#### Run unit tests for microservices
+In order to run the unit tests of each microservice, first create an environment for it and install the dependencies. For example, for the files service do the following:
+
+```
+cd /path/to/openeo-openshift-driver/services/files
+conda create -n files-service python=3.6
+source activate files-service
+pip install requirements.txt
+pip install requirements_test.txt
+```
+
+Run the tests with `pytest` from within that environment:
+
+```
+cd /path/to/openeo-openshift-driver/services/files
+source activate files-service
+pytest tests/test_files_api.py
+pytest tests/test_job_file_utils.py
+pytest tests/test_utils.py
+```
+
+#### Run integration tests
+
+To be updated.
+A first implementation is found in some micro-services. In the tests folder of the microservice copy the file `sample-auth` to `auth` (which is not tracked by git) and fill the credentials of an existing user in your users-db. With the API running, run the following (e.g. in the files microservice):
+
+```
+python tests/rest_calls.py
 ```
 
 #### Bring down web app and services

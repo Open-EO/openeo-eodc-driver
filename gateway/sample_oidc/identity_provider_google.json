@@ -1,0 +1,7 @@
+{
+  "id": "google1",
+  "issuer": "https://accounts.google.com",
+  "scopes": ["openid", "email"],
+  "title": "Google",
+  "description": "Identity Provider supported for non-EODC users."
+}

@@ -17,6 +17,27 @@ info:
   license:
     name: Apache 2.0
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+  x-backend_version: 1.0.0
+  x-stac_version: 0.6.2
+  x-id: 'x.x.x'  # needs to be added - same as in stac
+  x-production: true  # for openEO 1.0.0 false may make sense
+  # billing?
+  x-file_formats:
+    input:
+      - name: GTiff
+        title: GeoTiff
+        gis_data_types:
+          - raster
+    output:
+      - name: GTiff
+        title: GeoTiff
+        gis_data_types:
+          - raster
+  x-udf:
+
+
+# add service types
+
 externalDocs:
   description: EODC API Description
   url: 'https://openeo.eodc.eu/redoc'
@@ -42,15 +63,15 @@ tags:
 
 paths:
   /:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1
   /.well-known/openeo:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1.well-known~1openeo
-  /output_formats:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1output_formats
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1.well-known~1openeo
+  /file_formats:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1file_formats
   /udf_runtimes:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1udf_runtimes
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1udf_runtimes
   /service_types:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1service_types
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1service_types
 
   /collections:
     get:
@@ -81,7 +102,6 @@ paths:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/client_error
         5XX:
           $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/server_error
-      
   /collections/{collection_id}:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1collections~1{collection_id}
 
@@ -95,10 +115,11 @@ paths:
   /processes:
     get:
       $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1processes/get
-    post:
+  /processes/{process_name}:
+    put:
       summary: Creates a new process.
       description: >-
-        The request will ask the back-end to create a new process using the desciption send in the request body.
+        The request will ask the back-end to create a new process using the description send in the request body.
         \n\n **Note:** This is an extension of the EODC API!
       tags:
         - Process Discovery
@@ -106,7 +127,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1processes/get/responses/200/content/application~1json/schema/properties/processes/items
+              $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1processes/get/responses/200/content/application~1json/schema/properties/processes/items
       security:
         - {}
         - Bearer: []
@@ -114,16 +135,16 @@ paths:
         '200':
           description: The processes has been successfully created.
         4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/client_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/client_error
         5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/server_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/server_error
 
   /process_graphs/{process_graph_id}:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1process_graphs~1{process_graph_id}
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1process_graphs~1{process_graph_id}
   /process_graphs:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1process_graphs
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1process_graphs
   /validation:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1validation
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1validation
 
   /jobs:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1jobs
@@ -136,40 +157,49 @@ paths:
   /jobs/{job_id}/estimate:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1jobs~1{job_id}~1estimate
 
-  /files/{user_id}:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1files~1{user_id}
-  /files/{user_id}/{path}:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1files~1{user_id}~1{path}
-      
-  /downloads/{user_id}/{job_id}/{path}:
-    parameters: 
-      - $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/paths/~1files~1{user_id}
+  /files:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files
+  /files/{path:path}:
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files~1{path}
+
+  /downloads/{job_id}/{path}:
+    parameters:
+      - $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files
     get:
       responses:
         '200':
           description: aaa.
         4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/client_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/client_error
         5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/0.4.0/openapi.json#/components/responses/server_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/server_error
   /users_mng/users:
     description: >-
       **Note:** This is an extension of the EODC API!
     post:
       responses:
         '200': successfully created user on database
+    delete:
+      responses:
+        '200': successfully deleted a user in the database
   /users_mng/user_profiles:
     description: >-
       **Note:** This is an extension of the EODC API!
     post:
       responses:
         '200': successfully created user profile on database
+    delete:
+      responses:
+        '200': successfully deleted a profile in the database
   /users_mng/oidc_providers:
     description: >-
       **Note:** This is an extension of the EODC API!
     post:
       responses:
         '200': successfully created Identity Provider on database
+    delete:
+      responses:
+        '200': successfully deleted a identity provider in the database
   /openapi:
     get:
       summary: OpenAPI v3.0.1 specification

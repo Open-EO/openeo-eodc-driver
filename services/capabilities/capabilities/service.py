@@ -1,9 +1,11 @@
 """ Capabilities Discovery """
-from nameko.rpc import rpc
 import logging
+
+from nameko.rpc import rpc
 
 service_name = "capabilities"
 LOGGER = logging.getLogger('standardlog')
+
 
 class ServiceException(Exception):
     """ServiceException raises if an exception occured while processing the
@@ -11,7 +13,7 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, service: str, code: int, user_id: str, msg: str, internal: bool=True, links: list=None):
+    def __init__(self, service: str, code: int, user_id: str, msg: str, internal: bool = True, links: list = None):
         if not links:
             links = []
         self._service = service
@@ -46,10 +48,66 @@ class CapabilitiesService:
     name = service_name
 
     @rpc
-    def get_versions(self, user_id: str=None):
+    def send_index(self, api_spec: dict, user_id: str = None) -> dict:
+        """The function returns a JSON object containing the available routes and
+        HTTP methods as defined in the OpenAPI specification.
+
+        Arguments:
+            api_spec {dict} -- OpenAPI Specification
+
+        Keyword Arguments:
+            user_id {str} -- User Id (not needed, exists for compatibility reasons)
+
+        Returns:
+            Dict -- JSON object contains the API capabilities
+        """
+        # TODO: Implement billing plans
+
+        try:
+            endpoints = []
+            for path_name, methods in api_spec["paths"].items():
+                endpoint = {"path": path_name, "methods": []}
+                for method_name, _ in methods.items():
+                    if method_name in ("get", "post", "patch", "put", "delete"):
+                        endpoint["methods"].append(method_name.upper())
+                endpoints.append(endpoint)
+
+            capabilities = {
+                "api_version": api_spec["info"]["version"],
+                "backend_version": api_spec["info"]["backend_version"],
+                "title": api_spec["info"]["title"],
+                "description": api_spec["info"]["description"],
+                "endpoints": endpoints,
+                "stac_version": api_spec["info"]["stac_version"],
+                "id": api_spec["info"]["id"],
+                "links": [],  # TODO add links
+            }
+
+            return {
+                "status": "success",
+                "code": 200,
+                "data": capabilities,
+            }
+
+        except Exception as exp:
+            return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
+
+    @rpc
+    def get_versions(self, api_spec: dict, user_id: str = None) -> dict:
         """Lists OpenEO API versions available at the back-end.
+
+        Arguments:
+            api_spec {dict} -- OpenAPI Specification
+
+        Keyword Arguments:
+            user_id {str} -- User Id (not needed, exists for compatibility reasons)
+
+        Returns:
+            Dict -- Contains the supported OpenEO API versions
         """
         try:
+            #"url": api_spec["servers"][0]["url"],  # TODO update when versioned urls are in place
+            #"api_version": api_spec["info"]["version"],
             return {
                 "status": "success",
                 "code": 200,
@@ -67,54 +125,78 @@ class CapabilitiesService:
             return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
 
     @rpc
-    def get_output_formats(self, user_id: str=None):
-        """Lists output formats available at the back-end.
+    def get_file_formats(self, api_spec: dict, user_id: str = None) -> dict:
+        """Lists input / output formats available at the back-end.
+
+        Arguments:
+            api_spec {dict} -- OpenAPI Specification
+
+        Keyword Arguments:
+            user_id {str} -- User Id (not needed, exists for compatibility reasons)
+
+        Returns:
+            Dict -- Describes all supported input / output formats
         """
-        try:
-            default_out = {
-                "GTiff": {
-                  "gis_data_types": [
-                    "raster"
-                  ],
-                  "parameters": {}
-                },
-                "png": {
-                  "gis_data_types": [
-                    "raster"
-                  ],
-                  "parameters": {}
-                },
-                "jpeg": {
-                  "gis_data_types": [
-                    "raster"
-                  ],
-                  "parameters": {}
+        def get_dict(file_fmts):
+            final_fmt = {}
+            for fmt in file_fmts:
+                final_fmt[fmt["name"]] = {
+                    "title": fmt.get("title", None),
+                    "gis_data_types": fmt["gis_data_types"],
+                    "parameters": fmt.get("parameters", {})
                 }
-              }
+            return final_fmt
+
+        try:
+            file_formats = api_spec["info"]["file_formats"]
             return {
                 "status": "success",
                 "code": 200,
-                "data": default_out,
+                "data": {
+                    "output": get_dict(file_formats["output"]),
+                    "input": get_dict(file_formats["input"]),
+                },
             }
         except Exception as exp:
             return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
 
     @rpc
-    def get_udfs(self, user_id: str=None):
+    def get_udfs(self, api_spec: dict, user_id: str = None) -> dict:
         """Lists UDFs available at the back-end.
+
+        Arguments:
+            api_spec {dict} -- OpenAPI Specification
+
+        Keyword Arguments:
+            user_id {str} -- User Id (not needed, exists for compatibility reasons)
+
+        Returns:
+            Dict -- Contains detailed description about the supported UDF runtimes
         """
         try:
+            udf_all = api_spec["info"]["udf"]
+            udf_fmt = {udf.pop('name'): udf for udf in udf_all}
+
             return {
                 "status": "success",
                 "code": 200,
-                "data": {},
+                "data": udf_fmt,
             }
         except Exception as exp:
             return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
 
     @rpc
-    def get_service_types(self, user_id: str=None):
+    def get_service_types(self, api_spec: dict, user_id: str = None) -> dict:
         """Lists service types available at the back-end.
+
+        Arguments:
+            api_spec {dict} -- OpenAPI Specification
+
+        Keyword Arguments:
+            user_id {str} -- User Id (not needed, exists for compatibility reasons)
+
+        Returns:
+            Dict -- Contains supported secondary services
         """
         try:
             return {

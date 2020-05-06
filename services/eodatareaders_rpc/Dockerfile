@@ -1,4 +1,4 @@
-FROM openeo-eodc-airflow
+FROM openeo-eodc-airflow:1.10.9
 USER root
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app

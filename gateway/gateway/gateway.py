@@ -70,8 +70,9 @@ class Gateway:
 
         CORS(self._service, resources=resources, vary_header=False, supports_credentials=True)
 
-    def add_endpoint(self, route: str, func: Callable, methods: list=["GET"], auth: bool=False,
-        role: str='user', validate: bool=False, validate_custom: bool=False, rpc: bool=True, is_async: bool=False):
+    def add_endpoint(self, route: str, func: Callable, methods: list = None, auth: bool = False,
+                     role: str = 'user', validate: bool = False, validate_custom: bool = False, rpc: bool = True,
+                     is_async: bool = False, parse_spec: bool = False):
         """Adds an endpoint to the API, pointing to a Remote Procedure Call (RPC) of a microservice or a
         local function. Serval decorators can be added to enable authentication, authorization and input
         validation.
@@ -83,23 +84,33 @@ class Gateway:
         Keyword Arguments:
             methods {list} -- The allowed HTTP methods (default: {["GET"]})
             auth {bool} -- Activate authentication (default: {False})
-            admin {bool} -- Activate authorization (default: {False})
+            role {str} -- User role, e.g.: admin (default: {user})
             validate {bool} -- Activate input validation (default: {False})
+            validate_custom {bool} -- Activate custom input validation, enable parameter parsing (default: {False})
             rpc {bool} -- Setting up a RPC or local function (default: {True})
             is_async {bool} -- Flags if the function should be executed asynchronously (default: {False})
+            parse_spec {bool} -- Flag if the function should get the openapi specs (default: {False})
         """
-        
+
+        if not methods:
+            methods = ["GET"]
         # Method OPTIONS needed for CORS
         if "OPTIONS" not in methods:
             methods.append("OPTIONS")
         methods = [method.upper() for method in methods]
 
-        if rpc: func = self._rpc_wrapper(func, is_async)
+        if parse_spec:
+            api_spec = self._spec.get()
+            func = self._rpc_wrapper(func, is_async, api_spec=api_spec) if rpc else self._local_wrapper(func, api_spec=api_spec)
+        else:
+            # Use either rpc or local wrapper to handle responses and exceptions
+            func = self._rpc_wrapper(func, is_async) if rpc else self._local_wrapper(func)
         if validate:
             func = self._validate(func)
         elif validate_custom:
             func = self._validate_custom(func)
-        if auth: func = self._authenticate(func, role)
+        if auth:
+            func = self._authenticate(func, role)
 
         self._service.add_url_rule(
             route,
@@ -139,12 +150,12 @@ class Gateway:
 
         self._service.config.update({
             "NAMEKO_AMQP_URI":
-            "pyamqp://{0}:{1}@{2}:{3}".format(
-                environ.get("RABBIT_USER"),
-                environ.get("RABBIT_PASSWORD"),
-                environ.get("RABBIT_HOST"),
-                environ.get("RABBIT_PORT")
-            ),
+                "pyamqp://{0}:{1}@{2}:{3}".format(
+                    environ.get("RABBIT_USER"),
+                    environ.get("RABBIT_PASSWORD"),
+                    environ.get("RABBIT_HOST"),
+                    environ.get("RABBIT_PORT")
+                ),
         })
 
         rpc = FlaskPooledClusterRpcProxy()
@@ -166,7 +177,6 @@ class Gateway:
         Returns:
             OpenAPISpecParser -- The instantiated OpenAPISpecParser object
         """
-
         return OpenAPISpecParser(self._res)
 
     def _init_auth(self) -> AuthenticationHandler:
@@ -184,10 +194,7 @@ class Gateway:
         }
         self._service.config.update(oidc_config)
 
-        # oicd = OpenIDConnect()
-        # oicd.init_app(self._service)
-
-        return AuthenticationHandler(self._res) #, self._rpc) #, oicd)
+        return AuthenticationHandler(self._res)
 
     def _init_users_db(self) -> SQLAlchemy:
         db_url = "postgresql://{0}:{1}@{2}:{3}/{4}".format(
@@ -203,8 +210,8 @@ class Gateway:
         })
         return SQLAlchemy(self._service)
 
-    def _rpc_wrapper(self, f:Callable, is_async) -> Union[Callable, Response]:
-        """The RPC decorator function to handle repsonsed and exception when communicating
+    def _rpc_wrapper(self, f: Callable, is_async, **kwargs) -> Union[Callable, Response]:
+        """The RPC decorator function handles responses and exception when communicating
         with the services. This method is a single aggregated endpoint to handle the service
         communications.
 
@@ -218,7 +225,7 @@ class Gateway:
 
         def decorator(**arguments):
             try:
-                rpc_response = f.call_async(**arguments) if is_async else f(**arguments)
+                rpc_response = f.call_async(**arguments, **kwargs) if is_async else f(**arguments, **kwargs)
 
                 if is_async:
                     return self._res.parse({"code": 202}) # Fixed, since this currently just applies to POST /jobs/{job_id}/results
@@ -231,67 +238,66 @@ class Gateway:
                 return self._res.error(exc)
         return decorator
 
+    def _local_wrapper(self, f: Callable, **kwargs) -> Union[Callable, Response]:
+        """The local decorator function handles responses and exception for non-RPC functions.
 
-    def send_index(self) -> Response:
-        """The function returns a JSON object containing the available routes and
-        HTTP methods as defined in the OpenAPI specification.
+        Arguments:
+            f {Callable} -- The wrapped function
 
         Returns:
-            Response -- JSON object contains the API capabilities
+            Union[Callable, Response] -- Returns the decorator function or a HTTP error
         """
-        # TODO: Index endpoint should be own rpc endpoint to be more generic
-        # TODO: Implement billing plans
+        def local_decorator(**arguments):
+            try:
+                local_response = f(**arguments, **kwargs)
 
-        api_spec = self._spec.get()
+                if local_response["status"] == "error":
+                    return self._res.error(local_response)
+                elif local_response["status"] == "redirect":
+                    return self._res.redirect(local_response["url"])
+                return self._res.parse(local_response)
 
-        endpoints = []
-        for path_name, methods in api_spec["paths"].items():
-            endpoint = {"path": path_name, "methods": []}
-            for method_name, _ in methods.items():
-                if method_name in ("get", "post", "patch", "put", "delete"):
-                    endpoint["methods"].append(method_name.upper())
-            endpoints.append(endpoint)
+            except Exception as exc:
+                return self._res.error(exc)
 
-        capabilities = {
-            "api_version": api_spec["info"]["version"],
-            "backend_version": "x.x.x", # TODO include backend version
-            "title": api_spec["info"]["title"],
-            "description": api_spec["info"]["description"],
-            "endpoints": endpoints
-        }
+        return local_decorator
 
-        return self._res.parse({"code": 200, "data": capabilities})
-
-
-    def send_health_check(self) -> Response:
+    def send_health_check(self) -> dict:
         """Returns the the sanity check
 
         Returns:
-            Response -- 200 HTTP code
+            Dict -- 200 HTTP code
         """
 
-        return self._res.parse({"code": 200})
+        return {
+            "status": "success",
+            "code": 200,
+        }
 
-
-    def send_openapi(self) -> Response:
+    def send_openapi(self) -> dict:
         """Returns the parsed OpenAPI specification as JSON
 
         Returns:
-            Response -- JSON object containing the OpenAPI specification
+            Dict -- JSON object containing the OpenAPI specification
         """
 
-        return self._res.parse({"code": 200, "data": self._spec.get()})
+        return {
+            "status": "success",
+            "code": 200,
+            "data": self._spec.get(),
+        }
 
-
-    def send_redoc(self) -> Response:
+    def send_redoc(self) -> dict:
         """Returns the ReDoc clients
 
         Returns:
-            Response -- The HTML file containing the ReDoc client setup
+            Dict -- The HTML file containing the ReDoc client setup
         """
 
-        return self._res.parse({"html": "redoc.html"})
-
+        return {
+            "status": "success",
+            "html": "redoc.html",
+        }
 
     def _parse_error_to_json(self, exc):
         return self._res.error(

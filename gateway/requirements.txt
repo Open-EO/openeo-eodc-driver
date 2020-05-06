@@ -16,3 +16,4 @@ itsdangerous==0.24
 passlib
 PyJWT==1.6.4
 psycopg2
+marshmallow>3

@@ -33,36 +33,38 @@ xml_base = (
     "</ogc:SortProperty>"
     "</ogc:SortBy>"
     "</csw:Query>"
-    "</csw:GetRecords>")
+    "</csw:GetRecords>"
+)
 
-xml_and = (
-    "<ogc:And>"
-    "{children}"
-    "</ogc:And>")
+xml_and = "<ogc:And>" "{children}" "</ogc:And>"
 
 xml_series = (
     "<ogc:PropertyIsEqualTo>"
     "<ogc:PropertyName>apiso:Type</ogc:PropertyName>"
     "<ogc:Literal>series</ogc:Literal>"
-    "</ogc:PropertyIsEqualTo>")
+    "</ogc:PropertyIsEqualTo>"
+)
 
 xml_product = (
     "<ogc:PropertyIsEqualTo>"
     "<ogc:PropertyName>{property}</ogc:PropertyName>"
     "<ogc:Literal>{product}</ogc:Literal>"
-    "</ogc:PropertyIsEqualTo>")
+    "</ogc:PropertyIsEqualTo>"
+)
 
 xml_begin = (
     "<ogc:PropertyIsGreaterThanOrEqualTo>"
     "<ogc:PropertyName>apiso:TempExtent_begin</ogc:PropertyName>"
     "<ogc:Literal>{start}</ogc:Literal>"
-    "</ogc:PropertyIsGreaterThanOrEqualTo>")
+    "</ogc:PropertyIsGreaterThanOrEqualTo>"
+)
 
 xml_end = (
     "<ogc:PropertyIsLessThanOrEqualTo>"
     "<ogc:PropertyName>apiso:TempExtent_end</ogc:PropertyName>"
     "<ogc:Literal>{end}</ogc:Literal>"
-    "</ogc:PropertyIsLessThanOrEqualTo>")
+    "</ogc:PropertyIsLessThanOrEqualTo>"
+)
 
 xml_bbox = (
     "<ogc:BBOX>"
@@ -71,4 +73,5 @@ xml_bbox = (
     "<gml:lowerCorner>{bbox.x1} {bbox.y1}</gml:lowerCorner>"
     "<gml:upperCorner>{bbox.x2} {bbox.y2}</gml:upperCorner>"
     "</gml:Envelope>"
-    "</ogc:BBOX>")
+    "</ogc:BBOX>"
+)

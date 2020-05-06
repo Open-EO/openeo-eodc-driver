@@ -18,3 +18,6 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 COPY requirements.txt .
 RUN python3 -m pip install -r requirements.txt
+# Needed by gateway and services files and jobs
+RUN mkdir /usr/src/files/
+RUN chown www-openeo:airflow /usr/src/files

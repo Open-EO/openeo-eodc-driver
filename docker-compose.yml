@@ -62,13 +62,11 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/gateway.env
-      - ./envs/oidc.env
       - ./envs/users.env
     volumes:
       - ./gateway:/usr/src/app
       - files-data:/usr/src/files
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
-      - upload-tmp-dir:/usr/src/files/tmp
       - $LOG_DIR:/usr/src/logs
     environment:
       OPENEO_VERSION: $OPENEO_VERSION
@@ -166,6 +164,7 @@ services:
       OPENEO_VERSION: $OPENEO_VERSION
       AIRFLOW_DAGS: /usr/src/dags/
       SYNC_RESULTS_FOLDER: /usr/src/sync-results
+      AIRFLOW_LOG_DIR: /usr/src/logs/airflow
     volumes:
       - ./services/jobs:/usr/src/app
       - $AIRFLOW_DAGS:/usr/src/dags/
@@ -228,6 +227,5 @@ volumes:
   process-api-data:
   eo-discovery-cache:
   files-data:
-  upload-tmp-dir:
 
 # Set up connection(s) to job scheduler(s) (Airflow, Dask, etc...)
