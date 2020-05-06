@@ -47,7 +47,6 @@ class OpenAPISpecParser:
         """Validated if the input endpoints and the available HTTP options
         of the API are consistent to the OpenAPI specification of the Flask
         API gateway.
-
         Arguments:
             endpoints {object} -- The endpoints of the API
         """
@@ -95,10 +94,8 @@ class OpenAPISpecParser:
     def validate_custom(self, f: Callable) -> Callable:
         """
         Passes the **kwargs onward.
-
         Arguments:
             f {Callable} -- The function to be wrapped
-
         Returns:
             Callable -- The validator decorator
         """
@@ -123,17 +120,15 @@ class OpenAPISpecParser:
     def validate(self, f: Callable) -> Callable:
         """Creates a validator decorator for the input parameters in the query and path of HTTP requests
         and the request bodies of e.g. POST requests.
-
         Arguments:
             f {Callable} -- The function to be wrapped
-
         Returns:
             Callable -- The validator decorator
         """
 
-        def get_parameter_specs(req_path, req_method, route_specs):
+        def get_parameter_specs():
             # Get the OpenAPI parameter specifications for the route and method
-            req_path = str(request.url_rule).replace("<","{").replace(">","}")
+            req_path = str(request.url_rule).replace("<", "{").replace(">", "}")
             req_path = req_path.replace(f"/{environ['OPENEO_VERSION']}", "")
             req_method = request.method.lower()
             route_specs = self._route(req_path)
@@ -242,10 +237,8 @@ class OpenAPISpecParser:
     def _map_type(self, in_type: Any) -> Callable:
         """Maps the input types to the corresponding functions and
         returns a lambda function that can be called.
-
         Arguments:
             in_type {Any} -- The input value type
-
         Returns:
             Callable -- The mapped lambda function
         """
@@ -260,13 +253,10 @@ class OpenAPISpecParser:
     def _parse_dict(self, in_dict: dict, ref: dict) -> dict:
         """Parses the input dict by resolving all references §ref that may
         be in included in it.
-
         The function is recursive.
-
         Arguments:
             in_dict {dict} -- The input dict
             ref {dict} -- The base reference schema
-
         Returns:
             dict -- The parsed output dict
         """
@@ -287,13 +277,10 @@ class OpenAPISpecParser:
     def _parse_list(self, in_list: list, ref: dict) -> list:
         """Parses a list object by iterating each element and parsing it
         based on its type.
-
         The function is recursive.
-
         Arguments:
             in_list {list} -- The input list
             ref {dict} -- The base reference schema
-
         Returns:
             list -- The parsed output list
         """
@@ -308,13 +295,10 @@ class OpenAPISpecParser:
         may point to the input base reference schema or an external schema. External
         schemas are downloaded and parsed. Download schemas are cached to improve the
         processing speed.
-
         The function is recursive.
-
         Arguments:
             in_url {str} -- The input URL
             ref {dict} -- The base reference schema
-
         Returns:
             dict -- The parsed dict containing all resolved references
         """
@@ -367,11 +351,9 @@ class OpenAPISpecParser:
     def _is_repeated_recursion(self) -> bool:
         """
         Checks that call each other continuously.
-
         There are both case where objects can be stored recursively within themselves and where objects call each other
         mutually. To prevent endless recursion a dict {'recursive': ''} is returned when the same url pattern is
         detected within a recursion stack.
-
         Returns:
             bool -- Whether last url is part of an already existing url stack
         """
@@ -388,10 +370,8 @@ class OpenAPISpecParser:
 
     def _route(self, route: str) -> dict:
         """Returns the OpenAPI specification for the requested route.
-
         Arguments:
             route {str} -- The route (e.g. '/processes')
-
         Returns:
             dict -- Returns the matching specification
         """
