@@ -1,7 +1,7 @@
 # openEO EODC Driver
 
 - openEO version: 1.0.x (currently in development)
-- openEO version: 0.4.2 (legacy, see openeo-openshift-driver tag v1.0.0)
+- openEO version: 0.4.2 (legacy, see openeo-openshift-driver [tag v1.1.2](https://github.com/Open-EO/openeo-openshift-driver/releases/tag/v1.1.2))
 
 ## Information
 
