@@ -106,14 +106,16 @@ class CapabilitiesService:
             Dict -- Contains the supported OpenEO API versions
         """
         try:
+            #"url": api_spec["servers"][0]["url"],  # TODO update when versioned urls are in place
+            #"api_version": api_spec["info"]["version"],
             return {
                 "status": "success",
                 "code": 200,
                 "data": {
                     "versions": [
                         {
-                            "url": api_spec["servers"][0]["url"],  # TODO update when versioned urls are in place
-                            "api_version": api_spec["info"]["version"],
+                            "url": "https://openeo.eodc.eu/v0.4",
+                            "api_version": "0.4.x",
                         }
                     ]
                 }

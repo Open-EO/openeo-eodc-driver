@@ -1,25 +1,26 @@
 version: '3.4'
 services:
   openeo-base:
-    build: ./base
-    image: openeo-base
-    container_name: openeo-base
+    build:
+      context: ./base
+    image: oeo-base-$OPENEO_VERSION
+    container_name: oeo-base-$OPENEO_VERSION
     command: echo
     network_mode: none
 
   rabbitmq:
     image: rabbitmq:3.8-management
-    container_name: openeo-rabbitmq
+    container_name: oeo-rabbitmq-$OPENEO_VERSION
     hostname: rabbitmq
     env_file:
       - ./envs/rabbitmq.env
     ports:
-      - 5672:5672
-      - 15672:15672
+      - $RABBIT_PORT:$RABBIT_PORT
+      - $RABBIT_PORT_MNG:$RABBIT_PORT_MNG
 
   jobs_db:
     image: postgres
-    container_name: openeo-jobs-db
+    container_name: oeo-jobs-db-$OPENEO_VERSION
     restart: always
     hostname: jobs_db
     volumes:
@@ -28,18 +29,18 @@ services:
       - ./envs/jobs.env
 
   processes_db:
-      image: postgres
-      container_name: openeo-processes-db
-      restart: always
-      hostname: processes_db
-      volumes:
-        - /srv/openeo/data/processes_db_data:/var/lib/postgresql/data
-      env_file:
-        - ./envs/processes.env
+    image: postgres
+    container_name: oeo-processes-db-$OPENEO_VERSION
+    restart: always
+    hostname: processes_db
+    volumes:
+      - /srv/openeo/data/processes_db_data:/var/lib/postgresql/data
+    env_file:
+      - ./envs/processes.env
 
   users_db:
     image: postgres
-    container_name: openeo-users-db
+    container_name: oeo-users-db-$OPENEO_VERSION
     restart: always
     hostname: users_db
     volumes:
@@ -48,9 +49,12 @@ services:
       - ./envs/users.env
 
   openeo-gateway:
-    image: openeo-gateway
-    build: ./gateway
-    container_name: openeo-gateway
+    image: oeo-gateway-$OPENEO_VERSION
+    build:
+      context: ./gateway
+      args:
+        OPENEO_VERSION: $OPENEO_VERSION
+    container_name: oeo-gateway-$OPENEO_VERSION
     restart: on-failure
     depends_on:
       - rabbitmq
@@ -65,14 +69,18 @@ services:
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
       - $LOG_DIR:/usr/src/logs
     environment:
+      OPENEO_VERSION: $OPENEO_VERSION
       UPLOAD_TMP_DIR: /usr/src/files/tmp
     ports:
-      - 3000:3000
+      - $GATEWAY_PORT:$GATEWAY_PORT
 
   openeo-capabilities:
-    build: ./services/capabilities
-    image: openeo-capabilities
-    container_name: openeo-capabilities
+    build:
+      context: ./services/capabilities
+      args:
+        OPENEO_VERSION: $OPENEO_VERSION
+    image: oeo-capabilities-$OPENEO_VERSION
+    container_name: oeo-capabilities-$OPENEO_VERSION
     restart: on-failure
     depends_on:
       - rabbitmq
@@ -83,11 +91,16 @@ services:
     volumes:
       - ./services/capabilities:/usr/src/app
       - $LOG_DIR:/usr/src/logs
+    environment:
+      OPENEO_VERSION: $OPENEO_VERSION
 
   openeo-data:
-    build: ./services/data
-    image: openeo-data
-    container_name: openeo-data
+    build:
+      context: ./services/data
+      args:
+        OPENEO_VERSION: $OPENEO_VERSION
+    image: oeo-data-$OPENEO_VERSION
+    container_name: oeo-data-$OPENEO_VERSION
     restart: on-failure
     depends_on:
       - rabbitmq
@@ -98,6 +111,7 @@ services:
       - ./envs/csw.env
       - ./envs/gateway.env
     environment:
+      OPENEO_VERSION: $OPENEO_VERSION
       CACHE_PATH: /usr/src/cache
     volumes:
       - eo-discovery-cache:/usr/src/cache
@@ -105,9 +119,12 @@ services:
       - $LOG_DIR:/usr/src/logs
 
   openeo-processes:
-    build: ./services/processes
-    image: openeo-processes
-    container_name: openeo-processes
+    build:
+      context: ./services/processes
+      args:
+        OPENEO_VERSION: $OPENEO_VERSION
+    image: oeo-processes-$OPENEO_VERSION
+    container_name: oeo-processes-$OPENEO_VERSION
     restart: on-failure
     depends_on:
       - rabbitmq
@@ -118,6 +135,7 @@ services:
       - ./envs/rabbitmq.env
       - ./envs/processes.env
     environment:
+      OPENEO_VERSION: $OPENEO_VERSION
       PROCESS_API_DIR: /usr/src/api
     volumes:
       - process-api-data:/usr/src/api
@@ -125,9 +143,12 @@ services:
       - $LOG_DIR:/usr/src/logs
 
   openeo-jobs:
-    build: ./services/jobs
-    image: openeo-jobs
-    container_name: openeo-jobs
+    build: 
+      context: ./services/jobs
+      args:
+        OPENEO_VERSION: $OPENEO_VERSION
+    image: oeo-jobs-$OPENEO_VERSION
+    container_name: oeo-jobs-$OPENEO_VERSION
     restart: on-failure
     depends_on:
       - rabbitmq
@@ -140,6 +161,7 @@ services:
       - ./envs/csw.env
       - ./envs/gateway.env
     environment:
+      OPENEO_VERSION: $OPENEO_VERSION
       AIRFLOW_DAGS: /usr/src/dags/
       SYNC_RESULTS_FOLDER: /usr/src/sync-results
       AIRFLOW_LOG_DIR: /usr/src/logs/airflow
@@ -151,9 +173,10 @@ services:
       - $LOG_DIR:/usr/src/logs
 
   openeo-eodatareaders:
-      build: ./services/eodatareaders_rpc
-      image: openeo-eodatareaders
-      container_name: openeo-eodatareaders
+      build:
+        context: ./services/eodatareaders_rpc
+      image: oeo-eodatareaders-$OPENEO_VERSION
+      container_name: oeo-eodatareaders-$OPENEO_VERSION
       restart: on-failure
       depends_on:
         - rabbitmq
@@ -163,6 +186,7 @@ services:
         - ./envs/csw.env
         - ./envs/eodatareaders.env
       environment:
+        OPENEO_VERSION: $OPENEO_VERSION
         SYNC_RESULTS_FOLDER: /usr/src/sync-results
         OPENEO_PYTHON_UDF_URL: $OPENEO_PYTHON_UDF_URL
         OPENEO_R_UDF_URL: $OPENEO_R_UDF_URL
@@ -173,9 +197,12 @@ services:
           - $LOG_DIR:/usr/src/logs
 
   openeo-files:
-    build: ./services/files
-    image: openeo-files
-    container_name: openeo-files
+    build:
+      context: ./services/files
+      args:
+        OPENEO_VERSION: $OPENEO_VERSION
+    image: oeo-files-$OPENEO_VERSION
+    container_name: oeo-files-$OPENEO_VERSION
     restart: on-failure
     depends_on:
       - rabbitmq
@@ -184,6 +211,7 @@ services:
     env_file:
       - ./envs/rabbitmq.env
     environment:
+      OPENEO_VERSION: $OPENEO_VERSION
       OPENEO_FILES_DIR: /usr/src/files
     volumes:
       - files-data:/usr/src/files
@@ -193,7 +221,7 @@ services:
 networks:
   default:
     external:
-      name: ${PROJECT_NAME}_proxy
+      name: ${PROJECT_NAME}-${OPENEO_VERSION}
 
 volumes:
   process-api-data:
