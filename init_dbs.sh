@@ -13,10 +13,10 @@ check_container () {
 } 
 
 # Init users database
-check_container openeo-gateway && docker exec openeo-gateway /bin/sh -c "cd gateway/users; alembic upgrade head" && echo "### Done. ###"
+check_container oeo-gateway-v1.0 && docker exec oeo-gateway-v1.0 /bin/sh -c "cd gateway/users; alembic upgrade head" && echo "### Done. ###"
 
 # Init process graphs database
-check_container openeo-processes && docker exec openeo-processes alembic upgrade head && echo "### Done. ###"
+check_container oeo-processes-v1.0 && docker exec oeo-processes-v1.0 alembic upgrade head && echo "### Done. ###"
 
 # Init job database
-check_container openeo-jobs && docker exec openeo-jobs alembic upgrade head && echo "### Done. ###"
+check_container oeo-jobs-v1.0 && docker exec oeo-jobs-v1.0 alembic upgrade head && echo "### Done. ###"
