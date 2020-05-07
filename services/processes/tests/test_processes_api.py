@@ -144,15 +144,6 @@ def test_put_pre_defined(db_session, process):
     assert db_session.query(ProcessGraph).filter(ProcessGraph.id_openeo == process).count() == 1
 
 
-def test_put_user_defined(db_session):
-    processes_service = worker_factory(ProcessesService, db=db_session)
-    pg = load_process_graph_json()
-    result = processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
-    assert result == {"status": "success", "code": 200}
-    assert db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
-               .filter(ProcessGraph.id_openeo == "test-pg").count() == 1
-
-
 def test_get_all_predefined(db_session):
     processes_service = worker_factory(ProcessesService, db=db_session)
     os.environ["PROCESSES_GITHUB_URL"] = "https://raw.githubusercontent.com/Open-EO/openeo-processes/1.0.0-rc.1/"
@@ -355,15 +346,16 @@ def test_get_all_user_defined(db_session):
     }
 
 
-def test_get_user_defined(db_session):
+def test_put_get_user_defined(db_session):
     processes_service = worker_factory(ProcessesService, db=db_session)
     pg = load_process_graph_json()
     processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
-    assert db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
-               .filter(ProcessGraph.id_openeo == "test-pg").count() == 1
+    query = db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
+        .filter(ProcessGraph.id_openeo == "test-pg")
+    assert query.count() == 1
 
     result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
-    assert result == {
+    reference = {
         "status": "success",
         "code": 200,
         "data": {
@@ -526,6 +518,21 @@ def test_get_user_defined(db_session):
             ]
         }
     }
+    assert result == reference
+
+    # Insert same pg again - nothing should change
+    processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
+    assert query.count() == 1
+    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
+    assert result == reference
+
+    # Make a small change (update summary) - only the summary should change
+    pg['summary'] = 'A new summary'
+    reference['data']['summary'] = 'A new summary'
+    processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
+    assert query.count() == 1
+    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
+    assert result == reference
 
 
 def test_delete(db_session):
