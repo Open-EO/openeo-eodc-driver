@@ -3,15 +3,15 @@ Tries to access all OpenEO file endpoints
 
 It does not do any checks automatically, you rather have to examine the return status and responses yourself.
 
-To run this file a complete OpenEO backend has to be running under http://127.0.0.1:3000.
-The basic auth credentials (USERNAME, PASSWORD) of a registered have to be stored as environment variables.
+To run this file a complete OpenEO backend has to be running.
+The basic auth credentials (USERNAME, PASSWORD) of a registered user as well as 
+the backend url (BACKEND_URL) have to be stored as environment variables.
 """
 
 import os
-
 import requests
 
-backend_url = 'http://127.0.0.1:3000'
+backend_url = os.environ.get('BACKEND_URL')
 files_url = backend_url + '/files'
 file_single_url = files_url + '/folder1/upload.txt'
 basic_auth_url = backend_url + '/credentials/basic'
@@ -19,7 +19,10 @@ basic_auth_url = backend_url + '/credentials/basic'
 
 def get_auth():
     auth_response = requests.get(basic_auth_url, auth=(os.environ.get('USERNAME'), os.environ.get('PASSWORD')))
-    return {'Authorization': 'Bearer basic//' + auth_response.json()['access_token']}
+    if auth_response.ok:
+        return {'Authorization': 'Bearer basic//' + auth_response.json()['access_token']}
+    else:
+        print(auth_response.text)
 
 
 def check_files():
