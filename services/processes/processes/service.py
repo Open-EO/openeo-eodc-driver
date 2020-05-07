@@ -77,10 +77,10 @@ class ProcessesService:
                 .filter_by(id_openeo=process_graph_id) \
                 .filter_by(process_definition=ProcessDefinitionEnum.user_defined) \
                 .first()
-            self.db.refresh(process_graph)  # To ensure the object is always taken from the db
             valid, response = self._exist_and_authorize(user_id, process_graph_id, process_graph)
             if not valid:
                 return response
+            self.db.refresh(process_graph)  # To ensure the object is always taken from the db
             LOGGER.info(f"Return user-defined ProcessGraph {process_graph_id}.")
             return {
                 "status": "success",
