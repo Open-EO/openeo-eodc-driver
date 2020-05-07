@@ -352,6 +352,7 @@ def test_put_get_user_defined(db_session):
     processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
     query = db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
         .filter(ProcessGraph.id_openeo == "test-pg")
+    id_orig = query.first().id
     assert query.count() == 1
 
     result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
@@ -523,6 +524,7 @@ def test_put_get_user_defined(db_session):
     # Insert same pg again - nothing should change
     processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
     assert query.count() == 1
+    assert query.first().id == id_orig
     result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
     assert result == reference
 
@@ -531,6 +533,7 @@ def test_put_get_user_defined(db_session):
     reference['data']['summary'] = 'A new summary'
     processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
     assert query.count() == 1
+    assert query.first().id == id_orig
     result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
     assert result == reference
 

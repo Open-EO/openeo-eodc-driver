@@ -236,15 +236,12 @@ class ProcessesService:
                 valid, response = self._authorize(user_id, process_graph)
                 if not valid:
                     return response
-
-                self.db.delete(process_graph)
-                self.db.commit()
-                LOGGER.debug(f"User-defined ProcessGraph {process_graph_id} delete to create new one with the same id.")
+                process_graph_args['id_internal'] = process_graph.id
 
             process_graph_args['process_definition'] = ProcessDefinitionEnum.user_defined
             process_graph_args['user_id'] = user_id
             process_graph = ProcessGraphPredefinedSchema().load(process_graph_args)
-            self.db.add(process_graph)
+            self.db.merge(process_graph)
             self.db.commit()
             LOGGER.info(f"User-defined ProcessGraph {process_graph_id} successfully created.")
 
