@@ -42,9 +42,21 @@ Next a step-by-step explanation how to set it up. (All following steps assume th
 1. **Setup containers**: Run docker-compose. This will create the two containers and already setup the needed database schema. It should be
 mentioned here that currently a hotfixed version of the pycsw image is used as otherwise metadata can not be returned
 in the iso schema. (see Dockerfile provided in this folder)
-    ```bash
-    docker-compose up
-    ```
+For local development, you will need a docker network shared across the API, CSW and Airflow setups. Create one like this:
+
+```
+docker network create openeo-v1.0
+```
+
+Leave the name as is or update in the docker-compose_dev.yml files for the API, CSW and Airflow.
+
+From the main folder, run the following command:
+
+```
+docker-compose -f docker-compose.yml -f docker-compose_dev.yml up -d
+```
+
+The `docker-compose_dev.yml` file is identical to `docker-compose.yml`, but additionally exposes some ports and assigns the containers to the docker network created above.
 
 1. **Insert Metadata into DB**: Connect to the container and load xml files into the metadata database.
     ```bash

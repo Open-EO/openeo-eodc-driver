@@ -33,13 +33,22 @@ Copy the `sample.env` file and the `/sample-envs` folder to to `.env` and `/envs
 
 **Small caveat**: one service in the API docker-compose (eodatareaders_rpc) depends on the docker image in `/airflow/build`, so that one must be built first (see instructions [here](./airflow/README.md)). This will change as soon as possible.
 
-Run the following docker compose from the main folder:
+For local development, you will need a docker network shared across the API, CSW and Airflow setups. Create one like this:
 
 ```
-docker-compose up -d
+docker network create openeo-v1.0
 ```
 
-which uses the `docker-compose.yml` file.
+Leave the name as is or update in the docker-compose_dev.yml files for the API, CSW and Airflow.
+
+From the main folder, run the following command:
+
+```
+docker-compose -f docker-compose.yml -f docker-compose_dev.yml up -d
+```
+
+The `docker-compose_dev.yml` file is identical to `docker-compose.yml`, but additionally exposes some ports and assigns the containers to the docker network created above.
+
 
 #### Set up all databases with Alembic
 

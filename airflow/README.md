@@ -35,6 +35,18 @@ to be defined in the start up command. If you use the provided docker-compose th
 
 ## Bring up Apache Airflow
 
-```bash
-docker-compose up -d
+For local development, you will need a docker network shared across the API, CSW and Airflow setups. Create one like this:
+
 ```
+docker network create openeo-v1.0
+```
+
+Leave the name as is or update in the docker-compose_dev.yml files for the API, CSW and Airflow.
+
+From the main folder, run the following command:
+
+```
+docker-compose -f docker-compose.yml -f docker-compose_dev.yml up -d
+```
+
+The `docker-compose_dev.yml` file is identical to `docker-compose.yml`, but additionally exposes some ports and assigns the containers to the docker network created above.

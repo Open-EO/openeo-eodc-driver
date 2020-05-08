@@ -14,6 +14,9 @@ services:
     hostname: rabbitmq
     env_file:
       - ./envs/rabbitmq.env
+    ports:
+      - 5672:5672
+      - 15672:15672
 
   jobs_db:
     image: postgres
@@ -222,3 +225,8 @@ volumes:
     name: ${PROJECT_NAME}-${OPENEO_VERSION}-eo-discovery-cache
   files-data:
     name: ${PROJECT_NAME}-${OPENEO_VERSION}-files-data
+
+networks:
+  default:
+    external:
+      name: ${PROJECT_NAME}-${OPENEO_VERSION}

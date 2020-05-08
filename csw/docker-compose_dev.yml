@@ -20,6 +20,11 @@ services:
     volumes:
       - ./pycsw.cfg:/etc/pycsw/pycsw.cfg
       - ./xml:/home/pycsw/xml
-
+      
 volumes:
   pycsw-db-data:
+
+networks:
+  default:
+    external:
+      name: ${PROJECT_NAME}-${OPENEO_VERSION}

@@ -169,3 +169,8 @@ volumes:
   files-data:
     external:
       name: ${PROJECT_NAME}-${OPENEO_VERSION}-files-data
+
+networks:
+  default:
+    external:
+      name: ${PROJECT_NAME}-${OPENEO_VERSION}
