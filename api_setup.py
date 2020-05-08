@@ -23,14 +23,16 @@ def add_processes(backend_url, auth_header):
     if "v0.4" in backend_url:
         response = requests.post(backend_url + "/processes", json=processes_to_add, headers=auth_header)
         if response.ok:
+            print('All processes added to back-end.')
             print(response.headers['Location'])
         else:
             print(response.text)
     else:    
         for process_name in processes:
             response = requests.put(backend_url + "/processes/" + process_name, headers=auth_header)
-        
-            if not response.ok:
+            if response.ok:
+                print(f'Successfully added process {process_name} to back-end.')
+            else:
                 print(process_name)
                 print(response.text)
                 print('\n')
@@ -39,6 +41,7 @@ def add_processes(backend_url, auth_header):
 def add_collections(backend_url, auth_header):
     
     response = requests.post(backend_url + "/collections", headers=auth_header)
+    print(response.text)
 
 
 if __name__ == '__main__':
