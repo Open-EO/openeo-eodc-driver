@@ -21,7 +21,7 @@ services:
     restart: always
     hostname: jobs_db
     volumes:
-      - /srv/openeo/data/jobs_db_data:/var/lib/postgresql/data
+      - /srv/openeo/$OPENEO_VERSION/data/jobs_db_data:/var/lib/postgresql/data
     env_file:
       - ./envs/jobs.env
 
@@ -31,7 +31,7 @@ services:
     restart: always
     hostname: processes_db
     volumes:
-      - /srv/openeo/data/processes_db_data:/var/lib/postgresql/data
+      - /srv/openeo/$OPENEO_VERSION/data/processes_db_data:/var/lib/postgresql/data
     env_file:
       - ./envs/processes.env
 
@@ -41,7 +41,7 @@ services:
     restart: always
     hostname: users_db
     volumes:
-        - /srv/openeo/data/users_db_data:/var/lib/postgresql/data
+        - /srv/openeo/$OPENEO_VERSION/data/users_db_data:/var/lib/postgresql/data
     env_file:
       - ./envs/users.env
 
