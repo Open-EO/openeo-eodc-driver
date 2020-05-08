@@ -6,8 +6,11 @@ import requests
 def get_headers(backend_url, username, password):
     # Get token with Basic auth
     response = requests.get(backend_url + "/credentials/basic", auth=(username, password))
-    headers = {'Authorization': 'Bearer basic//' + response.json()['access_token']}
-    
+    if "v0.4" in backend_url:
+        headers = {'Authorization': 'Bearer ' + response.json()['token']}
+    else:
+        headers = {'Authorization': 'Bearer basic//' + response.json()['access_token']}
+
     return headers
     
 
@@ -17,13 +20,20 @@ def add_processes(backend_url, auth_header):
     processes = json.load(open("supported_processes.json"))["processes"]
     processes_to_add = {process_name:{} for process_name in processes}
     
-    for process_name in processes:
-        response = requests.put(backend_url + "/processes/" + process_name, headers=auth_header)
-    
-        if not response.ok:
-            print(process_name)
+    if "v0.4" in backend_url:
+        response = requests.post(backend_url + "/processes", json=processes_to_add, headers=auth_header)
+        if response.ok:
+            print(response.headers['Location'])
+        else:
             print(response.text)
-            print('\n')
+    else:    
+        for process_name in processes:
+            response = requests.put(backend_url + "/processes/" + process_name, headers=auth_header)
+        
+            if not response.ok:
+                print(process_name)
+                print(response.text)
+                print('\n')
 
         
 def add_collections(backend_url, auth_header):
