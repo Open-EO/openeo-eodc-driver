@@ -107,15 +107,16 @@ class CapabilitiesService:
         """
         try:    
             # NB The api 'versions' must match exactly the version numbers available here:
-            # https://github.com/Open-EO/openeo-api
+            # https://github.com/Open-EO/openeo-api            
+            api_versions = []
+            for ver in api_spec["servers"]["versions"]:
+                api_versions.append(api_spec["servers"]["versions"][ver])
             
             return {
                 "status": "success",
                 "code": 200,
                 "data": {
-                    "versions": [
-                        api_spec["servers"]["versions"]
-                        ]
+                    "versions": api_versions
                 }
             }
 
