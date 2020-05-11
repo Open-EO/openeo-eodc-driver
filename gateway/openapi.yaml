@@ -34,9 +34,24 @@ info:
         gis_data_types:
           - raster
   x-udf:
+    Python:
+      - description: The Python programming language.
+        versions:
+          3.6.x:
+            libraries:
+              - Numpy:
+                - version: x.x
+              - Xarray:
+                - version: y.y
+    R:
+      - description: The R programming language.
+        versions:
+          x.x.x:
+            libraries:
+              - stars:
+                - version: x.x
 
-
-# add service types
+# add service types    
 
 externalDocs:
   description: EODC API Description

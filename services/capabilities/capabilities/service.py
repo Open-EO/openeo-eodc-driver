@@ -153,6 +153,7 @@ class CapabilitiesService:
 
         try:
             file_formats = api_spec["info"]["file_formats"]
+
             return {
                 "status": "success",
                 "code": 200,
@@ -179,12 +180,11 @@ class CapabilitiesService:
         """
         try:
             udf_all = api_spec["info"]["udf"]
-            udf_fmt = {udf.pop('name'): udf for udf in udf_all}
 
             return {
                 "status": "success",
                 "code": 200,
-                "data": udf_fmt,
+                "data": udf_all,
             }
         except Exception as exp:
             return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
@@ -203,10 +203,11 @@ class CapabilitiesService:
             Dict -- Contains supported secondary services
         """
         try:
+                        
             return {
                 "status": "success",
                 "code": 200,
-                "data": {},
+                "data": {'Secondary services': 'None implemented.'},
             }
         except Exception as exp:
             return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
