@@ -66,6 +66,8 @@ class CapabilitiesService:
         try:
             endpoints = []
             for path_name, methods in api_spec["paths"].items():
+                path_to_replace = path_name[path_name.find(':'):path_name.find('}')]
+                path_name = path_name.replace(path_to_replace, '')
                 endpoint = {"path": path_name, "methods": []}
                 for method_name, _ in methods.items():
                     if method_name in ("get", "post", "patch", "put", "delete"):
