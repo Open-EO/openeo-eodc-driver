@@ -28,7 +28,7 @@ with ctx:
     gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/file_formats", func=rpc.capabilities.get_file_formats, auth=False, validate=True, parse_spec=True)
     # gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/conformance", func=rpc.capabilities)
     gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/udf_runtimes", func=rpc.capabilities.get_udfs, auth=False, validate=True, parse_spec=True)
-    gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/service_types", func=rpc.capabilities.get_service_types, auth=False, validate=True, parse_spec=True)
+    #gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/service_types", func=rpc.capabilities.get_service_types, auth=False, validate=True, parse_spec=True)
 
     # EO Data Discovery
     gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/collections", func=rpc.data.get_all_products, auth=False, validate=True)
