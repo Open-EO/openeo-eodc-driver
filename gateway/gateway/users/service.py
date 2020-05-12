@@ -207,10 +207,13 @@ class UsersService:
         """
 
         identity_providers = db.session.query(IdentityProviders).all()
+        id_providers = {}
+        id_providers['providers'] = IdentityProviderSchema(many=True).dump(identity_providers)
+        
         return {
             "status": "success",
             "code": 200,
-            "data": IdentityProviderSchema(many=True).dump(identity_providers)
+            "data": id_providers
         }
 
     def add_identity_provider(self, **identity_provider_args) -> dict:
