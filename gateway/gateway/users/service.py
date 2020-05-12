@@ -209,6 +209,9 @@ class UsersService:
         identity_providers = db.session.query(IdentityProviders).all()
         id_providers = {}
         id_providers['providers'] = IdentityProviderSchema(many=True).dump(identity_providers)
+        # update scopes from string to list
+        for item in id_providers['providers']:
+            item['scopes'] = item['scopes'].split(",")
         
         return {
             "status": "success",
