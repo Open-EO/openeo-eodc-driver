@@ -4,6 +4,8 @@ import glob
 import logging
 import os
 import re
+import time
+from datetime import datetime
 from typing import List, Optional, Tuple
 import shutil
 
@@ -132,10 +134,13 @@ class FilesService:
             for root, dirs, files in os.walk(prefix):
                 user_root = root[len(prefix) + 1:]
                 for f in files:
+                    public_filepath = os.path.join(user_root, f)
+                    internal_filepath = os.path.join(root, f)
                     file_list.append(
                         {
-                            "path": os.path.join(user_root, f),
-                            "size": self.sizeof_fmt(os.path.getsize(os.path.join(root, f)))
+                            "path": public_filepath,
+                            "size": int(os.path.getsize(internal_filepath)),
+                            "modified": self.get_file_modification_time(internal_filepath)
                         }
                     )
             LOGGER.info(f"Found {len(file_list)} files in workspace of User {user_id}.")
@@ -177,7 +182,8 @@ class FilesService:
                 "code": 200,
                 "data": {
                     "path": self.complete_to_public_path(user_id, complete_path),
-                    "size": self.sizeof_fmt(os.path.getsize(complete_path)),
+                    "size": int(os.path.getsize(complete_path)),
+                    "modified": self.get_file_modification_time(complete_path)
                 }
             }
 
@@ -286,20 +292,25 @@ class FilesService:
         Returns:
             {str} -- The corresponding public path to the file visible to the user
         """
-        return complete_path[len(self.get_user_folder(user_id)) + 1:]
-
-    @staticmethod
-    def sizeof_fmt(num: float) -> str:
-        """Return human readable file size.
-
-        Arguments:
-            num {float} -- The number of bytes to convert.
+        
+        public_path = complete_path[len(self.get_user_folder(user_id)) + 1:]
+        public_path = public_path.replace('files/', '')
+        
+        return public_path
+        
+    
+    def get_file_modification_time(self, filepath: str):
         """
-        for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
-            if abs(num) < 1024.0:
-                return "%3.1f%sB" % (num, unit)
-            num /= 1024.0
-        return "%.1f%sB" % (num, 'Yi')
+        Returns timestamp of last modification in format: '2019-05-21T16:11:37Z'.
+        
+        Returns:
+            {str} -- The timestamp when the file was last modified.
+        """
+        
+        numeric_tstamp = os.path.getmtime(filepath)
+        timestamp = datetime.fromtimestamp(numeric_tstamp).isoformat("T", "seconds") + "Z"
+        
+        return timestamp
 
     # needed for job management
     @rpc
