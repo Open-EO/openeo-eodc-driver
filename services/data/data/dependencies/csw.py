@@ -325,5 +325,5 @@ class CSWSession(DependencyProvider):
         return CSWHandler(
             environ.get("CSW_SERVER"),
             environ.get("CACHE_PATH"),
-            environ.get("GATEWAY_URL"),
+            environ.get("DNS_URL"),
         )

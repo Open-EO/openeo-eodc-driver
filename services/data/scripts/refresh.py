@@ -3,8 +3,8 @@
 import os
 import requests
 
-if os.environ.get('GATEWAY_URL'):
-    SERVICE_URI = os.environ.get('GATEWAY_URL') + '/collections'
+if os.environ.get('DNS_URL'):
+    SERVICE_URI = os.environ.get('DNS_URL') + '/collections'
 else:
     SERVICE_URI = 'http://127.0.0.1:3000/collections'
 

@@ -1,6 +1,8 @@
 """ Module to create links for stac 0.6.2 compliance.
 The values aren't currently in a db so the class LinkHandler handles creating them """
 
+import os
+
 
 class LinkHandler:
     def __init__(self, service_url: str):
@@ -9,25 +11,25 @@ class LinkHandler:
 
     def _get_root_record(self):
         rel = "root"
-        href = self.service_url + self.api_endpoint
+        href = os.path.join(self.service_url, self.api_endpoint)
         link = {"href": href, "rel": rel}
         return link
 
     def _get_parent_record(self):
         rel = "parent"
-        href = self.service_url + self.api_endpoint
+        href = os.path.join(self.service_url, self.api_endpoint)
         link = {"href": href, "rel": rel}
         return link
 
     def _get_self_record(self, record):
         rel = "self"
-        href = self.service_url + self.api_endpoint + "/" + record["id"]
+        href = os.path.join(self.service_url, self.api_endpoint, record["id"])
         link = {"href": href, "rel": rel}
         return link
 
     def _get_self_collection(self):
         rel = "self"
-        href = self.service_url + "/" + self.api_endpoint
+        href = os.path.join(self.service_url, self.api_endpoint)
         link = {"href": href, "rel": rel}
         return link
 
