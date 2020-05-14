@@ -10,7 +10,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  capabilities:
     name: Processes-Service
     runs-on: ${{ matrix.os }}
     strategy:
@@ -27,8 +27,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r services/processes/requirements.txt
-        pip install -r services/processes/requirements_test.txt
+        pip install -r services/capabilities/requirements.txt
+        pip install -r services/capabilities/requirements-test.txt
     - name: Test with pytest
       run: |
-        pytest services/processes/tests
+        pytest services/capabilities/tests
