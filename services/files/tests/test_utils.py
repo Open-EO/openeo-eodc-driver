@@ -4,7 +4,7 @@ import os
 def test_complete_to_public_path(file_service, user_folder, user_id):
     test_path = os.path.join(user_folder, 'files', 'some-file.txt')
     actual_public_path = file_service.complete_to_public_path(user_id=user_id, complete_path=test_path)
-    assert actual_public_path == 'files/some-file.txt'
+    assert actual_public_path == 'some-file.txt'
 
 
 def test_authorize_file(file_service, user_folder, user_id):
@@ -40,7 +40,6 @@ def test_authorize_file_path(file_service, user_folder, user_id):
     worked, error_dict, complete_path = file_service.authorize_file(user_id=user_id, path=test_file)
     assert not worked
     assert complete_path is None
-    print(error_dict)
     assert error_dict == {
         'status': 'error',
         'service': 'files',
