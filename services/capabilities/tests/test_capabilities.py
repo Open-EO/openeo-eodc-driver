@@ -4,21 +4,24 @@ from capabilities.service import CapabilitiesService, ServiceException
 
 MOCKED_API_SPEC = {
     "openapi": "3.0.1",
-    "servers": [
+    "servers":
         {
             "url": 'https://openeo.eodc.eu/',
             "description": 'The URL to the EODC API',
-            "variables": {
-                "version": {
-                    "default": "v0.4",
-                    "description": "API versioning",
+            "versions": {
+                "v1.0": {
+                    "url": "https://openeo.eodc.eu/v1.0",
+                    "api_version": "1.0.0-rc.2"
                 },
-            },
-        }
-    ],
+                "v0.4": {
+                    "url": "https://openeo.eodc.eu/v0.4",
+                    "api_version": "0.4.2"
+                }
+            }
+        },
     "info": {
         "title": "EODC API",
-        "version": "1.0.0",
+        "version": "1.0.0-rc.2",
         "description": 'The EODC API provides access to the EODC services and data, as well as access to the openEO endpoints.',
         "contact": {
             "name": "FirstName SecondName",
@@ -129,7 +132,7 @@ def test_get_index():
         'status': 'success',
         'code': 200,
         'data': {
-            'api_version': '1.0.0',
+            'api_version': '1.0.0-rc.2',
             'backend_version': '1.0.0',
             'title': 'EODC API',
             'description': 'The EODC API provides access to the EODC services and data, as well as access to the openEO endpoints.',
@@ -151,11 +154,12 @@ def test_get_versions():
                       'data': {
                           'versions': [
                               {
-                                  'url': 'https://openeo.eodc.eu/',
-                                  'api_version': '1.0.0'
-                              }
-                          ]
-                      }}
+                                  'api_version': '1.0.0-rc.2',
+                                  'url': 'https://openeo.eodc.eu/v1.0'
+                              }, {
+                                  'api_version': '0.4.2',
+                                  'url': 'https://openeo.eodc.eu/v0.4'
+                              }]}}
 
 
 def test_get_file_formats():
@@ -196,19 +200,16 @@ def test_get_udfs():
     assert result == {
         'status': 'success',
         'code': 200,
-        'data': {
-            'Python':
-                {
-                    'default': '3.6',
-                    'versions': {
-                        '3.6': {
-                            'libraries': {
-                                'numpy': {
-                                    'version': '1.18.1',
-                                    'links': {
-                                        'href': 'https://docs.scipy.org/doc/',
-                                        'rel': 'about'
-                                    }}}}}}}}
+        'data': [{'default': '3.6',
+                  'name': 'Python',
+                  'versions': {
+                      '3.6': {
+                          'libraries': {
+                              'numpy': {
+                                  'links': {
+                                      'href': 'https://docs.scipy.org/doc/',
+                                      'rel': 'about'},
+                                  'version': '1.18.1'}}}}}]}
 
 
 def test_get_service_types():
@@ -217,5 +218,5 @@ def test_get_service_types():
     assert result == {
         "status": "success",
         "code": 200,
-        "data": {}
+        "data": {'Secondary services': 'None implemented.'}
     }
