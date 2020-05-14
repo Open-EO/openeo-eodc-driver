@@ -144,15 +144,6 @@ def test_put_pre_defined(db_session, process):
     assert db_session.query(ProcessGraph).filter(ProcessGraph.id_openeo == process).count() == 1
 
 
-def test_put_user_defined(db_session):
-    processes_service = worker_factory(ProcessesService, db=db_session)
-    pg = load_process_graph_json()
-    result = processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
-    assert result == {"status": "success", "code": 200}
-    assert db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
-               .filter(ProcessGraph.id_openeo == "test-pg").count() == 1
-
-
 def test_get_all_predefined(db_session):
     processes_service = worker_factory(ProcessesService, db=db_session)
     os.environ["PROCESSES_GITHUB_URL"] = "https://raw.githubusercontent.com/Open-EO/openeo-processes/1.0.0-rc.1/"
@@ -305,7 +296,6 @@ def test_get_all_user_defined(db_session):
                         "schema": {
                             "minItems": 0,
                             "type": "number",
-                            "additional": {}
                         }
                     },
                     "description": "Computes the Enhanced Vegetation Index (EVI). It is computed with the following formula: `2.5 * (NIR - RED) / (1 + NIR + 6*RED + -7.5*BLUE)`.",
@@ -318,7 +308,6 @@ def test_get_all_user_defined(db_session):
                             "schema": {
                                 "minItems": 0,
                                 "type": "number",
-                                "additional": {}
                             },
                             "description": "Value from the red band.",
                             "name": "red"
@@ -330,7 +319,6 @@ def test_get_all_user_defined(db_session):
                             "schema": {
                                 "minItems": 0,
                                 "type": "number",
-                                "additional": {}
                             },
                             "description": "Value from the blue band.",
                             "name": "blue"
@@ -342,7 +330,6 @@ def test_get_all_user_defined(db_session):
                             "schema": {
                                 "minItems": 0,
                                 "type": "number",
-                                "additional": {}
                             },
                             "description": "Value from the near infrared band.",
                             "name": "nir"
@@ -355,15 +342,17 @@ def test_get_all_user_defined(db_session):
     }
 
 
-def test_get_user_defined(db_session):
+def test_put_get_user_defined(db_session):
     processes_service = worker_factory(ProcessesService, db=db_session)
     pg = load_process_graph_json()
     processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
-    assert db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
-               .filter(ProcessGraph.id_openeo == "test-pg").count() == 1
+    query = db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
+        .filter(ProcessGraph.id_openeo == "test-pg")
+    id_orig = query.first().id
+    assert query.count() == 1
 
     result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
-    assert result == {
+    reference = {
         "status": "success",
         "code": 200,
         "data": {
@@ -526,6 +515,60 @@ def test_get_user_defined(db_session):
             ]
         }
     }
+    assert result == reference
+
+    # Insert same pg again - nothing should change
+    processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
+    assert query.count() == 1
+    assert query.first().id == id_orig
+    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
+    assert result == reference
+
+    # Make a small change (update summary) - only the summary should change
+    pg['summary'] = 'A new summary'
+    reference['data']['summary'] = 'A new summary'
+    processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
+    assert query.count() == 1
+    assert query.first().id == id_orig
+    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
+    assert result == reference
+
+
+def test_put_user_defined_predefined(db_session):
+    processes_service = worker_factory(ProcessesService, db=db_session)
+    os.environ["PROCESSES_GITHUB_URL"] = "https://raw.githubusercontent.com/Open-EO/openeo-processes/1.0.0-rc.1/"
+
+    processes = ["absolute", "add"]
+    for proc in processes:
+        processes_service.put_predefined(process_name=proc)
+    assert db_session.query(ProcessGraph).count() == len(processes)
+
+    pg = load_process_graph_json()
+    result = processes_service.put_user_defined(user_id="test-user", process_graph_id="absolute", **pg)
+    assert result == {
+        'status': 'error',
+        'service': 'processes',
+        'code': 400,
+        'user_id': 'test-user',
+        'msg': 'The process_graph_id absolute is not allowed, as it corresponds to a predefined process. Please use'
+               ' another process_graph_id. E.g. user_absolute',
+        'internal': False,
+        'links': []}
+    assert db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
+               .filter(ProcessGraph.id_openeo == "absolute").count() == 0
+
+
+def test_get_user_defined_non_existing(db_session):
+    processes_service = worker_factory(ProcessesService, db=db_session)
+    assert db_session.query(ProcessGraph).filter(ProcessGraph.id_openeo == "test-pg").count() == 0
+    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
+    assert result == {'code': 400,
+                      'internal': False,
+                      'links': [],
+                      'msg': "The process_graph with id 'test-pg' does not exist.",
+                      'service': 'processes',
+                      'status': 'error',
+                      'user_id': 'test-user'}
 
 
 def test_delete(db_session):
@@ -539,3 +582,16 @@ def test_delete(db_session):
     assert result == {"status": "success", "code": 204}
     assert db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
                .filter(ProcessGraph.id_openeo == "test-pg").count() == 0
+
+
+def test_delete_non_existing(db_session):
+    processes_service = worker_factory(ProcessesService, db=db_session)
+    assert db_session.query(ProcessGraph).filter(ProcessGraph.id_openeo == "test-pg").count() == 0
+    result = processes_service.delete(user_id="test-user", process_graph_id="test-pg")
+    assert result == {'code': 400,
+                      'internal': False,
+                      'links': [],
+                      'msg': "The process_graph with id 'test-pg' does not exist.",
+                      'service': 'processes',
+                      'status': 'error',
+                      'user_id': 'test-user'}

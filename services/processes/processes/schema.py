@@ -148,8 +148,9 @@ class SchemaSchema(BaseSchema):
 
     @post_dump
     def add_additional_keys(self, data, **kwargs):
-        if isinstance(data['additional'], dict):
+        if len(data['additional'].keys()) > 0:
             data.update(data.pop('additional'))
+        data.pop('additional')
         return data
 
 
@@ -225,7 +226,8 @@ class ProcessGraphShortSchema(BaseSchema):
 
     @pre_load
     def add_process_graph_id(self, in_data, **kwargs):
-        in_data['id_internal'] = 'pg-' + str(uuid4())
+        if not ('id_internal' in in_data and in_data['id_internal']):
+            in_data['id_internal'] = 'pg-' + str(uuid4())
         return in_data
 
 
