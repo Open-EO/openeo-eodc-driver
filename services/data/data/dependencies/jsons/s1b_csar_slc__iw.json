@@ -1,23 +1,26 @@
 {
-    "x": {
-        "type": "spatial",
-        "axis": "x",
-        "extent": [-180, 180]
+    "cube:dimensions": {
+        "x": {
+            "type": "spatial",
+            "axis": "x",
+            "extent": [-180, 180]
+        },
+        "y": {
+            "type": "spatial",
+            "axis": "y",
+            "extent": [-90, 90]
+        },
+        "bands": {
+            "type": "bands",
+            "values": ["IW1-VH", "IW1-HH", "IW2-VH", "IW2-HH", "IW3-VH", "IW3-HH", ]
+        },
+        "t": {
+            "type": "temporal",
+            "extent": [
+                "2016-04-25T00:00:00Z",
+                null
+            ]
+        }
     },
-    "y": {
-        "type": "spatial",
-        "axis": "y",
-        "extent": [-90, 90]
-    },
-    "bands": {
-        "type": "bands",
-        "values": ["IW1-VH", "IW1-HH", "IW2-VH", "IW2-HH", "IW3-VH", "IW3-HH", ]
-    },
-    "t": {
-        "type": "temporal",
-        "extent": [
-            "2016-04-25T00:00:00Z",
-            null
-        ]
-    }
+    "summaries": {}
 }
