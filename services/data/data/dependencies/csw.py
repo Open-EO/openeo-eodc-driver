@@ -69,7 +69,8 @@ class CSWHandler:
         for collection in data:
             collections.append(
                 Collection(
-                    stac_version=collection["stac_version"],
+                    # TODO change back to collection["stac_version"]
+                    stac_version="0.9.0",
                     b_id=collection["id"],
                     description=collection["description"],
                     b_license=collection["license"],
@@ -117,7 +118,8 @@ class CSWHandler:
         LOGGER.debug("Refreshing cache %s", use_cache)
         data = self._get_records(series=True, use_cache=use_cache)
         for collection in data:
-            _ = self._get_records(collection["id"], series=True, use_cache=use_cache)[0]
+            _ = self._get_records(
+                collection["id"], series=True, use_cache=use_cache)[0]
 
     def _get_records(
         self,
@@ -164,7 +166,8 @@ class CSWHandler:
 
             # Parse the XML request by injecting the query data into the XML templates
             output_schema = "https://github.com/radiantearth/stac-spec"
-            cur_filter = self._get_csw_filter(product, bbox, start, end, series)
+            cur_filter = self._get_csw_filter(
+                product, bbox, start, end, series)
 
             # While still data is available send requests to the CSW server (-1 if not more data is available)
             record_next = 1
@@ -214,7 +217,8 @@ class CSWHandler:
         if product:
             if series:
                 xml_filters.append(
-                    xml_product.format(property="dc:identifier", product=product)
+                    xml_product.format(
+                        property="dc:identifier", product=product)
                 )
             else:
                 xml_filters.append(
@@ -275,7 +279,8 @@ class CSWHandler:
 
         # Response error handling
         if not response.ok:
-            LOGGER.error("Server Error %s: %s", response.status_code, response.text)
+            LOGGER.error("Server Error %s: %s",
+                         response.status_code, response.text)
             raise CSWError("Error while communicating with CSW server.")
 
         if response.text.startswith("<?xml"):
