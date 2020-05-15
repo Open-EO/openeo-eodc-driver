@@ -83,6 +83,7 @@ class CapabilitiesService:
                 "stac_version": api_spec["info"]["stac_version"],
                 "id": api_spec["info"]["id"],
                 "links": [],  # TODO add links
+                "production": api_spec["info"]["production"],
             }
 
             return {
@@ -112,7 +113,9 @@ class CapabilitiesService:
             # https://github.com/Open-EO/openeo-api            
             api_versions = []
             for ver in api_spec["servers"]["versions"]:
-                api_versions.append(api_spec["servers"]["versions"][ver])
+                this_ver = api_spec["servers"]["versions"][ver]
+                this_ver["production"] = api_spec["info"]["production"]
+                api_versions.append(this_ver)
             
             return {
                 "status": "success",
