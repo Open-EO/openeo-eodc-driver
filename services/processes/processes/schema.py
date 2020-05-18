@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from marshmallow import Schema, fields, post_dump, post_load, pre_load
 
-from processes.models import Link, ExceptionCode, Category, Return, Schema as DbSchema, SchemaEnum, SchemaType, \
+from .models import Link, ExceptionCode, Category, Return, Schema as DbSchema, SchemaEnum, SchemaType, \
     Parameter, ProcessGraph, Example
 
 type_map = {
@@ -150,7 +150,7 @@ class SchemaSchema(BaseSchema):
     def add_additional_keys(self, data, **kwargs):
         if len(data['additional'].keys()) > 0:
             data.update(data.pop('additional'))
-        data.pop('additional')
+        
         return data
 
 
