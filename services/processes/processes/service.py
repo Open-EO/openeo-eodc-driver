@@ -270,12 +270,12 @@ class ProcessesService:
             processes = process_response["data"]["processes"]
 
             # Get all products
-            product_response = self.data_service.get_all_products()
-            if product_response["status"] == "error":
-                return product_response
-            products = product_response["data"]
+            data_response = self.data_service.get_all_products()
+            if data_response["status"] == "error":
+                return data_response
+            collections = data_response["data"]["collections"]
 
-            valid = validate_process_graph(process_graph, processes_list=processes)
+            valid = validate_process_graph(process_graph, processes_src=processes, collections_src=collections)
             if valid:
                 output_errors = []
             else:
@@ -285,9 +285,6 @@ class ProcessesService:
                         "message": "error."
                     }
                 ]
-
-            # self.validator.update_datasets(processes, products)
-            # self.validator.validate_node(process_graph)
 
             return {
                 "status": "success",
