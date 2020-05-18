@@ -12,7 +12,7 @@ import os
 
 import requests
 
-backend_url = 'http://127.0.0.1:3000'
+backend_url = 'http://127.0.0.1:3000/v1.0'
 basic_auth_url = backend_url + '/credentials/basic'
 process_url = backend_url + '/processes'
 process_graph_url = backend_url + '/process_graphs'
@@ -164,6 +164,10 @@ def run_process_graphs():
     json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'process_graph.json')
     with open(json_path) as f:
         process_graph = json.load(f)
+    
+    json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'process_graph_evi.json')
+    with open(json_path) as f:
+        process_graph_evi = {"process_graph": json.load(f)}
 
     get_all_pre_response = requests.get(process_url)
     print(f"Get all predefined request: {get_all_pre_response.status_code}")
@@ -184,7 +188,7 @@ def run_process_graphs():
     print(f"Delete request: {delete_response.status_code}")
 
     # This may fail depending on the user pg-parser version and api version
-    validation_response = requests.post(validation_url, json=process_graph, headers=get_auth())
+    validation_response = requests.post(validation_url, json=process_graph_evi, headers=get_auth())
     print(f"Validation request: {validation_response.status_code}")
 
 
