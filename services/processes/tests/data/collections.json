@@ -1,0 +1,69 @@
+{
+  "status": "success",
+  "code": 200,
+  "data": {
+    "collections": [{
+        "description": "Sentinel-2 is a multispectral, high-resolution, optical imaging mission, developed by the European Space Agency (ESA) in the frame of the Copernicus program of the European Commission.",
+        "extent": {
+          "spatial": [
+            -180,
+            -90,
+            180,
+            90
+          ],
+          "temporal": [
+            "2015-06-23T00:00:00Z",
+            null
+          ]
+        },
+        "id": "s2b_prd_msil1c",
+        "license": "no conditions apply",
+        "links": [{
+            "href": "https://openeo.eodc.eu/collections/s2b_prd_msil1c",
+            "rel": "self"
+          },
+          {
+            "href": "https://openeo.eodc.eu/collections",
+            "rel": "parent"
+          },
+          {
+            "href": "https://openeo.eodc.eu/collections",
+            "rel": "root"
+          }
+        ],
+        "stac_version": "0.9.0"
+      },
+      {
+        "description": "Sentinel-2 is a multispectral, high-resolution, optical imaging mission, developed by the European Space Agency (ESA) in the frame of the Copernicus program of the European Commission.",
+        "extent": {
+          "spatial": [
+            -180,
+            -90,
+            180,
+            90
+          ],
+          "temporal": [
+            "2015-06-23T00:00:00Z",
+            null
+          ]
+        },
+        "id": "s2a_prd_msil1c",
+        "license": "no conditions apply",
+        "links": [{
+            "href": "https://openeo.eodc.eu/collections/s2a_prd_msil1c",
+            "rel": "self"
+          },
+          {
+            "href": "https://openeo.eodc.eu/collections",
+            "rel": "parent"
+          },
+          {
+            "href": "https://openeo.eodc.eu/collections",
+            "rel": "root"
+          }
+        ],
+        "stac_version": "0.9.0"
+      }
+    ]
+  }
+}

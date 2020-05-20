@@ -1,0 +1,9 @@
+{
+  "code": 400,
+  "internal": false,
+  "links": [],
+  "msg": "The process_graph with id 'test-pg' does not exist.",
+  "service": "processes",
+  "status": "error",
+  "user_id": "test-user"
+}

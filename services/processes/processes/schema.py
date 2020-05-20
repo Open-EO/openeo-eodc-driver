@@ -10,7 +10,8 @@ type_map = {
     "int": lambda x: int(x),
     "float": lambda x: float(x),
     "bool": lambda x: bool(x),
-    "str": lambda x: str(x)
+    "str": lambda x: str(x),
+    "NoneType": lambda x: None
 }
 
 
@@ -68,13 +69,14 @@ class NestedDict(fields.Nested):
 
 class BaseSchema(Schema):
     __skip_values__ = [None, []]
+    __return_anyway__ = []
     __model__ = None
 
     @post_dump
     def remove_skip_values(self, data, **kwargs):
         return {
             key: value for key, value in data.items()
-            if value not in self.__skip_values__
+            if value not in self.__skip_values__ or key in self.__return_anyway__
         }
 
     @post_load
@@ -148,8 +150,9 @@ class SchemaSchema(BaseSchema):
 
     @post_dump
     def add_additional_keys(self, data, **kwargs):
-        if len(data['additional'].keys()) > 0:
-            data.update(data.pop('additional'))
+        data.update(data.pop('additional'))
+        if 'additional' in data.keys():
+            _ = data.pop('additional')
         
         return data
 
@@ -186,6 +189,7 @@ class LinkSchema(BaseSchema):
 
 
 class ExampleSchema(BaseSchema):
+    __return_anyway__ = ['returns']
     __model__ = Example
 
     process_graph = fields.Dict()
