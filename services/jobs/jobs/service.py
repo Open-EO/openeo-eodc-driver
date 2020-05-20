@@ -78,6 +78,7 @@ class JobService:
     processes_service = RpcProxy("processes")
     files_service = RpcProxy("files")
     airflow = Airflow()
+    dag_writer = AirflowDagWriter()
     check_stop_interval = 5  # should be similar or smaller than Airflow sensor's poke interval
 
     @rpc
@@ -244,11 +245,12 @@ class JobService:
 
             self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)
 
-            job_folder = self.get_job_folder(user_id, job_id)
-            writer = AirflowDagWriter(job_id, user_id, process_graph_json=process["process_graph"], job_data=job_folder,
-                                      vrt_only=True, add_delete_sensor=True)
-            writer.write_and_move_job()
-            job.dag_filename = writer.file_handler.filepath
+            self.dag_writer.write_and_move_job(job_id=job_id, user_name=user_id,
+                                               process_graph_json=process["process_graph"],
+                                               job_data=self.get_job_folder(user_id, job_id),
+                                               vrt_only=True, add_delete_sensor=True)
+            job.dag_filename = f"dag_{job_id}.py"
+            self.db.add(job)
             self.db.commit()
             LOGGER.info(f"Dag file created for job {job_id}")
 
