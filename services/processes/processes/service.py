@@ -226,8 +226,7 @@ class ProcessesService:
                 return response
 
             process_graph_args['id'] = process_graph_id  # path parameter overwrites id in json
-            process_graph_only = deepcopy(process_graph_args.get('process_graph'))
-            validate = self.validate(user_id, process_graph_only)
+            validate = self.validate(user_id, **deepcopy(process_graph_args))
             if validate["status"] == "error":
                 return validate
 
@@ -253,12 +252,12 @@ class ProcessesService:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
 
     @rpc
-    def validate(self, user_id: str, process_graph: dict) -> dict:
+    def validate(self, user_id: str, **process: dict) -> dict:
         """The request will ask the back-end to create a new process using the description send in the request body.
 
         Arguments:
             user_id {str} -- The identifier of the user (default: {None})
-            process_graph {dict} -- The process graph to validated
+            process {dict} -- The process (graph) to validated
         """
         # TODO: RESPONSE HEADERS -> OpenEO-Costs
 
@@ -275,7 +274,7 @@ class ProcessesService:
                 return data_response
             collections = data_response["data"]["collections"]
 
-            valid = validate_process_graph(process_graph, processes_src=processes, collections_src=collections)
+            valid = validate_process_graph(process['process_graph'], processes_src=processes, collections_src=collections)
             if valid:
                 output_errors = []
             else:
