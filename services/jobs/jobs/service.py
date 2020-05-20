@@ -128,18 +128,26 @@ class JobService:
                 return JobLocked(400, user_id, f"Job {job_id} is currently {job.status} and cannot be modified",
                                  links=[]).to_dict()
 
-            if job_args.get("process_graph", None):
-                process_graph_args = job_args.pop('process_graph')
+            if job_args.get("process", None):
+
+                # handle processes db
+                process_graph_args = job_args.pop('process')
                 process_graph_id = process_graph_args["id"] if "id" in process_graph_args else str(uuid4())
                 process_response = self.processes_service.put_user_defined(
                     user_id=user_id, process_graph_id=process_graph_id, **process_graph_args)
                 if process_response["status"] == "error":
                     return process_response
-                job_args["process_graph_id"] = process_graph_id
+                job.process_graph_id = process_graph_id
+
+                # handle dag file (remove and recreate it) - only needs to be updated if process graph changes
+                os.remove(self.get_dag_path(job.dag_filename))
+                self.dag_writer.write_and_move_job(job_id=job_id, user_name=user_id,
+                                                   process_graph_json=process_graph_args['process_graph'],
+                                                   job_data=self.get_job_folder(user_id, job_id),
+                                                   vrt_only=True, add_delete_sensor=True)
 
             # Maybe there is a better option to do this update? e.g. using marshmallow schemas?
             job.title = job_args.get("title", job.title)
-            job.process_graph_id = job_args.get("process_graph_id", job.process_graph_id)
             job.description = job_args.get("description", job.description)
             job.plan = job_args.get("plan", job.plan)
             if job_args.get("budget", None):
