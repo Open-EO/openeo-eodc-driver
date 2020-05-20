@@ -1,0 +1,9 @@
+{
+  "status": "error",
+  "service": "processes",
+  "code": 400,
+  "user_id": "test-user",
+  "msg": "The process_graph_id absolute is not allowed, as it corresponds to a predefined process. Please use another process_graph_id. E.g. user_absolute",
+  "internal": false,
+  "links": []
+}

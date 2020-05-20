@@ -12,7 +12,7 @@ import os
 
 import requests
 
-backend_url = 'http://127.0.0.1:3000'
+backend_url = 'http://127.0.0.1:3000/v1.0'
 basic_auth_url = backend_url + '/credentials/basic'
 process_url = backend_url + '/processes'
 process_graph_url = backend_url + '/process_graphs'
@@ -183,7 +183,6 @@ def run_process_graphs():
     delete_response = requests.delete(process_graph_id_url, headers=get_auth())
     print(f"Delete request: {delete_response.status_code}")
 
-    # This may fail depending on the user pg-parser version and api version
     validation_response = requests.post(validation_url, json=process_graph, headers=get_auth())
     print(f"Validation request: {validation_response.status_code}")
 

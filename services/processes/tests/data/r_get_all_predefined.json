@@ -1,0 +1,187 @@
+{
+  "status": "success",
+  "code": 200,
+  "data": {
+    "processes": [{
+        "experimental": false,
+        "examples": [{
+            "arguments": {
+              "x": 0
+            },
+            "returns": 0
+          }, {
+            "arguments": {
+              "x": 3.5
+            },
+            "returns": 3.5
+          },
+          {
+            "arguments": {
+              "x": -0.4
+            },
+            "returns": 0.4
+          }, {
+            "arguments": {
+              "x": -3.5
+            },
+            "returns": 3.5
+          }
+        ],
+        "description": "Computes the absolute value of a real number `x`, which is the \"unsigned\" portion of x and often denoted as *|x|*.\n\nThe no-data value `null` is passed through and therefore gets propagated.",
+        "summary": "Absolute value",
+        "links": [{
+          "href": "http://mathworld.wolfram.com/AbsoluteValue.html",
+          "title": "Absolute value explained by Wolfram MathWorld",
+          "rel": "about"
+        }],
+        "parameters": [{
+          "experimental": false,
+          "optional": false,
+          "schema": {
+            "minItems": 0.0,
+            "type": ["number", "null"]
+          },
+          "description": "A number.",
+          "name": "x",
+          "deprecated": false
+        }],
+        "id": "absolute",
+        "returns": {
+          "description": "The computed absolute value.",
+          "schema": {
+            "minItems": 0.0,
+            "type": ["number", "null"],
+            "minimum": 0.0
+          }
+        },
+        "process_graph": {
+          "lt": {
+            "process_id": "lt",
+            "arguments": {
+              "x": {
+                "from_parameter": "x"
+              },
+              "y": 0
+            }
+          },
+          "multiply": {
+            "process_id": "multiply",
+            "arguments": {
+              "x": {
+                "from_parameter": "x"
+              },
+              "y": -1
+            }
+          },
+          "if": {
+            "process_id": "if",
+            "arguments": {
+              "value": {
+                "from_node": "lt"
+              },
+              "accept": {
+                "from_node": "multiply"
+              },
+              "reject": {
+                "from_parameter": "x"
+              }
+            },
+            "result": true
+          }
+        },
+        "deprecated": false,
+        "exceptions": {},
+        "categories": ["math"]
+      },
+      {
+        "experimental": false,
+        "examples": [{
+            "arguments": {
+              "x": 5,
+              "y": 2.5
+            },
+            "returns": 7.5
+          },
+          {
+            "arguments": {
+              "x": -2,
+              "y": -4
+            },
+            "returns": -6
+          },
+          {
+            "arguments": {
+              "x": 1,
+              "y": null
+            },
+            "returns": null
+          }
+        ],
+        "description": "Sums up the two numbers `x` and `y` (*x + y*) and returns the computed sum.\n\nNo-data values are taken into account so that `null` is returned if any element is such a value.\n\nThe computations follow [IEEE Standard 754](https://ieeexplore.ieee.org/document/8766229) whenever the processing environment supports it.",
+        "summary": "Addition of two numbers",
+        "links": [{
+            "href": "http://mathworld.wolfram.com/Sum.html",
+            "title": "Sum explained by Wolfram MathWorld",
+            "rel": "about"
+          },
+          {
+            "href": "https://ieeexplore.ieee.org/document/8766229",
+            "title": "IEEE Standard 754-2019 for Floating-Point Arithmetic",
+            "rel": "about"
+          }
+        ],
+        "parameters": [{
+            "experimental": false,
+            "optional": false,
+            "schema": {
+              "minItems": 0.0,
+              "type": ["number", "null"]
+            },
+            "description": "The first summand.",
+            "name": "x",
+            "deprecated": false
+          },
+          {
+            "experimental": false,
+            "optional": false,
+            "schema": {
+              "minItems": 0.0,
+              "type": ["number", "null"]
+            },
+            "description": "The second summand.",
+            "name": "y",
+            "deprecated": false
+          }
+        ],
+        "id": "add",
+        "returns": {
+          "description": "The computed sum of the two numbers.",
+          "schema": {
+            "minItems": 0.0,
+            "type": ["number", "null"]
+          }
+        },
+        "process_graph": {
+          "sum": {
+            "process_id": "sum",
+            "arguments": {
+              "data": [{
+                  "from_parameter": "x"
+                },
+                {
+                  "from_parameter": "y"
+                }
+              ],
+              "ignore_nodata": false
+            },
+            "result": true
+          }
+        },
+        "deprecated": false,
+        "exceptions": {},
+        "categories": ["math"]
+      }
+    ],
+    "links": []
+  }
+}
