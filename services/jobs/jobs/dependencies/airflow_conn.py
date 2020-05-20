@@ -22,23 +22,26 @@ class Airflow:
         """
         
         """
-
-        self.api_url = environ.get('AIRFLOW_HOST') + "/api/experimental"
-        self.dags_url = environ.get('AIRFLOW_HOST') + "/api/experimental/dags"
         self.header = {'Cache-Control': 'no-cache ', 'content-type': 'application/json'}
         self.data = '{}'
+
+    def get_api_url(self):
+        return environ.get('AIRFLOW_HOST') + "/api/experimental"
+
+    def get_dags_url(self):
+        return environ.get('AIRFLOW_HOST') + "/api/experimental/dags"
 
     def check_api(self):
         """
         
         """
-        return requests.get(self.api_url + "/test")
+        return requests.get(self.get_api_url() + "/test")
 
     def unpause_dag(self, job_id: str, unpause: bool = True) -> bool:
         """
         Pause/unpause DAG
         """
-        request_url = f"{self.dags_url}/{job_id}/paused/{str(not unpause)}"
+        request_url = f"{self.get_dags_url()}/{job_id}/paused/{str(not unpause)}"
         response = requests.get(request_url, headers=self.header, data=self.data)
         return response.status_code == 200
 
@@ -47,7 +50,7 @@ class Airflow:
         Trigger airflow DAG (only works if it is unpaused already)
         """
         self.unpause_dag(job_id)
-        job_url = f"{self.dags_url}/{job_id}/dag_runs"
+        job_url = f"{self.get_dags_url()}/{job_id}/dag_runs"
         response = requests.post(job_url, headers=self.header, data=self.data)
         return response.status_code == 200
 
@@ -58,7 +61,7 @@ class Airflow:
         dag_status = None
         execution_date = None
 
-        job_url = f"{self.dags_url}/{job_id}/dag_runs"
+        job_url = f"{self.get_dags_url()}/{job_id}/dag_runs"
         response = requests.get(job_url, headers=self.header, data=self.data)
         if response.status_code == 200:
             if not response.json():
@@ -78,6 +81,6 @@ class Airflow:
         """
         Delete the dag with the given id.
         """
-        job_url = f"{self.dags_url}/{job_id}"
+        job_url = f"{self.get_dags_url()}/{job_id}"
         response = requests.delete(job_url)
         return response.status_code == 200
