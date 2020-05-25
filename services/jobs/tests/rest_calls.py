@@ -29,7 +29,7 @@ def load_json(filename):
 
 
 def check_jobs():
-    job = load_json('pg_old')
+    job = load_json('pg')
     response_create = requests.post(job_url, json=job, headers=get_auth())
     print(f"Create response: {response_create.status_code}")
     job_id = response_create.headers['Location'].split('jobs/')[-1]
