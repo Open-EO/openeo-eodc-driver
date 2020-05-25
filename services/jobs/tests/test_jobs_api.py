@@ -26,7 +26,7 @@ def get_configured_job_service(db_session):
     return job_service
 
 
-def add_job(job_service, json_name: str = 'pg_old', user_id: str = 'test-user') -> str:
+def add_job(job_service, json_name: str = 'pg', user_id: str = 'test-user') -> str:
     """Gets a Job from a json and creates a Job in the JobService"""
     job_data = load_json(json_name)
     result = job_service.create(user_id=user_id, **job_data)
@@ -40,7 +40,7 @@ def test_create_job(db_session, set_job_data, dag_folder):
     job_service.processes_service = MockedProcessesService()
     job_service.dag_writer = MockedDagWriter()
 
-    job_data = load_json('pg_old')
+    job_data = load_json('pg')
     # In this test: Job is added to database but dag file is not created (mocked away, as it happens in a separate pkg)
     result = job_service.create(user_id='test-user', **job_data)
     assert result['status'] == 'success'
