@@ -1,0 +1,219 @@
+{
+  "title": "evi_job_old",
+  "description": "some description",
+  "plan": "plan",
+  "budget": 1624.78,
+  "process": {
+    "summary": "Enhanced Vegetation Index",
+    "description": "Computes the Enhanced Vegetation Index (EVI). It is computed with the following formula: `2.5 * (NIR - RED) / (1 + NIR + 6*RED + -7.5*BLUE)`.",
+    "parameters": [
+      {
+        "name": "red",
+        "description": "Value from the red band.",
+        "schema": {
+          "type": "number"
+        }
+      },
+      {
+        "name": "blue",
+        "description": "Value from the blue band.",
+        "schema": {
+          "type": "number"
+        }
+      },
+      {
+        "name": "nir",
+        "description": "Value from the near infrared band.",
+        "schema": {
+          "type": "number"
+        }
+      }
+    ],
+    "returns": {
+      "description": "Computed EVI.",
+      "schema": {
+        "type": "number"
+      }
+    },
+    "categories": [
+      "catA",
+      "catB",
+      "catC"
+    ],
+    "process_graph": {
+      "dc": {
+        "process_id": "load_collection" ,
+        "description": "Loading the data; The order of the specified bands is important for the following reduce operation." ,
+        "arguments": {
+          "id": "s2a_prd_msil1c" ,
+          "spatial_extent": {
+            "west": 11.279182434082033 ,
+            "east": 11.40689849853515 ,
+            "north": 46.522729291844286 ,
+            "south": 46.464349400461145
+          } ,
+          "temporal_extent": [
+            "2018-06-04T00:00:00.000Z" ,
+            "2018-06-23T00:00:00.000Z"
+          ] ,
+          "bands": [
+            8 ,
+            4 ,
+            2
+          ]
+        }
+      } ,
+      "evi": {
+        "process_id": "reduce" ,
+        "description": "Compute the EVI. Formula: 2.5 * (NIR - RED) / (1 + NIR + 6*RED + -7.5*BLUE)" ,
+        "arguments": {
+          "data": {
+            "from_node": "dc"
+          } ,
+          "dimension": "spectral" ,
+          "reducer": {
+            "process_graph": {
+              "nir": {
+                "process_id": "array_element" ,
+                "arguments": {
+                  "data": {
+                    "from_parameter": "data"
+                  } ,
+                  "index": 0
+                }
+              } ,
+              "red": {
+                "process_id": "array_element" ,
+                "arguments": {
+                  "data": {
+                    "from_parameter": "data"
+                  } ,
+                  "index": 1
+                }
+              } ,
+              "blue": {
+                "process_id": "array_element" ,
+                "arguments": {
+                  "data": {
+                    "from_parameter": "data"
+                  } ,
+                  "index": 2
+                }
+              } ,
+              "sub": {
+                "process_id": "subtract" ,
+                "arguments": {
+                  "data": [
+                    {
+                      "from_node": "nir"
+                    } ,
+                    {
+                      "from_node": "red"
+                    }
+                  ]
+                }
+              } ,
+              "p1": {
+                "process_id": "product" ,
+                "arguments": {
+                  "data": [
+                    6 ,
+                    {
+                      "from_node": "red"
+                    }
+                  ]
+                }
+              } ,
+              "p2": {
+                "process_id": "product" ,
+                "arguments": {
+                  "data": [
+                    -7.5 ,
+                    {
+                      "from_node": "blue"
+                    }
+                  ]
+                }
+              } ,
+              "sum": {
+                "process_id": "sum" ,
+                "arguments": {
+                  "data": [
+                    1 ,
+                    {
+                      "from_node": "nir"
+                    } ,
+                    {
+                      "from_node": "p1"
+                    } ,
+                    {
+                      "from_node": "p2"
+                    }
+                  ]
+                }
+              } ,
+              "div": {
+                "process_id": "divide" ,
+                "arguments": {
+                  "data": [
+                    {
+                      "from_node": "sub"
+                    } ,
+                    {
+                      "from_node": "sum"
+                    }
+                  ]
+                }
+              } ,
+              "p3": {
+                "process_id": "product" ,
+                "arguments": {
+                  "data": [
+                    2.5 ,
+                    {
+                      "from_node": "div"
+                    }
+                  ]
+                } ,
+                "result": true
+              }
+            }
+          }
+        }
+      } ,
+      "mintime": {
+        "process_id": "reduce" ,
+        "description": "Compute a minimum time composite by reducing the temporal dimension" ,
+        "arguments": {
+          "data": {
+            "from_node": "evi"
+          } ,
+          "dimension": "temporal" ,
+          "reducer": {
+            "process_graph": {
+              "min": {
+                "process_id": "min" ,
+                "arguments": {
+                  "data": {
+                    "from_parameter": "data"
+                  }
+                } ,
+                "result": true
+              }
+            }
+          }
+        }
+      } ,
+      "save": {
+        "process_id": "save_result" ,
+        "arguments": {
+          "data": {
+            "from_node": "mintime"
+          } ,
+          "format": "Gtiff"
+        } ,
+        "result": true
+      }
+    }
+  }
+}

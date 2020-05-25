@@ -12,7 +12,7 @@ import os
 
 import requests
 
-backend_url = 'http://127.0.0.1:3000'
+backend_url = 'http://127.0.0.1:3000/v1.0'
 basic_auth_url = backend_url + '/credentials/basic'
 job_url = backend_url + '/jobs'
 
