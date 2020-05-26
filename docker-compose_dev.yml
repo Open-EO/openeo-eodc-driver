@@ -27,6 +27,8 @@ services:
       - /srv/openeo/$OPENEO_VERSION/data/jobs_db_data:/var/lib/postgresql/data
     env_file:
       - ./envs/jobs.env
+    ports:
+      - 5433:5432
 
   processes_db:
     image: postgres
@@ -37,6 +39,8 @@ services:
       - /srv/openeo/$OPENEO_VERSION/data/processes_db_data:/var/lib/postgresql/data
     env_file:
       - ./envs/processes.env
+    ports:
+      - 5434:5432
 
   users_db:
     image: postgres
@@ -47,6 +51,8 @@ services:
         - /srv/openeo/$OPENEO_VERSION/data/users_db_data:/var/lib/postgresql/data
     env_file:
       - ./envs/users.env
+    ports:
+      - 5435:5432
 
   openeo-gateway:
     image: oeo-gateway-$OPENEO_VERSION
