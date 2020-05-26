@@ -1,0 +1,29 @@
+
+# NB: the environments for each service must be pre-installed
+ENV_JOBS=
+ENV_PROCESSES=
+
+# Path to local repository
+OPENEO_BASE_FOLDER=/path/to/local/repository
+
+# Jobs service
+function oeo-jobs-service() {
+  cd $OPENEO_BASE_FOLDER
+  source activate $ENV_JOBS
+  source .env
+  source envs/rabbitmq.env
+  source envs/gateway.env
+  source envs/csw.env
+  source envs/jobs.env
+  nameko run --config services/jobs/config.yaml services.jobs.jobs.service
+}
+
+# Processes service
+function oeo-processes-service() {
+  cd $OPENEO_BASE_FOLDER
+  source activate $ENV_PROCESSES
+  source .env
+  source envs/rabbitmq.env
+  source envs/processes.env
+  nameko run --config services/processes/config.yaml services.processes.processes.service
+}
