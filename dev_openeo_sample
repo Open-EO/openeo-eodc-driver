@@ -1,10 +1,47 @@
 
 # NB: the environments for each service must be pre-installed
-ENV_JOBS=
+ENV_CAPABILITIES=
+ENV_DATA=
 ENV_PROCESSES=
+ENV_JOBS=
+ENV_EODATAREADERS=
+ENV_FILES=
 
 # Path to local repository
 OPENEO_BASE_FOLDER=/path/to/local/repository
+
+
+# -- Nothing should be changed below this line --
+
+# Capabilities service
+function oeo-capabilities-service() {
+  cd $OPENEO_BASE_FOLDER
+  source activate $ENV_CAPABILITIES
+  source .env
+  source envs/rabbitmq.env
+  nameko run --config services/capabilities/config.yaml services.capabilities.capabilities.service
+}
+
+# Data service
+function oeo-capabilities-service() {
+  cd $OPENEO_BASE_FOLDER
+  source activate $ENV_DATA
+  source .env
+  source envs/rabbitmq.env
+  source envs/csw.env
+  source envs/data.env
+  nameko run --config services/data/config.yaml services.data.data.service
+}
+
+# Processes service
+function oeo-processes-service() {
+  cd $OPENEO_BASE_FOLDER
+  source activate $ENV_PROCESSES
+  source .env
+  source envs/rabbitmq.env
+  source envs/processes.env
+  nameko run --config services/processes/config.yaml services.processes.processes.service
+}
 
 # Jobs service
 function oeo-jobs-service() {
@@ -18,12 +55,22 @@ function oeo-jobs-service() {
   nameko run --config services/jobs/config.yaml services.jobs.jobs.service
 }
 
-# Processes service
-function oeo-processes-service() {
+# EoDataReaders service
+function oeo-eodatareaders-service() {
   cd $OPENEO_BASE_FOLDER
-  source activate $ENV_PROCESSES
+  source activate $ENV_JOBS
   source .env
   source envs/rabbitmq.env
-  source envs/processes.env
-  nameko run --config services/processes/config.yaml services.processes.processes.service
+  source envs/csw.env
+  source envs/eodatareaders.env
+  nameko run --config services/eodatareaders_rpc/config.yaml services.eodatareaders_rpc.eodatareaders_rpc.service
+}
+
+# Files service
+function oeo-files-service() {
+  cd $OPENEO_BASE_FOLDER
+  source activate $ENV_JOBS
+  source .env
+  source envs/rabbitmq.env
+  nameko run --config services/files/config.yaml services.files.files.service
 }
