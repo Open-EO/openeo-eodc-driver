@@ -1,5 +1,6 @@
 
 # NB: the environments for each service must be pre-installed
+ENV_GATEWAY=
 ENV_CAPABILITIES=
 ENV_DATA=
 ENV_PROCESSES=
@@ -12,6 +13,18 @@ OPENEO_BASE_FOLDER=/path/to/local/repository
 
 
 # -- Nothing should be changed below this line --
+
+# Gateway
+function oeo-gateway() {
+  cd $OPENEO_BASE_FOLDER
+  source .env
+  source activate $ENV_GATEWAY
+  source envs/rabbitmq.env
+  source envs/gateway.env
+  source envs/users.env
+  source envs/files.env
+  flask run -p $GATEWAY_PORT -h $HOST
+}
 
 # Capabilities service
 function oeo-capabilities-service() {
