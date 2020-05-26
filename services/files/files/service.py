@@ -292,24 +292,20 @@ class FilesService:
         Returns:
             {str} -- The corresponding public path to the file visible to the user
         """
-        
-        public_path = complete_path[len(self.get_user_folder(user_id)) + 1:]
-        public_path = public_path.replace('files/', '')
-        
-        return public_path
-        
-    
-    def get_file_modification_time(self, filepath: str):
+
+        return complete_path.replace(f'{self.get_user_folder(user_id)}/files/', '')
+
+    def get_file_modification_time(self, filepath: str) -> datetime.timestamp:
         """
         Returns timestamp of last modification in format: '2019-05-21T16:11:37Z'.
         
         Returns:
             {str} -- The timestamp when the file was last modified.
         """
-        
+
         numeric_tstamp = os.path.getmtime(filepath)
         timestamp = datetime.fromtimestamp(numeric_tstamp).isoformat("T", "seconds") + "Z"
-        
+
         return timestamp
 
     # needed for job management

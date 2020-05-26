@@ -1,5 +1,7 @@
 import os
 import shutil
+from datetime import datetime
+
 import pytest
 
 
@@ -13,11 +15,12 @@ def test_upload_path(file_service, user_folder, user_id, tmp_folder, upload_file
     assert os.path.isfile(tmp_path)
 
     result = file_service.upload(user_id=user_id, tmp_path=tmp_path, path=ref_path)
+    assert datetime.strptime(result['data'].pop('modified'), '%Y-%m-%dT%H:%M:%SZ')
     assert result == {
         'code': 200,
         'data': {
-            'path': f'files/{ref_path}',
-            'size': '15.0B'
+            'path': f'{ref_path}',
+            'size': 15
         },
         'status': 'success'}
     assert os.path.isfile(os.path.join(user_folder, 'files', ref_path))
@@ -50,15 +53,17 @@ def test_get_all(file_service, user_folder, user_id, upload_file):
     shutil.copyfile(upload_file, os.path.join(folders3, '4.txt'))
 
     result = file_service.get_all(user_id=user_id)
+    for i in range(len(result['data']['files'])):
+        datetime.strptime(result['data']['files'][i].pop('modified'), '%Y-%m-%dT%H:%M:%SZ')
     assert result == {
         'status': 'success',
         'code': 200,
         'data': {
             'files': [
-                {'path': '1.txt', 'size': '15.0B'},
-                {'path': 'folder1/folder2/2.txt', 'size': '15.0B'},
-                {'path': 'folder3/3.txt', 'size': '15.0B'},
-                {'path': 'folder3/4.txt', 'size': '15.0B'},
+                {'path': '1.txt', 'size': 15},
+                {'path': 'folder1/folder2/2.txt', 'size': 15},
+                {'path': 'folder3/3.txt', 'size': 15},
+                {'path': 'folder3/4.txt', 'size': 15},
             ],
             'links': []}}
 
