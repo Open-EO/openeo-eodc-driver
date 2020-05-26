@@ -142,6 +142,7 @@ def test_get_index():
             }],
             'stac_version': '0.6.2',
             'id': 'eodc-openeo-backend',
+            'production': True,
             'links': []
         }}
 
@@ -155,9 +156,11 @@ def test_get_versions():
                           'versions': [
                               {
                                   'api_version': '1.0.0-rc.2',
+                                  'production': True,
                                   'url': 'https://openeo.eodc.eu/v1.0'
                               }, {
                                   'api_version': '0.4.2',
+                                  'production': True,
                                   'url': 'https://openeo.eodc.eu/v0.4'
                               }]}}
 
