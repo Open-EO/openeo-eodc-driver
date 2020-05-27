@@ -1,4 +1,4 @@
 nameko==2.12.0
 
-git+git://github.com/Open-EO/openeo-pg-parser-python.git@v1.0.0#egg=openeo-pg-parser-python
-git+git://github.com/eodcgmbh/eodc-openeo-bindings.git@v1.0.1#egg=eodc-openeo-bindings
+git+git://github.com/Open-EO/openeo-pg-parser-python.git@tow_v1.0#egg=openeo-pg-parser-python
+git+git://github.com/eodcgmbh/eodc-openeo-bindings.git#egg=eodc-openeo-bindings

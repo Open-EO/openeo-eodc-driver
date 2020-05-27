@@ -77,21 +77,23 @@ class EoDataReadersService:
             job_folder = os.path.join(os.environ['SYNC_RESULTS_FOLDER'], job_tmp_id)
             os.makedirs(job_folder)
             py_filepath = os.path.join(job_folder, 'jb-' + job_tmp_id + '.py')
-
-            output_format, output_folder = BasicJobWriter(process_graph, job_folder, output_filepath=py_filepath).write_job()
-            fmt = self.map_output_format(output_format)
+            _, _ = BasicJobWriter().write_job(process_graph, job_folder, output_filepath=py_filepath)
 
             cmd = "python " + py_filepath
             Popen(cmd, shell=True).wait()
-            # TODO catch errors happening while processing
-
-            search_str = os.path.join(output_folder, '*.' + type_map[fmt].file_extension)
+            # TODO catch errors happening while processing            
+            
+            # Final output is stored in a default 'result' folder
+            search_str = os.path.join(job_folder, 'result/*')
             results_path = sorted(glob.glob(search_str))
             if not results_path:
                 raise RuntimeError('Processing failed. Result paths: {} - Search string: {}'.format(results_path, search_str))
             else:
                 # TODO this only returns one file (the first) -> API endpoint does not allow to return more currently
                 result_path = results_path[0]
+            # Get file extension
+            output_format = result_path.split('.')[-1]
+            fmt = self.map_output_format(output_format)
 
             return {
                 "status": "success",
