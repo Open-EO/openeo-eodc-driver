@@ -8,7 +8,7 @@ LOGGING:
       formatter: default
     filelogger:
       class: logging.handlers.RotatingFileHandler
-      filename: /usr/src/logs/files.log
+      filename: !env_var "${LOG_DIR}/files.log"
       backupCount: 3
       maxBytes: 1000000
       formatter: default
@@ -29,4 +29,6 @@ LOGGING:
   root:
     handlers: 
       - mainlogger
+      - filelogger
+      - console
     level: DEBUG

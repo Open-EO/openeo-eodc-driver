@@ -48,6 +48,7 @@ docker-compose -f docker-compose.yml -f docker-compose_dev.yml up -d
 ```
 
 The `docker-compose_dev.yml` file is identical to `docker-compose.yml`, but additionally exposes some ports and assigns the containers to the docker network created above.
+Additionally, the bash functions in `dev_openeo_sample` can be used (after filling in the relevant fileds) to start the services (Nameko) or the gateway (Flask) locally without Docker containers. In this case one can use breakpoints to debug.
 
 
 #### Set up all databases with Alembic

@@ -11,7 +11,7 @@ LOGGING:
       formatter: default
     filelogger:
       class: logging.handlers.RotatingFileHandler
-      filename: /usr/src/logs/eodatareaders_rpc.log
+      filename: !env_var "${LOG_DIR}/eodatareaders_rpc.log"
       backupCount: 3
       maxBytes: 1000000
       formatter: default
@@ -32,4 +32,6 @@ LOGGING:
   root:
     handlers: 
       - mainlogger
+      - filelogger
+      - console
     level: DEBUG
