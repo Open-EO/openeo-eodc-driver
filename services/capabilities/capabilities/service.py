@@ -1,5 +1,6 @@
 """ Capabilities Discovery """
 import logging
+from typing import Optional
 
 from nameko.rpc import rpc
 
@@ -13,7 +14,8 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, service: str, code: int, user_id: str, msg: str, internal: bool = True, links: list = None):
+    def __init__(self, service: str, code: int, user_id: Optional[str], msg: str, internal: bool = True,
+                 links: list = None) -> None:
         if not links:
             links = []
         self._service = service
@@ -108,15 +110,15 @@ class CapabilitiesService:
         Returns:
             Dict -- Contains the supported OpenEO API versions
         """
-        try:    
+        try:
             # NB The api 'versions' must match exactly the version numbers available here:
-            # https://github.com/Open-EO/openeo-api            
+            # https://github.com/Open-EO/openeo-api
             api_versions = []
             for ver in api_spec["servers"]["versions"]:
                 this_ver = api_spec["servers"]["versions"][ver]
                 this_ver["production"] = api_spec["info"]["production"]
                 api_versions.append(this_ver)
-            
+
             return {
                 "status": "success",
                 "code": 200,
@@ -203,7 +205,7 @@ class CapabilitiesService:
             Dict -- Contains supported secondary services
         """
         try:
-                        
+
             return {
                 "status": "success",
                 "code": 200,

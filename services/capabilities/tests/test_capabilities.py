@@ -1,6 +1,6 @@
 from nameko.testing.services import worker_factory
-from capabilities.service import CapabilitiesService, ServiceException
 
+from capabilities.service import CapabilitiesService
 
 MOCKED_API_SPEC = {
     "openapi": "3.0.1",
@@ -22,7 +22,8 @@ MOCKED_API_SPEC = {
     "info": {
         "title": "EODC API",
         "version": "1.0.0-rc.2",
-        "description": 'The EODC API provides access to the EODC services and data, as well as access to the openEO endpoints.',
+        "description": 'The EODC API provides access to the EODC services and data, as well as access to the openEO'
+                       ' endpoints.',
         "contact": {
             "name": "FirstName SecondName",
             "url": "https://openeo.eodc.eu",
@@ -87,14 +88,14 @@ MOCKED_API_SPEC = {
                     }
                 }
             }
-        ]
-    },
+        ]},
     'paths': {
         '/': {
             'get': {
                 'summary': 'Information about the back-end',
                 'operationId': 'capabilities',
-                'description': 'Returns general information about the back-end, including which version and endpoints of the openEO API are supported. May also include billing information.',
+                'description': 'Returns general information about the back-end, including which version and endpoints'
+                               ' of the openEO API are supported. May also include billing information.',
                 'tags': ['Capabilities'],
                 'security': [{}],
                 'responses': {
@@ -105,16 +106,20 @@ MOCKED_API_SPEC = {
                                 'schema': {
                                     'title': 'Capabilities Response',
                                     'type': 'object',
-                                    'required': ['id', 'title', 'description', 'api_version', 'backend_version', 'stac_version', 'endpoints', 'links'],
+                                    'required': ['id', 'title', 'description', 'api_version', 'backend_version',
+                                                 'stac_version', 'endpoints', 'links'],
                                     'properties': {
                                         'api_version': {
                                             'type': 'string',
-                                            'description': 'Version number of the openEO specification this back-end implements.',
+                                            'description': 'Version number of the openEO specification this back-end'
+                                                           ' implements.',
                                             'example': '1.0.1'
                                         },
                                         'backend_version': {
                                             'type': 'string',
-                                            'description': 'Version number of the back-end implementation.\nEvery change on back-end side MUST cause a change of the version number.',
+                                            'description': 'Version number of the back-end implementation.\nEvery'
+                                                           ' change on back-end side MUST cause a change of the version'
+                                                           ' number.',
                                             'example': '1.1.2'
                                         },
                                         'stac_version': {
@@ -135,7 +140,8 @@ def test_get_index():
             'api_version': '1.0.0-rc.2',
             'backend_version': '1.0.0',
             'title': 'EODC API',
-            'description': 'The EODC API provides access to the EODC services and data, as well as access to the openEO endpoints.',
+            'description': 'The EODC API provides access to the EODC services and data, as well as access to the openEO'
+                           ' endpoints.',
             'endpoints': [{
                 'path': '/',
                 'methods': ['GET']
