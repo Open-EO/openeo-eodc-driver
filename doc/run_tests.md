@@ -33,6 +33,7 @@ That's it!
 Currently three types of tests are run:
 * Unittests (defined in the `tests` folder of each microservice)
 * Linting (using [flake8](https://flake8.pycqa.org/en/latest/) with extensions)
+* Static type checking (using [mypy](https://mypy.readthedocs.io/en/stable/))
 
 ### Unittests
 
@@ -51,6 +52,11 @@ Currently three types of tests are run:
     * `flake8-bugbear`: to find more bugs and design problems
     * `flake8-bandit`: to find security issues
     * `flake8-import-order`: to check import order to be [PEP 8](https://www.python.org/dev/peps/pep-0008/) compliant
+
+### Static Type Checking
+
+* Dependencies:
+    * `mypy`: to check static types
 
 ## Useful stuff for newbies
 
@@ -89,3 +95,12 @@ and suspicious constructs. To configure Flake8 which tools to use and for which 
 `setup.cfg` file can be used.
 
 All additional flake8 tools which are installed also need to be setup in this configuration.
+
+### mypy
+
+mypy can also be configured within the `setup.cfg` or `mypy.ini`. The most important setting is to disable type
+annotation checks for imported packages. Add the following section to ignore `pytest` and `mypy-nox`:
+```ini
+[mypy-nox.*,pytest]
+ignore_missing_imports = True
+```

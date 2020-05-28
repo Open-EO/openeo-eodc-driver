@@ -30,3 +30,10 @@ def lint(session: Session) -> None:
         "flake8-import-order",  # think about import order style!
     )
     session.run("flake8", *args)
+
+
+@nox.session(python=["3.6"])
+def mypy(session: Session) -> None:
+    args = session.posargs or locations
+    session.install("mypy")
+    session.run("mypy", *args)
