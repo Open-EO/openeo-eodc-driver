@@ -143,7 +143,7 @@ class CapabilitiesService:
         Returns:
             Dict -- Describes all supported input / output formats
         """
-        def get_dict(file_fmts):
+        def get_dict(file_fmts: dict) -> dict:
             final_fmt = {}
             for fmt in file_fmts:
                 final_fmt[fmt["name"]] = {

@@ -130,7 +130,7 @@ MOCKED_API_SPEC = {
                                     }}}}}}}}}}
 
 
-def test_get_index():
+def test_get_index() -> None:
     service = worker_factory(CapabilitiesService)
     result = service.send_index(MOCKED_API_SPEC)
     assert result == {
@@ -153,7 +153,7 @@ def test_get_index():
         }}
 
 
-def test_get_versions():
+def test_get_versions() -> None:
     service = worker_factory(CapabilitiesService)
     result = service.get_versions(MOCKED_API_SPEC)
     assert result == {'status': 'success',
@@ -171,7 +171,7 @@ def test_get_versions():
                               }]}}
 
 
-def test_get_file_formats():
+def test_get_file_formats() -> None:
     service = worker_factory(CapabilitiesService)
     result = service.get_file_formats(MOCKED_API_SPEC)
     assert result == {
@@ -203,7 +203,7 @@ def test_get_file_formats():
             }}}
 
 
-def test_get_udfs():
+def test_get_udfs() -> None:
     service = worker_factory(CapabilitiesService)
     result = service.get_udfs(MOCKED_API_SPEC)
     assert result == {
@@ -221,7 +221,7 @@ def test_get_udfs():
                                   'version': '1.18.1'}}}}}]}
 
 
-def test_get_service_types():
+def test_get_service_types() -> None:
     service = worker_factory(CapabilitiesService)
     result = service.get_service_types(MOCKED_API_SPEC)
     assert result == {
