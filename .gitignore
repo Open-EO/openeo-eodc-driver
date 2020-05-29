@@ -24,3 +24,5 @@ udf/examples/
 oidc/
 config-debug.yaml
 dev_openeo
+services/*/.mypy_cache/
+services/*/.coverage
