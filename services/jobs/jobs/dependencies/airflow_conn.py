@@ -43,16 +43,19 @@ class Airflow:
         """
         request_url = f"{self.get_dags_url()}/{job_id}/paused/{str(not unpause)}"
         response = requests.get(request_url, headers=self.header, data=self.data)
-        return response.status_code == 200
+        # NB It may take 1-2 seconds before the DAG has the attribute "is_paused" set
+        while not response.ok:
+            response = requests.get(request_url, headers=self.header, data=self.data)
+        return response.ok
 
     def trigger_dag(self, job_id: str) -> bool:
         """
         Trigger airflow DAG (only works if it is unpaused already)
         """
-        self.unpause_dag(job_id)
+        _ = self.unpause_dag(job_id)
         job_url = f"{self.get_dags_url()}/{job_id}/dag_runs"
         response = requests.post(job_url, headers=self.header, data=self.data)
-        return response.status_code == 200
+        return response.ok
 
     def check_dag_status(self, job_id: str) -> Tuple[Optional[JobStatus], Optional[datetime]]:
         """

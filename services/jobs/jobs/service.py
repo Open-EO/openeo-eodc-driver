@@ -307,6 +307,47 @@ class JobService:
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
+    
+    
+    @rpc
+    def process_sync(self, user_id: str, **job_args) -> dict:
+        """
+        
+        """
+        
+        try:
+            response_create = self.create(user_id=user_id, **job_args)
+            if response_create['status'] == 'success':
+                job_id = response_create["headers"]["Location"].split('/')[-1]
+                job = self.db.query(Job).filter_by(id=job_id).first()
+                response_process = self.process(user_id=user_id, job_id=job_id)
+                if response_process['status'] == 'success':
+                    LOGGER.info(f"Job {job_id} is running.")
+                    self._update_job_status(job_id=job_id)
+                    while job.status in [JobStatus.queued, JobStatus.running]:
+                        sleep(1)
+                        self._update_job_status(job_id=job_id)
+                    if job.status in [JobStatus.finished]:
+                        # self.delete(user_id=user_id, job_id=job_id)
+                        #output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
+                        # NB get filepath and return correct response
+                        return {
+                            "status": "success",
+                            "code": 200,
+                        }
+                        # return {
+                        #     "status": "success",
+                        #     "code": 200,
+                        #     "headers": {
+                        #         "Content-Type": type_map[fmt].content_type,
+                        #         "OpenEO-Costs": 0,
+                        #     },
+                        #     "file": result_path
+                        #     #"delete_folder": job_folder,
+                        # }
+        
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
     @rpc
     def estimate(self, user_id: str, job_id: str) -> dict:
