@@ -55,3 +55,49 @@ jobs:
       - name: Test with pytest
         run: |
           pytest services/files/tests
+
+  processes:
+    name: Processes-Service
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: [3.6]
+        os: [ubuntu-18.04]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r services/processes/requirements.txt
+          pip install -r services/processes/requirements-test.txt
+      - name: Test with pytest
+        run: |
+          pytest services/processes/tests
+
+  jobs:
+    name: Jobs-Service
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: [3.6]
+        os: [ubuntu-18.04]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r services/jobs/requirements.txt
+          pip install -r services/jobs/requirements-test.txt
+      - name: Test with pytest
+        run: |
+          pytest services/jobs/tests
