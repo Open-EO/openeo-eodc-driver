@@ -11,7 +11,6 @@ from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
 from openeo_pg_parser_python.validate import validate_process_graph
 
-from .dependencies import NodeParser, Validator
 from .models import Base, ProcessGraph, ProcessDefinitionEnum
 from .schema import ProcessGraphShortSchema, ProcessGraphFullSchema, ProcessGraphPredefinedSchema
 
@@ -61,8 +60,6 @@ class ProcessesService:
     name = service_name
     db = DatabaseSession(Base)
     data_service = RpcProxy("data")
-    validator = Validator()
-    node_parser = NodeParser()
 
     @rpc
     def get_user_defined(self, user_id: str, process_graph_id: str) -> dict:
