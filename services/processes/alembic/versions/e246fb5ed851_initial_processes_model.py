@@ -1,7 +1,7 @@
 """Initial process, process_graph and process_node models
 
 Revision ID: e246fb5ed851
-Revises: 
+Revises:
 Create Date: 2018-05-15 10:05:54.708107
 
 """

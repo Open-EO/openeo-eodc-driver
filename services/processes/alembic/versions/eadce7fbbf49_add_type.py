@@ -17,9 +17,7 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column('processes',
-        sa.Column('p_type', sa.String(), default="operation")
-    )
+    op.add_column('processes', sa.Column('p_type', sa.String(), default="operation"))
 
 
 def downgrade():

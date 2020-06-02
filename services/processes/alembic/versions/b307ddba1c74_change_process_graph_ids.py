@@ -33,4 +33,3 @@ def downgrade():
     op.drop_column('process_graphs', 'id_openeo')
     op.alter_column('process_graphs', 'id_openeo_new', new_column_name='id_openeo')
     op.create_unique_constraint('uq_process_graph_id', 'process_graphs', ['id_openeo'])
-

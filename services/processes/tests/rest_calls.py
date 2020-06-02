@@ -9,6 +9,7 @@ The basic auth credentials (USERNAME, PASSWORD) of a registered have to be store
 
 import json
 import os
+from typing import Dict
 
 import requests
 
@@ -20,12 +21,12 @@ process_graph_id_url = process_graph_url + '/user_cos'
 validation_url = backend_url + '/validation'
 
 
-def get_auth():
+def get_auth() -> Dict[str, str]:
     auth_response = requests.get(basic_auth_url, auth=(os.environ.get('USERNAME'), os.environ.get('PASSWORD')))
     return {'Authorization': 'Bearer basic//' + auth_response.json()['access_token']}
 
 
-def add_processes():
+def add_processes() -> None:
     processes = ['absolute',
                  'add',
                  'add_dimension',
@@ -155,12 +156,16 @@ def add_processes():
     all_predefined = json.loads(response.content)
     for actual in all_predefined['processes']:
         ref = requests.get(f'https://raw.githubusercontent.com/Open-EO/openeo-processes/1.0.0-rc.1/{actual["id"]}.json')
-        ref = json.loads(ref.content)
-        wrong = {key: {'actual': actual[key], 'ref': ref[key]} for key in ref.keys() if not(key in ref and ref[key] == actual[key])}
+        ref_content: dict = json.loads(ref.content)
+        wrong = {key: {
+            'actual': actual[key],
+            'ref': ref_content[key]
+        } for key in ref_content.keys()
+            if not (key in ref_content and ref_content[key] == actual[key])}
         print(wrong)
 
 
-def run_process_graphs():
+def run_process_graphs() -> None:
     json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'process_graph.json')
     with open(json_path) as f:
         process_graph = json.load(f)
