@@ -71,7 +71,7 @@ class FilesService:
 
     files_folder = "files"
     jobs_folder = "jobs"
-    result_folder = "results"
+    result_folder = "result"
 
     @rpc
     def download(self, user_id: str, path: str, source_dir: str = 'files') -> dict:
