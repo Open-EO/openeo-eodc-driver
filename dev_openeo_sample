@@ -71,7 +71,7 @@ function oeo-jobs-service() {
 # EoDataReaders service
 function oeo-eodatareaders-service() {
   cd $OPENEO_BASE_FOLDER
-  source activate $ENV_JOBS
+  source activate $ENV_EODATAREADERS
   source .env
   source envs/rabbitmq.env
   source envs/csw.env
@@ -82,8 +82,9 @@ function oeo-eodatareaders-service() {
 # Files service
 function oeo-files-service() {
   cd $OPENEO_BASE_FOLDER
-  source activate $ENV_JOBS
+  source activate $ENV_FILES
   source .env
   source envs/rabbitmq.env
+  source envs/files.env
   nameko run --config services/files/config.yaml services.files.files.service
 }
