@@ -6,6 +6,7 @@ from datetime import datetime
 from time import sleep
 from typing import Tuple, Optional
 from uuid import uuid4
+from collections import namedtuple
 
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
 from nameko.rpc import rpc, RpcProxy
@@ -236,6 +237,9 @@ class JobService:
         """
         try:
             LOGGER.debug("Start creating job...")
+            vrt_flag = True
+            if 'vrt_flag' in job_args.keys():
+                vrt_flag = job_args.pop("vrt_flag")
             process = job_args.pop("process")
             process_graph_id = process["id"] if "id" in process else str(uuid4())
             process_response = self.processes_service.put_user_defined(
@@ -256,7 +260,7 @@ class JobService:
             self.dag_writer.write_and_move_job(job_id=job_id, user_name=user_id,
                                                process_graph_json=process["process_graph"],
                                                job_data=self.get_job_folder(user_id, job_id),
-                                               vrt_only=True, add_delete_sensor=True)
+                                               vrt_only=vrt_flag, add_delete_sensor=True)
             job.dag_filename = f"dag_{job_id}.py"
             self.db.add(job)
             self.db.commit()
@@ -311,11 +315,26 @@ class JobService:
     
     @rpc
     def process_sync(self, user_id: str, **job_args) -> dict:
-        """
+        """The request will ask the back-end to start the processing of the given job.
+        The job needs to exist on the back-end and must not already be queued or running.
+
+        Arguments:
+            user_id {str} -- The identifier of the user
+            job_args {dict} -- The information needed to create a job
         
         """
+        
+        TypeMap = namedtuple('TypeMap', 'file_extension content_type')
+        type_map = {
+            'Gtiff': TypeMap('tif', 'image/tiff'),
+            'png': TypeMap('png', 'image/png'),
+            'jpeg': TypeMap('jpeg', 'image/jpeg'),
+        }
         
         try:
+            # TODO: implement a check that the job qualifies for sync-processing
+            # it has to be a "small" job, e.g. constriants for timespan and bboux, but also on spatial resolution
+            job_args['vrt_flag'] = False
             response_create = self.create(user_id=user_id, **job_args)
             if response_create['status'] == 'success':
                 job_id = response_create["headers"]["Location"].split('/')[-1]
@@ -328,31 +347,28 @@ class JobService:
                         sleep(1)
                         self._update_job_status(job_id=job_id)
                     if job.status in [JobStatus.finished]:
+                        LOGGER.info(f"Job {job_id} has been processed.")
+                        self.airflow.unpause_dag(job_id=job_id, unpause=False)  # just to hide from view on default Airflow web view
                         output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
                         if output["status"] == "error":
+                            LOGGER.info(f"Could not retrieve output of Job {job_id}.")
                             return output
 
                         # Get first (only?) file # NB: how to return multiple files in sync service?
                         filepath = output['data']['file_list'][0]
+                        fmt = self.map_output_format(filepath.split('.')[-1])
                         
                         # self.delete(user_id=user_id, job_id=job_id)
                         return {
                             "status": "success",
                             "code": 200,
                             "headers": {
-                                "filepath": filepath
-                            }
+                                "Content-Type": type_map[fmt].content_type,
+                                "OpenEO-Costs": 0,
+                            },
+                            "file": filepath
+                            #"delete_folder": job_folder,
                         }
-                        # return {
-                        #     "status": "success",
-                        #     "code": 200,
-                        #     "headers": {
-                        #         "Content-Type": type_map[fmt].content_type,
-                        #         "OpenEO-Costs": 0,
-                        #     },
-                        #     "file": result_path
-                        #     #"delete_folder": job_folder,
-                        # }
         
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
@@ -568,3 +584,14 @@ class JobService:
             LOGGER.info("Waiting for airflow sensor to detect STOP file...")
             sleep(self.check_stop_interval)
             job_stopped = self.airflow.check_dag_status(job_id) != JobStatus.running
+            
+    @staticmethod
+    def map_output_format(output_format):
+        out_map = [(['Gtiff', 'GTiff', 'tif', 'tiff'], 'Gtiff'),
+                   (['jpg', 'jpeg'], 'jpeg'),
+                   (['png'], 'png')
+                   ]
+        for l, out in out_map:
+            if output_format in l:
+                return out
+        raise ValueError('{} is not a supported output format'.format(output_format))
