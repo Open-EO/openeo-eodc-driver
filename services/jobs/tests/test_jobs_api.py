@@ -3,20 +3,22 @@ import os
 from datetime import datetime
 import shutil
 
+import pytest
 from nameko.testing.services import worker_factory
-from tests.mocks import MockedDagWriter, MockedProcessesService, MockedFilesService, MockedAirflowConnection, PG_OLD_REF
+from nameko_sqlalchemy.database_session import Session
 
 from jobs.models import Job
 from jobs.service import JobService
+from tests.mocks import MockedAirflowConnection, MockedDagWriter, MockedProcessesService, PG_OLD_REF
 
 
-def load_json(filename):
+def load_json(filename: str) -> dict:
     json_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data', filename + '.json')
     with open(json_path) as f:
         return json.load(f)
 
 
-def get_configured_job_service(db_session):
+def get_configured_job_service(db_session: Session) -> JobService:
     """
     Creates a JobService and adds a mocked ProcessService, mocked DagWriter and mocked AirflowConnection
     """
@@ -28,7 +30,7 @@ def get_configured_job_service(db_session):
     return job_service
 
 
-def add_job(job_service, json_name: str = 'pg', user_id: str = 'test-user') -> str:
+def add_job(job_service: JobService, json_name: str = 'pg', user_id: str = 'test-user') -> str:
     """Gets a Job from a json and creates a Job in the JobService"""
     job_data = load_json(json_name)
     result = job_service.create(user_id=user_id, **job_data)
@@ -37,7 +39,7 @@ def add_job(job_service, json_name: str = 'pg', user_id: str = 'test-user') -> s
     return result['headers']['OpenEO-Identifier']
 
 
-def test_create_job(db_session, set_job_data, dag_folder):
+def test_create_job(db_session: Session, set_job_data: pytest.fixture, dag_folder: pytest.fixture) -> None:
     job_service = worker_factory(JobService, db=db_session)
     job_service.processes_service = MockedProcessesService()
     job_service.dag_writer = MockedDagWriter()
@@ -50,12 +52,12 @@ def test_create_job(db_session, set_job_data, dag_folder):
     assert result['headers']['Location'].startswith('jobs/jb-')
     assert result['headers']['OpenEO-Identifier'].startswith('jb-')
     assert result['headers']['OpenEO-Identifier'] == result['headers']['Location'][5:]
-    assert db_session.query(Job).filter(Job.user_id == 'test-user') \
-               .filter(Job.id == result['headers']['OpenEO-Identifier']).count() == 1
+    assert db_session.query(Job).filter(Job.user_id == 'test-user')\
+        .filter(Job.id == result['headers']['OpenEO-Identifier']).count() == 1
     assert os.path.isfile(os.path.join(os.environ['AIRFLOW_DAGS'], f'dag_{result["headers"]["OpenEO-Identifier"]}.py'))
 
 
-def test_get_job(db_session, set_job_data, dag_folder):
+def test_get_job(db_session: Session, set_job_data: pytest.fixture, dag_folder: pytest.fixture) -> None:
     job_service = get_configured_job_service(db_session)
     job_id = add_job(job_service)
 
@@ -76,7 +78,7 @@ def test_get_job(db_session, set_job_data, dag_folder):
                       'status': 'success'}
 
 
-def test_get_all_jobs(db_session, set_job_data, dag_folder):
+def test_get_all_jobs(db_session: Session, set_job_data: pytest.fixture, dag_folder: pytest.fixture) -> None:
     job_service = get_configured_job_service(db_session)
     job_id = add_job(job_service)
     job_id_update = add_job(job_service, 'job_update_pg')
@@ -106,7 +108,7 @@ def test_get_all_jobs(db_session, set_job_data, dag_folder):
                       }
 
 
-def test_modify_job(db_session, set_job_data, dag_folder):
+def test_modify_job(db_session: Session, set_job_data: pytest.fixture, dag_folder: pytest.fixture) -> None:
     """Test modification of simple Job Attributes"""
     job_service = get_configured_job_service(db_session)
     job_id = add_job(job_service)
@@ -135,13 +137,13 @@ def test_modify_job(db_session, set_job_data, dag_folder):
                       'status': 'success'}
 
 
-def test_modify_job_pg(db_session, set_job_data, dag_folder):
+def test_modify_job_pg(db_session: Session, set_job_data: pytest.fixture, dag_folder: pytest.fixture) -> None:
     """Test modification of a job's process graph"""
     job_service = get_configured_job_service(db_session)
     job_id = add_job(job_service)
     initial_dag_file_time = os.path.getmtime(os.path.join(os.environ['AIRFLOW_DAGS'], f'dag_{job_id}.py'))
 
-    job_args = {'process': {'process_graph': {}}}
+    job_args: dict = {'process': {'process_graph': {}}}
     result = job_service.modify(user_id='test-user', job_id=job_id, **job_args)
     assert result == {'code': 204, 'status': 'success'}
     # Check dag file was updated
@@ -162,7 +164,7 @@ def test_modify_job_pg(db_session, set_job_data, dag_folder):
                       'status': 'success'}
 
 
-def test_delete_job(db_session, set_job_data, dag_folder):
+def test_delete_job(db_session: Session, set_job_data: pytest.fixture, dag_folder: pytest.fixture) -> None:
     job_service = get_configured_job_service(db_session)
     job_id = add_job(job_service)
     assert db_session.query(Job).filter(Job.user_id == 'test-user').filter(Job.id == job_id).count() == 1
@@ -173,7 +175,7 @@ def test_delete_job(db_session, set_job_data, dag_folder):
     assert not os.path.isfile(os.path.join(os.environ['AIRFLOW_DAGS'], f'dag_{job_id}.py'))
 
 
-def test_start_processing_job(db_session, set_job_data, dag_folder):
+def test_start_processing_job(db_session: Session, set_job_data: pytest.fixture, dag_folder: pytest.fixture) -> None:
     job_service = get_configured_job_service(db_session)
     job_id = add_job(job_service)
 

@@ -6,16 +6,16 @@ import shutil
 import threading
 from datetime import datetime
 from time import sleep
-from typing import Tuple, Optional
+from typing import Any, Optional, Tuple
 from uuid import uuid4
 from collections import namedtuple
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
-from nameko.rpc import rpc, RpcProxy
+from nameko.rpc import RpcProxy, rpc
 from nameko_sqlalchemy import DatabaseSession
 
-from .dependencies.airflow_conn import Airflow
+from .dependencies.airflow_conn import AirflowRestConnection
 from .models import Base, Job, JobStatus
-from .schema import JobShortSchema, JobFullSchema, JobResultsSchema, JobCreateSchema
+from .schema import JobCreateSchema, JobFullSchema, JobResultsSchema, JobShortSchema
 
 service_name = "jobs"
 LOGGER = logging.getLogger('standardlog')
@@ -27,7 +27,7 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None):
+    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None) -> None:
         if not links:
             links = []
 
@@ -59,13 +59,14 @@ class ServiceException(Exception):
 
 class JobLocked(ServiceException):
     """ JobLocked raised if job is queued / running when trying to modify it. """
-    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None):
+    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None) -> None:
         super(JobLocked, self).__init__(code, user_id, msg, internal, links)
 
 
 class JobNotFinished(ServiceException):
     """ JobNotFinished raised if job is not finished but results are requested . """
-    def __init__(self, code: int, user_id: str, job_id: str, msg: str = None, internal: bool = True, links: list = None):
+    def __init__(self, code: int, user_id: str, job_id: str, msg: str = None, internal: bool = True,
+                 links: list = None) -> None:
         if not msg:
             msg = f"Job {job_id} is not yet finished. Results cannot be accessed."
         super().__init__(code, user_id, msg, internal, links)
@@ -79,7 +80,7 @@ class JobService:
     db = DatabaseSession(Base)
     processes_service = RpcProxy("processes")
     files_service = RpcProxy("files")
-    airflow = Airflow()
+    airflow = AirflowRestConnection()
     dag_writer = AirflowDagWriter()
     check_stop_interval = 5  # should be similar or smaller than Airflow sensor's poke interval
 
@@ -95,13 +96,13 @@ class JobService:
             job = self.db.query(Job).filter_by(id=job_id).first()
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
-                return response
+                return response  # type: ignore
 
             self._update_job_status(job_id=job_id)
-            response = self.processes_service.get_user_defined(user_id, job.process_graph_id)
-            if response["status"] == "error":
-                return response
-            job.process = response["data"]["process_graph"]
+            process_response = self.processes_service.get_user_defined(user_id, job.process_graph_id)
+            if process_response["status"] == "error":
+                return process_response
+            job.process = process_response["data"]["process_graph"]
 
             return {
                 "status": "success",
@@ -112,18 +113,19 @@ class JobService:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
     @rpc
-    def modify(self, user_id: str, job_id: str, **job_args) -> dict:
+    def modify(self, user_id: str, job_id: str, **job_args: Any) -> dict:
         """The request will ask the back-end to modify the job with the given job_id.
 
         Arguments:
             user_id {str} -- The identifier of the user
             job_id {str} -- The id of the job
+            job_args {Dict[str, Any]} -- The job arguments to be moified
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
-                return response
+                return response  # type: ignore
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.queued, JobStatus.running]:
@@ -180,7 +182,7 @@ class JobService:
             job = self.db.query(Job).filter_by(id=job_id).first()
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
-                return response
+                return response  # type: ignore
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.running, JobStatus.queued]:
@@ -229,12 +231,12 @@ class JobService:
                                     links=["#tag/Job-Management/paths/~1jobs/get"]).to_dict()
 
     @rpc
-    def create(self, user_id: str, **job_args) -> dict:
+    def create(self, user_id: str, **job_args: Any) -> dict:
         """The request will ask the back-end to create a new job using the description send in the request body.
 
         Arguments:
             user_id {str} -- The identifier of the user
-            job_args {dict} -- The information needed to create a job
+            job_args {Dict[str, Any]} -- The information needed to create a job
         """
         try:
             LOGGER.debug("Start creating job...")
@@ -293,7 +295,7 @@ class JobService:
             job = self.db.query(Job).filter_by(id=job_id).first()
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
-                return response
+                return response  # type: ignore
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.queued, JobStatus.running]:
@@ -417,7 +419,7 @@ class JobService:
         }
 
     @rpc
-    def cancel_processing(self, user_id: str, job_id: str):
+    def cancel_processing(self, user_id: str, job_id: str) -> dict:
         """The request will ask the back-end to cancel the processing of the given job.
         This will stop the processing if the job is currently queued or running and remove all not persistent result.
         The job itself and results are kept.
@@ -432,7 +434,7 @@ class JobService:
             job = self.db.query(Job).filter_by(id=job_id).first()
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
-                return response
+                return response  # type: ignore
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.running, JobStatus.queued]:
@@ -458,7 +460,7 @@ class JobService:
                                     links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
 
     @rpc
-    def get_results(self, user_id: str, job_id: str):
+    def get_results(self, user_id: str, job_id: str) -> dict:
         """The request will ask the back-end to get the location where the results of the given job can be retrieved.
         This only works if the job is in state finished.
 
@@ -471,16 +473,16 @@ class JobService:
             job = self.db.query(Job).filter_by(id=job_id).first()
             valid, response = self.authorize(user_id, job_id, job)
             if not valid:
-                return response
+                return response  # type: ignore
 
             if job.status == JobStatus.error:
-                return ServiceException(424, user_id, job.error, internal=False)  # TODO store error!
+                return ServiceException(424, user_id, job.error, internal=False).to_dict()  # TODO store error!
 
             if job.status == JobStatus.canceled:
-                return ServiceException(400, user_id, f"Job {job_id} was canceled.")
+                return ServiceException(400, user_id, f"Job {job_id} was canceled.").to_dict()
 
             if job.status in [JobStatus.created, JobStatus.queued, JobStatus.running]:
-                return JobNotFinished(400, user_id, job_id, internal=False)
+                return JobNotFinished(400, user_id, job_id, internal=False).to_dict()
 
             # Job status is "finished"
             output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
@@ -506,7 +508,7 @@ class JobService:
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
-    def _get_download_url(self, public_path: str):
+    def _get_download_url(self, public_path: str) -> str:
         """ This will create the public url where result data can be downloaded
 
         Arguments:
@@ -515,7 +517,7 @@ class JobService:
         Returns:
             str -- Complete url path
         """
-        return os.path.join(os.environ.get("GATEWAY_URL"), "downloads", public_path)
+        return os.path.join(os.environ.get("GATEWAY_URL"), "downloads", public_path)  # type: ignore
 
     @staticmethod
     def authorize(user_id: str, job_id: str, job: Job) -> Tuple[bool, Optional[dict]]:
@@ -590,7 +592,7 @@ class JobService:
         Returns:
             str -- Absolute location of the dag on the file system
         """
-        return os.path.join(os.environ.get("AIRFLOW_DAGS"), dag_id)
+        return os.path.join(os.environ.get("AIRFLOW_DAGS"), dag_id)  # type: ignore
 
     def _stop_airflow_job(self, user_id: str, job_id: str) -> None:
         """This triggers the airflow observer to set all running task to failed.
