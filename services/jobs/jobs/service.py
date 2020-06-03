@@ -328,12 +328,20 @@ class JobService:
                         sleep(1)
                         self._update_job_status(job_id=job_id)
                     if job.status in [JobStatus.finished]:
+                        output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
+                        if output["status"] == "error":
+                            return output
+
+                        # Get first (only?) file # NB: how to return multiple files in sync service?
+                        filepath = output['data']['file_list'][0]
+                        
                         # self.delete(user_id=user_id, job_id=job_id)
-                        #output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
-                        # NB get filepath and return correct response
                         return {
                             "status": "success",
                             "code": 200,
+                            "headers": {
+                                "filepath": filepath
+                            }
                         }
                         # return {
                         #     "status": "success",
