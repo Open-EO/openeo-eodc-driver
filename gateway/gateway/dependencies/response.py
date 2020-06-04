@@ -119,7 +119,7 @@ class ResponseParser:
         """Returns a file back to the user.
 
         Arguments:
-            file_path {str} -- The file requested from the user
+            filepath {str} -- The file requested from the user
 
         Returns:
             Response -- The Response object
@@ -145,11 +145,6 @@ class ResponseParser:
             response = self._data(payload["code"], payload["data"])
         elif "file" in payload:
             response = self._file(payload["file"])
-            # Delete temporary created files (e.g. for sync processed files)
-            if "delete_file" in payload and payload["delete_file"]:
-                os.remove(payload["file"])
-            elif "delete_folder" in payload and os.path.isdir(payload["delete_folder"]):
-                shutil.rmtree(payload["delete_folder"])
         else:
             response = self._code(payload["code"])
 
