@@ -40,73 +40,6 @@ class MultiDict(dict):
             self[key] = value
 
 
-class BBox:
-    """The BBox represents a spatial extention
-    """
-
-    @staticmethod
-    def get_bbox(qgeom: any) -> object:
-        """Returns the parsed Bounding Box object. Input representations can be a lists, dicts or a strings.
-
-        Arguments:
-            qgeom {any} -- The input bounding box representation
-
-        Raises:
-            ValidationError -- If a error occurs while parsing the spatial extent
-
-        Returns:
-            BBox -- The bounding box object
-        """
-
-        types = {
-            dict: lambda x: [x["north"], x["east"], x["south"], x["west"]],
-            list: lambda x: [x[0], x[1], x[2], x[3]]  # ,
-            # str: lambda x: list(geom_from_wkt(
-            #     "POLYGON" + x).bounds) if x.startswith("((") else literal_eval(x)
-        }
-
-        try:
-            # Map the bounding box type
-            bounds = types.get(type(qgeom), None)(qgeom)
-            if not bounds:
-                raise ValidationError(
-                    "Type of Polygon/Bbox '{0}' is wrong.".format(qgeom)
-                )
-
-            return BBox(bounds[0], bounds[1], bounds[2], bounds[3])
-        except:
-            print(
-                "Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(
-                    qgeom
-                )
-            )
-        # except WKTReadingError:
-        #     raise ValidationError(
-        #         "Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(qgeom))
-
-    def __init__(self, x1: float, y1: float, x2: float, y2: float, epsg: str = None):
-        self.x1 = x1
-        self.y1 = y1
-        self.x2 = x2
-        self.y2 = y2
-        self.epsg = epsg
-
-    def map_cords(self, out_epsg: str = "epsg:4326"):
-        """Maps the coordinates between different projections.
-
-        Keyword Arguments:
-            out_epsg {str} -- Output projection (default: {"epsg:4326"})
-        """
-
-        # in_proj = Proj(init=self.epsg)
-        # out_proj = Proj(init=out_epsg)
-        # self.x1, self.y1 = transform(in_proj, out_proj, self.x1, self.y1)
-        # self.x2, self.y2 = transform(in_proj, out_proj, self.x2, self.y2)
-        # self.epsg = out_epsg
-
-        return
-
-
 class ArgParser:
     """The ArgParser provides methods for parsing and validating the input data.
     """
@@ -140,40 +73,6 @@ class ArgParser:
             raise ValidationError("Collection '{0}' not found.".format(data_id), 404)
 
         return data_id
-
-    def parse_spatial_extent(self, spatial_extent: str) -> list:
-        """Parse the spatial extent
-
-        Arguments:
-            spatial_extent {str} -- The spatial extent
-
-        Raises:
-            ValidationError -- If a error occures while parsing the spatial extent
-
-        Returns:
-            list -- The validated and parsed spatial extent
-        """
-
-        if isinstance(spatial_extent, list):
-            if not len(spatial_extent) == 4:
-                raise ValidationError(
-                    "Dimension of Bbox '{0}' is wrong (north, west, south, east).".format(
-                        spatial_extent
-                    )
-                )
-        if isinstance(spatial_extent, str):
-            if not (spatial_extent.startswith("((") or spatial_extent.startswith("[")):
-                raise ValidationError(
-                    "Format of Polygon '{0}' is wrong (e.g. '((4 4, -4 4, 4 -4, -4 -4, 4 4))').".format(
-                        spatial_extent
-                    )
-                )
-
-        bbox = BBox.get_bbox(spatial_extent)
-        if "crs" in spatial_extent:
-            bbox.epsg = spatial_extent["crs"]
-
-        return bbox
 
     def parse_temporal_extent(self, temporal_extent: str) -> str:
         """Parse the temporal extent
