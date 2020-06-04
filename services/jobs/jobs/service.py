@@ -6,7 +6,7 @@ import shutil
 import threading
 from datetime import datetime
 from time import sleep
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 from uuid import uuid4
 from collections import namedtuple
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
@@ -94,9 +94,9 @@ class JobService:
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response  # type: ignore
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             process_response = self.processes_service.get_user_defined(user_id, job.process_graph_id)
@@ -123,9 +123,9 @@ class JobService:
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response  # type: ignore
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.queued, JobStatus.running]:
@@ -180,9 +180,9 @@ class JobService:
         try:
             LOGGER.debug(f"Start deleting job {job_id}")
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response  # type: ignore
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.running, JobStatus.queued]:
@@ -293,9 +293,9 @@ class JobService:
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response  # type: ignore
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.queued, JobStatus.running]:
@@ -432,9 +432,9 @@ class JobService:
             # TODO handle costs (stop it)
             LOGGER.debug(f"Start canceling job {job_id}")
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response  # type: ignore
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.running, JobStatus.queued]:
@@ -471,9 +471,9 @@ class JobService:
         try:
             self._update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response  # type: ignore
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             if job.status == JobStatus.error:
                 return ServiceException(424, user_id, job.error, internal=False).to_dict()  # TODO store error!
@@ -520,7 +520,7 @@ class JobService:
         return os.path.join(os.environ.get("GATEWAY_URL"), "downloads", public_path)  # type: ignore
 
     @staticmethod
-    def authorize(user_id: str, job_id: str, job: Job) -> Tuple[bool, Optional[dict]]:
+    def authorize(user_id: str, job_id: str, job: Job) -> Optional[ServiceException]:
         """Return Exception if given Job does not exist or User is not allowed to access this Job.
 
         Arguments:
@@ -529,16 +529,16 @@ class JobService:
             job {ProcessGraph} -- The Job object for the given job_id
         """
         if job is None:
-            return False, ServiceException(400, user_id, f"The job with id '{job_id}' does not exist.",
-                                           internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
+            return ServiceException(400, user_id, f"The job with id '{job_id}' does not exist.",
+                                    internal=False, links=["#tag/Job-Management/paths/~1data/get"])
 
         # TODO: Permission (e.g admin)
         if job.user_id != user_id:
-            return False, ServiceException(401, user_id, "You are not allowed to access this resource.",
-                                           internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
+            return ServiceException(401, user_id, "You are not allowed to access this resource.",
+                                    internal=False, links=["#tag/Job-Management/paths/~1data/get"])
 
         LOGGER.info(f"User is authorized to access job {job_id}.")
-        return True, None
+        return None
 
     def _update_job_status(self, job_id: str, manual_status: JobStatus = None) -> None:
         """Updates the job status.
