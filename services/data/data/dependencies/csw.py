@@ -9,7 +9,6 @@ import logging
 from nameko.extensions import DependencyProvider
 from requests import post
 
-from .bands import BandsExtractor
 from .cache import cache_json, get_cache_path, get_json_cache
 from .links import LinkHandler
 from .xml_templates import (
@@ -43,7 +42,6 @@ class CSWHandler:
         self.csw_server_uri = csw_server_uri
         self.cache_path = cache_path
         self.service_uri = service_uri
-        self.bands_extractor = BandsExtractor()
         self.link_handler = LinkHandler(service_uri)
 
         self._create_path(self.cache_path)
