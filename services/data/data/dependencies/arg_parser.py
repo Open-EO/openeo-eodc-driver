@@ -5,7 +5,6 @@ from nameko.extensions import DependencyProvider
 
 # from shapely.geometry.base import geom_from_wkt, WKTReadingError
 # from pyproj import Proj, transform
-from datetime import datetime
 from ast import literal_eval
 import logging
 
@@ -73,37 +72,6 @@ class ArgParser:
             raise ValidationError("Collection '{0}' not found.".format(data_id), 404)
 
         return data_id
-
-    def parse_temporal_extent(self, temporal_extent: str) -> str:
-        """Parse the temporal extent
-
-        Arguments:
-            temporal_extent {str} -- The temporal extent
-
-        Raises:
-            ValidationError -- If a error occures while parsing the temporal extent
-
-        Returns:
-            str -- The validated and parsed start and end dates
-        """
-
-        try:
-            if isinstance(temporal_extent, str):
-                temp_split = temporal_extent.split("/")
-                temporal_extent = {"from": temp_split[0], "to": temp_split[1]}
-
-            start = datetime.strptime(temporal_extent["from"], "%Y-%m-%d")
-            end = datetime.strptime(temporal_extent["to"], "%Y-%m-%d")
-
-            if end < start:
-                raise ValidationError("End date is before start date.")
-
-            return (
-                temporal_extent["from"] + "T00:00:00Z",
-                temporal_extent["to"] + "T23:59:59Z",
-            )
-        except ValueError:
-            raise ValidationError("Format of start date '{0}' is wrong.".format(start))
 
 
 class ArgParserProvider(DependencyProvider):
