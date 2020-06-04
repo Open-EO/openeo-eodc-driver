@@ -7,6 +7,7 @@ from os.path import abspath
 from os.path import dirname
 
 import pytest
+from _pytest.fixtures import FixtureRequest
 from nameko.testing.services import worker_factory
 
 from files.service import FilesService
@@ -18,23 +19,23 @@ service = worker_factory(FilesService)
 
 
 @pytest.fixture()
-def file_service():
+def file_service() -> FilesService:
     return service
 
 
-def get_data_folder():
+def get_data_folder() -> str:
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
-def get_input_folder():
+def get_input_folder() -> str:
     return os.path.join(get_data_folder(), 'input')
 
 
-def get_tmp_folder():
+def get_tmp_folder() -> str:
     return os.path.join(get_data_folder(), 'tmp')
 
 
-def get_filesystem_folder():
+def get_filesystem_folder() -> str:
     return os.path.join(get_data_folder(), 'file-system')
 
 
@@ -42,17 +43,17 @@ os.environ['OPENEO_FILES_DIR'] = get_filesystem_folder()
 
 
 @pytest.fixture()
-def filesystem_folder():
+def filesystem_folder() -> str:
     return get_filesystem_folder()
 
 
 @pytest.fixture()
-def tmp_folder(request):
+def tmp_folder(request: FixtureRequest) -> str:
     folder = get_tmp_folder()
     if not os.path.isdir(folder):
         os.makedirs(folder)
 
-    def fin():
+    def fin() -> None:
         if os.path.isdir(folder):
             shutil.rmtree(folder)
     request.addfinalizer(fin)
@@ -61,26 +62,26 @@ def tmp_folder(request):
 
 
 @pytest.fixture()
-def input_folder():
+def input_folder() -> str:
     return get_input_folder()
 
 
 @pytest.fixture()
-def user_folder(request):
+def user_folder(request: FixtureRequest) -> str:
     folder = os.path.join(get_filesystem_folder(), 'test-user')
     service.setup_user_folder(user_id='test-user')
 
-    def fin():
+    def fin() -> None:
         shutil.rmtree(folder)
     request.addfinalizer(fin)
     return folder
 
 
 @pytest.fixture()
-def user_id():
+def user_id() -> str:
     return 'test-user'
 
 
 @pytest.fixture()
-def upload_file():
+def upload_file() -> str:
     return os.path.join(get_input_folder(), 'upload.txt')

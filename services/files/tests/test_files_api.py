@@ -4,12 +4,15 @@ from datetime import datetime
 
 import pytest
 
+from files.service import FilesService
+
 
 @pytest.mark.parametrize(
     'ref_path',
     ['final.txt', 'folder1/folder2/final.txt']
 )
-def test_upload_path(file_service, user_folder, user_id, tmp_folder, upload_file, ref_path):
+def test_upload_path(file_service: FilesService, user_folder: str, user_id: str, tmp_folder: str, upload_file: str,
+                     ref_path: str) -> None:
     tmp_path = os.path.join(tmp_folder, 'upload.txt')
     shutil.copyfile(upload_file, tmp_path)
     assert os.path.isfile(tmp_path)
@@ -29,7 +32,8 @@ def test_upload_path(file_service, user_folder, user_id, tmp_folder, upload_file
 @pytest.mark.parametrize(
     'folders_only',
     ['', 'folder1/folder2'])
-def test_delete(file_service, user_folder, user_id, upload_file, folders_only):
+def test_delete(file_service: FilesService, user_folder: str, user_id: str, upload_file: str, folders_only: str) \
+        -> None:
     folders_path = os.path.join(user_folder, 'files', folders_only)
     filepath = os.path.join(folders_path, 'delete.txt')
     if folders_only:
@@ -42,7 +46,7 @@ def test_delete(file_service, user_folder, user_id, upload_file, folders_only):
     assert not os.path.isfile(filepath)
 
 
-def test_get_all(file_service, user_folder, user_id, upload_file):
+def test_get_all(file_service: FilesService, user_folder: str, user_id: str, upload_file: str) -> None:
     shutil.copyfile(upload_file, os.path.join(user_folder, 'files', '1.txt'))
     folders2 = os.path.join(user_folder, 'files', 'folder1', 'folder2')
     os.makedirs(folders2)
@@ -68,7 +72,7 @@ def test_get_all(file_service, user_folder, user_id, upload_file):
             'links': []}}
 
 
-def test_download(file_service, user_folder, user_id, upload_file):
+def test_download(file_service: FilesService, user_folder: str, user_id: str, upload_file: str) -> None:
     filepath = os.path.join(user_folder, 'files', 'download.txt')
     shutil.copyfile(upload_file, filepath)
     assert os.path.isfile(filepath)

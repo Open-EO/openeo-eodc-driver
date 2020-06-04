@@ -4,10 +4,9 @@ import glob
 import logging
 import os
 import re
-import time
-from datetime import datetime
-from typing import List, Optional, Tuple
 import shutil
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 from nameko.rpc import rpc
 from werkzeug.security import safe_join
@@ -22,7 +21,7 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, code: int, user_id: str, msg: str, internal: bool=True, links: list=None):
+    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None) -> None:
         if not links:
             links = []
 
@@ -34,7 +33,7 @@ class ServiceException(Exception):
         self._links = links
         LOGGER.exception(msg, exc_info=True)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Serializes the object to a dict.
 
         Returns:
@@ -55,7 +54,7 @@ class ServiceException(Exception):
 class FileOperationUnsupported(ServiceException):
     """ FileOperationUnsupported raised if folder is passed when file is expected.
     """
-    def __init__(self, code: int, user_id: str, msg: str, internal: bool=True, links: list=None):
+    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None) -> None:
         super(FileOperationUnsupported, self).__init__(code, user_id, msg, internal, links)
 
 
@@ -83,16 +82,16 @@ class FilesService:
             path {str} -- The file path to the requested file
         """
         try:
-            valid, err, complete_path = self.authorize_existing_file(user_id, path, source_dir=source_dir)
-            if not valid:
-                return err
+            response = self.authorize_existing_file(user_id, path, source_dir=source_dir)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             LOGGER.info(f"Download file {path}")
             return {
                 "status": "success",
                 "code": 200,
                 "headers": {"Content-Type": "application/octet-stream"},
-                "file": complete_path,
+                "file": response,
             }
 
         except Exception as exp:
@@ -107,11 +106,11 @@ class FilesService:
             path {str} -- The location of the file
         """
         try:
-            valid, err, complete_path = self.authorize_existing_file(user_id, path)
-            if not valid:
-                return err
+            response = self.authorize_existing_file(user_id, path)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
-            os.remove(complete_path)
+            os.remove(response)
             LOGGER.info(f"File {path} successfully deleted.")
             return {
                 "status": "success",
@@ -131,7 +130,7 @@ class FilesService:
             prefix, _ = self.setup_user_folder(user_id)
             file_list = []
 
-            for root, dirs, files in os.walk(prefix):
+            for root, _, files in os.walk(prefix):
                 user_root = root[len(prefix) + 1:]
                 for f in files:
                     public_filepath = os.path.join(user_root, f)
@@ -166,11 +165,12 @@ class FilesService:
             tmp_path {str} -- The path where the file was temporary stored
         """
         try:
-            valid, err, complete_path = self.authorize_file(user_id, path)
-            if not valid:
+            response = self.authorize_file(user_id, path)
+            if isinstance(response, ServiceException):
                 os.remove(tmp_path)
-                return err
+                return response.to_dict()
 
+            complete_path = response
             dirs, filename = os.path.split(complete_path)
             if not os.path.exists(dirs):
                 os.makedirs(dirs, mode=0o700)
@@ -211,9 +211,10 @@ class FilesService:
 
     @staticmethod
     def get_user_folder(user_id: str) -> str:
-        return os.path.join(os.environ.get("OPENEO_FILES_DIR"), user_id)
+        return os.path.join(os.environ.get("OPENEO_FILES_DIR"), user_id)  # type: ignore
 
-    def authorize_file(self, user_id: str, path: str, source_dir: str = 'files') -> Tuple[bool, Optional[dict], Optional[str]]:
+    def authorize_file(self, user_id: str, path: str, source_dir: str = 'files') \
+            -> Union[ServiceException, str]:
         """
         Returns Exception if path is invalid or points to a directory.
 
@@ -222,22 +223,23 @@ class FilesService:
             path {str} -- The file path to the requested file
 
         Returns
-            Tuple[bool, Optional[dict], Optional[str]] -- if authorized, error, complete path
+            Union[Optional[dict], Optional[str]] -- either the error is returned as ServiceException or if authorized
+            the complete filepath is returned
         """
 
         # check pattern
         complete_path = self.get_allowed_path(user_id, path.split('/'), source_dir=source_dir)
         if not complete_path:
-            return False, FileOperationUnsupported(401, user_id, f"{path}: This path is not valid.",
-                                                   internal=False, links=[]).to_dict(), None
+            return FileOperationUnsupported(401, user_id, f"{path}: This path is not valid.", internal=False, links=[])
 
         if os.path.isdir(complete_path):
-            return False, FileOperationUnsupported(400, user_id, f"{path}: Must be a file, no directory.",
-                                                   internal=False, links=[]).to_dict(), None
+            return FileOperationUnsupported(400, user_id, f"{path}: Must be a file, no directory.", internal=False,
+                                            links=[])
         LOGGER.info(f'User {user_id} is granted access to {path}')
-        return True, None, complete_path
+        return complete_path
 
-    def authorize_existing_file(self, user_id: str, path: str, source_dir: str = 'files') -> Tuple[bool, Optional[dict], Optional[str]]:
+    def authorize_existing_file(self, user_id: str, path: str, source_dir: str = 'files') \
+            -> Union[ServiceException, str]:
         """
         Returns Exception if path is invalid, points to a directory or does not exist.
 
@@ -246,16 +248,15 @@ class FilesService:
             path {str} -- The file path to the requested file
 
         Returns:
-            Tuple[bool, Optional[dict], Optional[str]] -- if authorized, error, complete path
+            Union[Optional[dict], Optional[str]] -- either the error is returned as ServiceException or if authorized
+            the complete filepath is returned
         """
-        valid, err, complete_path = self.authorize_file(user_id, path, source_dir=source_dir)
-        if valid:
-            # check existence
-            if not os.path.exists(complete_path):
-                return False, FileOperationUnsupported(404, user_id, f"{path}: No such file or directory.",
-                                                       internal=False, links=[]).to_dict(), None
+        response = self.authorize_file(user_id, path, source_dir=source_dir)
+        if isinstance(response, str) and not os.path.exists(response):
+            return FileOperationUnsupported(404, user_id, f"{path}: No such file or directory.", internal=False,
+                                            links=[])
         LOGGER.info(f"File {path} exists.")
-        return valid, err, complete_path
+        return response
 
     def get_allowed_path(self, user_id: str, parts: List[str], source_dir: str = 'files') -> Optional[str]:
         """ Checks if file matches allowed pattern.
@@ -275,11 +276,12 @@ class FilesService:
         filename = parts.pop(-1)
         for part in parts:
             if re.fullmatch(self.allowed_dirname, part) is None:
-                return
+                return None
         if re.fullmatch(self.allowed_filename, filename) is None:
-            return
+            return None
+        parts.append(filename)
 
-        return safe_join(out_dir, *parts, filename)
+        return safe_join(out_dir, *parts)
 
     def complete_to_public_path(self, user_id: str, complete_path: str) -> str:
         """
@@ -295,10 +297,10 @@ class FilesService:
 
         return complete_path.replace(f'{self.get_user_folder(user_id)}/files/', '')
 
-    def get_file_modification_time(self, filepath: str) -> datetime.timestamp:
+    def get_file_modification_time(self, filepath: str) -> str:
         """
         Returns timestamp of last modification in format: '2019-05-21T16:11:37Z'.
-        
+
         Returns:
             {str} -- The timestamp when the file was last modified.
         """
@@ -327,14 +329,14 @@ class FilesService:
         return to_create
 
     @rpc
-    def get_job_output(self, user_id: str, job_id: str):
+    def get_job_output(self, user_id: str, job_id: str) -> dict:
         """
         Returns a list of output files produced by a job.
         """
         try:
             file_list = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*'))
             if not file_list:
-                return ServiceException(400, user_id, f"Job output folder is empty. No files generated.")
+                return ServiceException(400, user_id, "Job output folder is empty. No files generated.").to_dict()
 
             LOGGER.info(f"Found {len(file_list)} output files for job {job_id}.")
             return {
