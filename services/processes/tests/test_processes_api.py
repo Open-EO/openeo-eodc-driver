@@ -58,7 +58,7 @@ def test_get_all_predefined(db_session: Session) -> None:
     processes_service = mock_processes_service(db_session, add_processes=True)
 
     result = processes_service.get_all_predefined()
-    ref_output = load_json("test_get_all_predefined.json")
+    ref_output = load_json("r_get_all_predefined.json")
     assert result == ref_output
 
 
