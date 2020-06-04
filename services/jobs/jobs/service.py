@@ -2,12 +2,13 @@
 
 import logging
 import os
+import shutil
+import threading
 from datetime import datetime
 from time import sleep
 from typing import Tuple, Optional
 from uuid import uuid4
 from collections import namedtuple
-
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
@@ -255,7 +256,7 @@ class JobService:
             self.db.commit()
             job_id = str(job.id)
 
-            self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)
+            _ = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)
 
             self.dag_writer.write_and_move_job(job_id=job_id, user_name=user_id,
                                                process_graph_json=process["process_graph"],
@@ -331,7 +332,7 @@ class JobService:
             'jpeg': TypeMap('jpeg', 'image/jpeg'),
         }
         
-        try:
+        try:            
             # TODO: implement a check that the job qualifies for sync-processing
             # it has to be a "small" job, e.g. constriants for timespan and bboux, but also on spatial resolution
             job_args['vrt_flag'] = False
@@ -358,7 +359,18 @@ class JobService:
                         filepath = output['data']['file_list'][0]
                         fmt = self.map_output_format(filepath.split('.')[-1])
                         
-                        # self.delete(user_id=user_id, job_id=job_id)
+                        # Copy directory to tmp location
+                        job_folder = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id).replace('/result', '')
+                        job_tmp_folder = os.path.join(os.environ.get("SYNC_RESULTS_FOLDER"), job_id)
+                        shutil.copytree(job_folder, job_tmp_folder)
+                        filepath = filepath.replace(job_folder, job_tmp_folder)
+                        
+                        # Remove job data (sync jobs must not be stored)
+                        self.delete(user_id=user_id, job_id=job_id)
+
+                        # Schedule async deletion of tmp folder
+                        threading.Thread(target=self._delayed_delete, args=(job_tmp_folder, )).start()
+                        
                         return {
                             "status": "success",
                             "code": 200,
@@ -367,7 +379,6 @@ class JobService:
                                 "OpenEO-Costs": 0,
                             },
                             "file": filepath
-                            #"delete_folder": job_folder,
                         }
         
         except Exception as exp:
@@ -595,3 +606,14 @@ class JobService:
             if output_format in l:
                 return out
         raise ValueError('{} is not a supported output format'.format(output_format))
+        
+    
+    def _delayed_delete(self, folder_path):
+        """
+        
+        """
+        
+        # Wait 5 minutes (allow for enough time to stream file(s) to user)
+        sleep(300)
+        # Remove tmp folder
+        shutil.rmtree(folder_path)
