@@ -324,6 +324,7 @@ class FilesService:
             LOGGER.debug(f"Creating Job results folder {to_create}.")
             os.makedirs(to_create)
         LOGGER.info(f"Job results folder {to_create} exists.")
+        return to_create
 
     @rpc
     def get_job_output(self, user_id: str, job_id: str):
