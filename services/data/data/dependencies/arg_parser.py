@@ -22,23 +22,6 @@ class ValidationError(Exception):
         self.code = code
 
 
-class MultiDict(dict):
-    """The MultiDict is an extention to the Python dict, providing the
-    mapping of multiple keys to the same value.
-    """
-
-    def map_keys(self, keys: list, value: any):
-        """Maps the keys to the same value.
-
-        Arguments:
-            keys {list} -- List of keys
-            value {any} -- The value, to which the keys should point
-        """
-
-        for key in keys:
-            self[key] = value
-
-
 class ArgParser:
     """The ArgParser provides methods for parsing and validating the input data.
     """
