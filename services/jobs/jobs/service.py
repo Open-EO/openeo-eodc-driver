@@ -332,55 +332,65 @@ class JobService:
             'jpeg': TypeMap('jpeg', 'image/jpeg'),
         }
         
-        try:            
+        try:
             # TODO: implement a check that the job qualifies for sync-processing
             # it has to be a "small" job, e.g. constriants for timespan and bboux, but also on spatial resolution
+            
+            # Create Job
+            LOGGER.info(f"Creating job for sync processing.")
             job_args['vrt_flag'] = False
             response_create = self.create(user_id=user_id, **job_args)
-            if response_create['status'] == 'success':
-                job_id = response_create["headers"]["Location"].split('/')[-1]
-                job = self.db.query(Job).filter_by(id=job_id).first()
-                response_process = self.process(user_id=user_id, job_id=job_id)
-                if response_process['status'] == 'success':
-                    LOGGER.info(f"Job {job_id} is running.")
-                    self._update_job_status(job_id=job_id)
-                    while job.status in [JobStatus.queued, JobStatus.running]:
-                        sleep(1)
-                        self._update_job_status(job_id=job_id)
-                    if job.status in [JobStatus.finished]:
-                        LOGGER.info(f"Job {job_id} has been processed.")
-                        self.airflow.unpause_dag(job_id=job_id, unpause=False)  # just to hide from view on default Airflow web view
-                        output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
-                        if output["status"] == "error":
-                            LOGGER.info(f"Could not retrieve output of Job {job_id}.")
-                            return output
+            if response_create['status'] == 'error':
+                return ServiceException(500, user_id, str(response_create['msg']), links=[]).to_dict()
 
-                        # Get first (only?) file # NB: how to return multiple files in sync service?
-                        filepath = output['data']['file_list'][0]
-                        fmt = self.map_output_format(filepath.split('.')[-1])
-                        
-                        # Copy directory to tmp location
-                        job_folder = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id).replace('/result', '')
-                        job_tmp_folder = os.path.join(os.environ.get("SYNC_RESULTS_FOLDER"), job_id)
-                        shutil.copytree(job_folder, job_tmp_folder)
-                        filepath = filepath.replace(job_folder, job_tmp_folder)
-                        
-                        # Remove job data (sync jobs must not be stored)
-                        self.delete(user_id=user_id, job_id=job_id)
+            # Start processing
+            job_id = response_create["headers"]["Location"].split('/')[-1]
+            job = self.db.query(Job).filter_by(id=job_id).first()
+            response_process = self.process(user_id=user_id, job_id=job_id)
+            if response_process['status'] == 'error':
+                return ServiceException(500, user_id, str(response_process['msg']), links=[]).to_dict()
+            
+            LOGGER.info(f"Job {job_id} is running.")
+            self._update_job_status(job_id=job_id)
+            while job.status in [JobStatus.queued, JobStatus.running]:
+                sleep(10)
+                self._update_job_status(job_id=job_id)
+            if job.status in [JobStatus.error, JobStatus.canceled]:
+                msg = f"Job {job_id} has status: {job.status}."
+                return ServiceException(500, user_id, msg, links=[]).to_dict()
+                
+            LOGGER.info(f"Job {job_id} has been processed.")
+            self.airflow.unpause_dag(job_id=job_id, unpause=False)  # just to hide from view on default Airflow web view
+            response_files = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
+            if response_files["status"] == "error":
+                LOGGER.info(f"Could not retrieve output of Job {job_id}.")
+                return ServiceException(500, user_id, str(response_files['msg']), links=[]).to_dict()
 
-                        # Schedule async deletion of tmp folder
-                        threading.Thread(target=self._delayed_delete, args=(job_tmp_folder, )).start()
-                        
-                        return {
-                            "status": "success",
-                            "code": 200,
-                            "headers": {
-                                "Content-Type": type_map[fmt].content_type,
-                                "OpenEO-Costs": 0,
-                            },
-                            "file": filepath
-                        }
-        
+            filepath = response_files['data']['file_list'][0]
+            fmt = self.map_output_format(filepath.split('.')[-1])
+            
+            # Copy directory to tmp location
+            job_folder = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id).replace('/result', '')
+            job_tmp_folder = os.path.join(os.environ.get("SYNC_RESULTS_FOLDER"), job_id)
+            shutil.copytree(job_folder, job_tmp_folder)
+            filepath = filepath.replace(job_folder, job_tmp_folder)
+            
+            # Remove job data (sync jobs must not be stored)
+            self.delete(user_id=user_id, job_id=job_id)
+
+            # Schedule async deletion of tmp folder
+            threading.Thread(target=self._delayed_delete, args=(job_tmp_folder, )).start()
+            
+            return {
+                "status": "success",
+                "code": 200,
+                "headers": {
+                    "Content-Type": type_map[fmt].content_type,
+                    "OpenEO-Costs": 0,
+                },
+                "file": filepath
+            }
+    
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
