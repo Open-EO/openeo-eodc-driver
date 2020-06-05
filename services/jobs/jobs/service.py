@@ -376,7 +376,10 @@ class JobService:
             filepath = filepath.replace(job_folder, job_tmp_folder)
             
             # Remove job data (sync jobs must not be stored)
-            self.delete(user_id=user_id, job_id=job_id)
+            response_delete = self.delete(user_id=user_id, job_id=job_id)
+            if response_delete["status"] == "error":
+                LOGGER.info(f"Could not delete Job {job_id}.")
+                return ServiceException(500, user_id, str(response_delete['msg']), links=[]).to_dict()
 
             # Schedule async deletion of tmp folder
             threading.Thread(target=self._delayed_delete, args=(job_tmp_folder, )).start()
@@ -623,7 +626,7 @@ class JobService:
         
         """
         
-        # Wait 5 minutes (allow for enough time to stream file(s) to user)
-        sleep(300)
+        # Wait n minutes (allow for enough time to stream file(s) to user)
+        sleep(os.environ['SYNC_DEL_DELAY'])
         # Remove tmp folder
         shutil.rmtree(folder_path)
