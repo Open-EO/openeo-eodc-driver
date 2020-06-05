@@ -40,11 +40,11 @@ def set_job_data():
     if not os.path.isdir(os.environ['SYNC_RESULTS_FOLDER']):
         os.makedirs(os.environ['SYNC_RESULTS_FOLDER'])
     os.environ['SYNC_DEL_DELAY'] = '5' # seconds
-    sync_job_folder = os.path.join(get_test_data_folder(), 'jb-12345')
-    if not os.path.isdir(sync_job_folder):
-        os.makedirs(sync_job_folder)
+    os.environ['JOB_FOLDER'] = os.path.join(get_test_data_folder(), 'jb-12345') # this env var is used in the mocked files service
+    if not os.path.isdir(os.environ['JOB_FOLDER']):
+        os.makedirs(os.environ['JOB_FOLDER'])
         # Create empty file (mock job output)
-        open(os.path.join(sync_job_folder, "sample-output.tif"), 'w').close()
+        open(os.path.join(os.environ['JOB_FOLDER'], "sample-output.tif"), 'w').close()
 
 
 # should not be needed -> not a unittest!

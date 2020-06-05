@@ -224,4 +224,4 @@ class MockedFilesService(MagicMock):
         }
         
     def setup_jobs_result_folder(self, user_id, job_id):
-        return "data/jb-12345"
+        return os.environ['JOB_FOLDER']

@@ -190,6 +190,7 @@ def test_start_processing_sync_job(db_session, set_job_data, dag_folder):
 
     result = job_service.process_sync(user_id='test-user', **job_data)
     
+    assert result['status'] == 'success'
     assert 'result/sample-output.tif' in result['file']
     _ = result.pop('file')
     assert result == {'code': 200, 'status': 'success',
@@ -197,6 +198,7 @@ def test_start_processing_sync_job(db_session, set_job_data, dag_folder):
                       }
     
     # Clean up
-    shutil.rmtree("data/jb-12345")
-    shutil.rmtree("data/sync-results")
+    #shutil.rmtree("data/jb-12345")
+    shutil.rmtree(os.environ['JOB_FOLDER'])
+    shutil.rmtree(os.environ['SYNC_RESULTS_FOLDER'])
     
