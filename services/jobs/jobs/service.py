@@ -2,11 +2,13 @@
 
 import logging
 import os
+import shutil
+import threading
 from datetime import datetime
 from time import sleep
 from typing import Tuple, Optional
 from uuid import uuid4
-
+from collections import namedtuple
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
 from nameko.rpc import rpc, RpcProxy
 from nameko_sqlalchemy import DatabaseSession
@@ -236,6 +238,9 @@ class JobService:
         """
         try:
             LOGGER.debug("Start creating job...")
+            vrt_flag = True
+            if 'vrt_flag' in job_args.keys():
+                vrt_flag = job_args.pop("vrt_flag")
             process = job_args.pop("process")
             process_graph_id = process["id"] if "id" in process else str(uuid4())
             process_response = self.processes_service.put_user_defined(
@@ -251,12 +256,12 @@ class JobService:
             self.db.commit()
             job_id = str(job.id)
 
-            self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)
+            _ = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)
 
             self.dag_writer.write_and_move_job(job_id=job_id, user_name=user_id,
                                                process_graph_json=process["process_graph"],
                                                job_data=self.get_job_folder(user_id, job_id),
-                                               vrt_only=True, add_delete_sensor=True)
+                                               vrt_only=vrt_flag, add_delete_sensor=True)
             job.dag_filename = f"dag_{job_id}.py"
             self.db.add(job)
             self.db.commit()
@@ -305,6 +310,90 @@ class JobService:
                 "status": "success",
                 "code": 202,
             }
+        except Exception as exp:
+            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
+    
+    
+    @rpc
+    def process_sync(self, user_id: str, **job_args) -> dict:
+        """The request will ask the back-end to start the processing of the given job.
+        The job needs to exist on the back-end and must not already be queued or running.
+
+        Arguments:
+            user_id {str} -- The identifier of the user
+            job_args {dict} -- The information needed to create a job
+        
+        """
+        
+        TypeMap = namedtuple('TypeMap', 'file_extension content_type')
+        type_map = {
+            'Gtiff': TypeMap('tif', 'image/tiff'),
+            'png': TypeMap('png', 'image/png'),
+            'jpeg': TypeMap('jpeg', 'image/jpeg'),
+        }
+        
+        try:
+            # TODO: implement a check that the job qualifies for sync-processing
+            # it has to be a "small" job, e.g. constriants for timespan and bboux, but also on spatial resolution
+            
+            # Create Job
+            LOGGER.info(f"Creating job for sync processing.")
+            job_args['vrt_flag'] = False
+            response_create = self.create(user_id=user_id, **job_args)
+            if response_create['status'] == 'error':
+                return ServiceException(500, user_id, str(response_create['msg']), links=[]).to_dict()
+
+            # Start processing
+            job_id = response_create["headers"]["Location"].split('/')[-1]
+            job = self.db.query(Job).filter_by(id=job_id).first()
+            response_process = self.process(user_id=user_id, job_id=job_id)
+            if response_process['status'] == 'error':
+                return ServiceException(500, user_id, str(response_process['msg']), links=[]).to_dict()
+            
+            LOGGER.info(f"Job {job_id} is running.")
+            self._update_job_status(job_id=job_id)
+            while job.status in [JobStatus.queued, JobStatus.running]:
+                sleep(10)
+                self._update_job_status(job_id=job_id)
+            if job.status in [JobStatus.error, JobStatus.canceled]:
+                msg = f"Job {job_id} has status: {job.status}."
+                return ServiceException(500, user_id, msg, links=[]).to_dict()
+                
+            LOGGER.info(f"Job {job_id} has been processed.")
+            self.airflow.unpause_dag(job_id=job_id, unpause=False)  # just to hide from view on default Airflow web view
+            response_files = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
+            if response_files["status"] == "error":
+                LOGGER.info(f"Could not retrieve output of Job {job_id}.")
+                return ServiceException(500, user_id, str(response_files['msg']), links=[]).to_dict()
+
+            filepath = response_files['data']['file_list'][0]
+            fmt = self.map_output_format(filepath.split('.')[-1])
+            
+            # Copy directory to tmp location
+            job_folder = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id).replace('/result', '')
+            job_tmp_folder = os.path.join(os.environ.get("SYNC_RESULTS_FOLDER"), job_id)
+            shutil.copytree(job_folder, job_tmp_folder)
+            filepath = filepath.replace(job_folder, job_tmp_folder)
+            
+            # Remove job data (sync jobs must not be stored)
+            response_delete = self.delete(user_id=user_id, job_id=job_id)
+            if response_delete["status"] == "error":
+                LOGGER.info(f"Could not delete Job {job_id}.")
+                return ServiceException(500, user_id, str(response_delete['msg']), links=[]).to_dict()
+
+            # Schedule async deletion of tmp folder
+            threading.Thread(target=self._delayed_delete, args=(job_tmp_folder, )).start()
+            
+            return {
+                "status": "success",
+                "code": 200,
+                "headers": {
+                    "Content-Type": type_map[fmt].content_type,
+                    "OpenEO-Costs": 0,
+                },
+                "file": filepath
+            }
+    
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
@@ -519,3 +608,25 @@ class JobService:
             LOGGER.info("Waiting for airflow sensor to detect STOP file...")
             sleep(self.check_stop_interval)
             job_stopped = self.airflow.check_dag_status(job_id) != JobStatus.running
+            
+    @staticmethod
+    def map_output_format(output_format):
+        out_map = [(['Gtiff', 'GTiff', 'tif', 'tiff'], 'Gtiff'),
+                   (['jpg', 'jpeg'], 'jpeg'),
+                   (['png'], 'png')
+                   ]
+        for l, out in out_map:
+            if output_format in l:
+                return out
+        raise ValueError('{} is not a supported output format'.format(output_format))
+        
+    
+    def _delayed_delete(self, folder_path):
+        """
+        
+        """
+        
+        # Wait n minutes (allow for enough time to stream file(s) to user)
+        sleep(os.environ['SYNC_DEL_DELAY'])
+        # Remove tmp folder
+        shutil.rmtree(folder_path)

@@ -61,7 +61,7 @@ with ctx:
 
     # Job Management
     # /file_formats -> implemented under 'Capabilities'
-    gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/result", func=rpc.eodatareaders_rpc.process_sync, auth=True, validate=True, methods=["POST"])
+    gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/result", func=rpc.jobs.process_sync, auth=True, validate=True, methods=["POST"])
     gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/jobs", func=rpc.jobs.get_all, auth=True, validate=True)
     gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/jobs", func=rpc.jobs.create, auth=True, validate=True, methods=["POST"])
     gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/jobs/<job_id>", func=rpc.jobs.get, auth=True, validate=True)

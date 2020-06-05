@@ -15,6 +15,7 @@ import requests
 backend_url = 'http://127.0.0.1:3000/v1.0'
 basic_auth_url = backend_url + '/credentials/basic'
 job_url = backend_url + '/jobs'
+sync_job_url = backend_url + '/result'
 
 
 def get_auth():
@@ -50,6 +51,9 @@ def check_jobs():
 
     response_delete = requests.delete(f'{job_url}/{job_id}', headers=get_auth())
     print(f"Delete Response: {response_delete.status_code}")
+
+    response_process_sync = requests.post(sync_job_url, json=job, headers=get_auth())
+    print(f"Process_sync response: {response_process_sync.status_code}")
 
 
 if __name__ == '__main__':

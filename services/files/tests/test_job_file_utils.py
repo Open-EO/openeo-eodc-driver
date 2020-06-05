@@ -4,7 +4,7 @@ import shutil
 
 def test_setup_job_result_folder(file_service, user_folder, user_id):
     file_service.setup_jobs_result_folder(user_id=user_id, job_id='test-job')
-    assert os.path.isdir(os.path.join(user_folder, 'jobs', 'test-job', 'results'))
+    assert os.path.isdir(os.path.join(user_folder, 'jobs', 'test-job', 'result'))
 
 
 def test_download_result(file_service, user_folder, user_id, upload_file):
@@ -30,7 +30,7 @@ def test_get_job_id_folder(file_service, user_folder, user_id):
 
 def test_get_job_result_folder(file_service, user_folder, user_id):
     assert file_service.get_job_results_folder(user_id=user_id, job_id='test-job') == \
-           os.path.join(user_folder, 'jobs', 'test-job', 'results')
+           os.path.join(user_folder, 'jobs', 'test-job', 'result')
 
 
 def test_upload_stop_file(file_service, user_folder, user_id):
@@ -41,7 +41,7 @@ def test_upload_stop_file(file_service, user_folder, user_id):
 
 def create_job(file_service, user_folder, user_id, upload_file):
     file_service.setup_jobs_result_folder(user_id=user_id, job_id='test-job')
-    results_folder = os.path.join(user_folder, 'jobs', 'test-job', 'results')
+    results_folder = os.path.join(user_folder, 'jobs', 'test-job', 'result')
     assert os.path.isdir(results_folder)
     job_id_folder = os.path.join(user_folder, 'jobs', 'test-job')
     folder1 = os.path.join(job_id_folder, 'folder1')

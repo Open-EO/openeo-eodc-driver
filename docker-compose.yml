@@ -172,31 +172,6 @@ services:
       - files-data:/usr/src/files
       - $LOG_DIR:/usr/src/logs
 
-  openeo-eodatareaders:
-      build:
-        context: ./services/eodatareaders_rpc
-      image: oeo-eodatareaders-$OPENEO_VERSION
-      container_name: oeo-eodatareaders-$OPENEO_VERSION
-      restart: on-failure
-      depends_on:
-        - rabbitmq
-        - openeo-gateway
-      env_file:
-        - ./envs/rabbitmq.env
-        - ./envs/csw.env
-        - ./envs/eodatareaders.env
-      environment:
-        OPENEO_VERSION: $OPENEO_VERSION
-        SYNC_RESULTS_FOLDER: /usr/src/sync-results
-        OPENEO_PYTHON_UDF_URL: $OPENEO_PYTHON_UDF_URL
-        OPENEO_R_UDF_URL: $OPENEO_R_UDF_URL
-        LOG_DIR: /usr/src/logs
-      volumes:
-          - $DATA_FOLDER:$DATA_FOLDER
-          - ./services/eodatareaders_rpc:/usr/src/app
-          - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
-          - $LOG_DIR:/usr/src/logs
-
   openeo-files:
     build:
       context: ./services/files

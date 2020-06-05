@@ -211,3 +211,17 @@ class MockedProcessesService(MagicMock):
             'status': 'success',
             "code": 200,
         }
+        
+
+class MockedFilesService(MagicMock):
+
+    def get_job_output(self, user_id, job_id):
+        job_folder = self.setup_jobs_result_folder(user_id, job_id)
+        return {
+            "status": "success",
+            "code": 200,
+            "data": {"file_list": [os.path.join(job_folder, "result", "sample-output.tif")]}
+        }
+        
+    def setup_jobs_result_folder(self, user_id, job_id):
+        return os.environ['JOB_FOLDER']
