@@ -1,9 +1,10 @@
 import json
 import os
 from datetime import datetime
+import shutil
 
 from nameko.testing.services import worker_factory
-from tests.mocks import MockedDagWriter, MockedProcessesService, MockedAirflowConnection, PG_OLD_REF
+from tests.mocks import MockedDagWriter, MockedProcessesService, MockedFilesService, MockedAirflowConnection, PG_OLD_REF
 
 from jobs.models import Job
 from jobs.service import JobService
@@ -23,6 +24,7 @@ def get_configured_job_service(db_session):
     job_service.processes_service = MockedProcessesService()  # needed to create / retrieve a process graph
     job_service.dag_writer = MockedDagWriter()  # needed to create a job
     job_service.airflow = MockedAirflowConnection()  # to update status and "trigger" dags
+    job_service.files_service = MockedFilesService()  # needed to create / retrieve a process graph
     return job_service
 
 
@@ -177,3 +179,24 @@ def test_start_processing_job(db_session, set_job_data, dag_folder):
 
     result = job_service.process(user_id='test-user', job_id=job_id)
     assert result == {'code': 202, 'status': 'success'}
+
+
+def test_start_processing_sync_job(db_session, set_job_data, dag_folder):
+    job_service = get_configured_job_service(db_session)
+
+    job_data = load_json('pg')
+    _ = job_data.pop("title")
+    _ = job_data.pop("description")
+
+    result = job_service.process_sync(user_id='test-user', **job_data)
+    
+    assert 'result/sample-output.tif' in result['file']
+    _ = result.pop('file')
+    assert result == {'code': 200, 'status': 'success',
+                      'headers': {'Content-Type': 'image/tiff', 'OpenEO-Costs': 0}
+                      }
+    
+    # Clean up
+    shutil.rmtree("data/jb-12345")
+    shutil.rmtree("data/sync-results")
+    
