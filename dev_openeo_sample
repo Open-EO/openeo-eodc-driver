@@ -41,6 +41,7 @@ function oeo-capabilities-service() {
   source .env
   source envs/rabbitmq.env
   source envs/csw.env
+  source ./envs/gateway.env
   source envs/data.env
   nameko run --config services/data/config.yaml services.data.data.service
 }

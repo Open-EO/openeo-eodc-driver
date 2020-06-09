@@ -69,6 +69,7 @@ services:
       - ./envs/rabbitmq.env
       - ./envs/gateway.env
       - ./envs/users.env
+      - ./envs/files.env
     volumes:
       - ./gateway:/usr/src/app
       - files-data:/usr/src/files
@@ -76,7 +77,6 @@ services:
       - $LOG_DIR:/usr/src/logs
     environment:
       OPENEO_VERSION: $OPENEO_VERSION
-      UPLOAD_TMP_DIR: /usr/src/files/tmp
     ports:
       - $GATEWAY_PORT:3000
 
@@ -116,9 +116,10 @@ services:
       - ./envs/rabbitmq.env
       - ./envs/csw.env
       - ./envs/gateway.env
+      - ./envs/data.env
     environment:
       OPENEO_VERSION: $OPENEO_VERSION
-      CACHE_PATH: /usr/src/cache
+      LOG_DIR: /usr/src/logs
     volumes:
       - eo-discovery-cache:/usr/src/cache
       - ./services/data:/usr/src/app
@@ -142,6 +143,7 @@ services:
       - ./envs/processes.env
     environment:
       OPENEO_VERSION: $OPENEO_VERSION
+      LOG_DIR: /usr/src/logs
       PROCESS_API_DIR: /usr/src/api
     volumes:
       - process-api-data:/usr/src/api
@@ -171,6 +173,7 @@ services:
       AIRFLOW_DAGS: /usr/src/dags/
       SYNC_RESULTS_FOLDER: /usr/src/sync-results
       AIRFLOW_LOG_DIR: /usr/src/logs/airflow
+      LOG_DIR: /usr/src/logs
     volumes:
       - ./services/jobs:/usr/src/app
       - $AIRFLOW_DAGS:/usr/src/dags/
@@ -192,9 +195,11 @@ services:
       - openeo-base
     env_file:
       - ./envs/rabbitmq.env
+      - ./envs/files.env
     environment:
       OPENEO_VERSION: $OPENEO_VERSION
       OPENEO_FILES_DIR: /usr/src/files
+      LOG_DIR: /usr/src/logs
     volumes:
       - files-data:/usr/src/files
       - ./services/files:/usr/src/app

@@ -60,6 +60,7 @@ services:
       - ./envs/rabbitmq.env
       - ./envs/gateway.env
       - ./envs/users.env
+      - ./envs/files.env
     volumes:
       - ./gateway:/usr/src/app
       - files-data:/usr/src/files
@@ -67,7 +68,6 @@ services:
       - $LOG_DIR:/usr/src/logs
     environment:
       OPENEO_VERSION: $OPENEO_VERSION
-      UPLOAD_TMP_DIR: /usr/src/files/tmp
     ports:
       - $GATEWAY_PORT:3000
 
@@ -108,6 +108,7 @@ services:
       - ./envs/rabbitmq.env
       - ./envs/csw.env
       - ./envs/gateway.env
+      - ./envs/data.env
     environment:
       OPENEO_VERSION: $OPENEO_VERSION
       LOG_DIR: /usr/src/logs
@@ -186,6 +187,7 @@ services:
       - openeo-base
     env_file:
       - ./envs/rabbitmq.env
+      - ./envs/files.env
     environment:
       OPENEO_VERSION: $OPENEO_VERSION
       LOG_DIR: /usr/src/logs
