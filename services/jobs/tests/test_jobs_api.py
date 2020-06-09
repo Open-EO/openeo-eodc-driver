@@ -9,7 +9,7 @@ from nameko_sqlalchemy.database_session import Session
 
 from jobs.models import Job
 from jobs.service import JobService
-from tests.mocks import MockedAirflowConnection, MockedDagWriter, MockedProcessesService, PG_OLD_REF
+from tests.mocks import MockedAirflowConnection, MockedDagWriter, MockedProcessesService, MockedFilesService, PG_OLD_REF
 
 
 def load_json(filename: str) -> dict:
