@@ -3,7 +3,7 @@ import os
 import requests
 
 
-def test_collections():
+def test_collections() -> None:
     backend_url = "http://127.0.0.1:3000"
     basic_auth_url = backend_url + "/credentials/basic"
     collections_url = backend_url + "/collections"

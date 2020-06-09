@@ -4,10 +4,10 @@ import logging
 LOGGER = logging.getLogger("standardlog")
 
 
-class Extent:
+class Extent:  # noqa
     """ Represents spatial and temporal extent """
 
-    def __init__(self, spatial: list, temporal: list):
+    def __init__(self, spatial: list, temporal: list) -> None:
         self.spatial = spatial
         self.temporal = temporal
 
@@ -21,11 +21,10 @@ class Providers:
 class Link:
     """ Represents Links """
 
-    def __init__(self, href: str, rel: str, b_type: str = None, title: str = None):
+    def __init__(self, href: str, rel: str, b_type: str = None, title: str = None) -> None:
         self.href = href
         self.rel = rel
-        if b_type:
-            setattr(self, "type", b_type)  # Because 'type' is reserved in Python
+        self.type = b_type
         if title:
             self.title = title
 
@@ -42,15 +41,15 @@ class Band:
         offset: int,
         b_type: str,
         unit: str,
-        name: str = "",
-    ):
+        name: str = None,
+    ) -> None:
         self.band_id = band_id
-        self.name = name
+        self.name = name if name else ""
         self.wavelength_nm = wavelength_nm
         self.res_m = res_m
         self.scale = scale
         self.offset = offset
-        setattr(self, "type", b_type)  # Because 'type' is reserved in Python
+        self.type = b_type
         self.unit = unit
 
 
@@ -69,11 +68,11 @@ class Collection:
         keywords: list = None,
         providers: list = None,
         version: str = None,
-    ):
+    ) -> None:
         self.stac_version = stac_version
-        setattr(self, "id", b_id)  # Because 'id' is reserved in Python
+        self.id = b_id
         self.description = description
-        setattr(self, "license", b_license)  # Because 'license' is reserved in Python
+        self.license = b_license
         self.extent = extent
         self.links = links
         if title:
@@ -85,19 +84,19 @@ class Collection:
         if version:
             self.version = version
 
-        LOGGER.debug("Initialized %s from CSW", self)
+        LOGGER.debug(f"Initialized {self} from CSW")
 
-    def __repr__(self):
-        return "Collection({})".format(self.id)
+    def __repr__(self) -> str:
+        return f"Collection({self.id})"
 
 
 class Collections:
     """ Represents multiple collections """
 
-    def __init__(self, collections: list, links: list):
+    def __init__(self, collections: list, links: list) -> None:
         self.collections = collections
         self.links = links
         LOGGER.debug("Initialized %s", self)
 
-    def __repr__(self):
-        return "Collections({})".format(self.collections)
+    def __repr__(self) -> str:
+        return f"Collections({self.collections})"

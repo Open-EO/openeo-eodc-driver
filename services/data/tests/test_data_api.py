@@ -3,50 +3,50 @@ import os
 
 from nameko.testing.services import worker_factory
 
-from data.models import Collection, Extent, Link, Collections
 from data.service import DataService
+from data.models import Collection, Collections, Extent, Link
 
 collection_dict = {
-        "stac_version": "0.9.0",
-        "id": "s2a",
-        "title": "Sentinet-2A",
-        "description": "Sentinel-2A description",
-        "keywords": ["keyword1", "keyword2", "keyword3"],
-        "license": "Some license",
-        # provider?
-        "extent": {
-            "spatial": [12.3, 34.5, 14.5, 36.7],
-            "temporal": ["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"],
-        },
-        "links": [{
-            "rel": "alternate",
-            "href": "https://openeo.org/csw",
-            "title": "openEO catalog (OGC Catalogue Services 3.0)",
-        }]
-    }
+    "stac_version": "0.9.0",
+    "id": "s2a",
+    "title": "Sentinet-2A",
+    "description": "Sentinel-2A description",
+    "keywords": ["keyword1", "keyword2", "keyword3"],
+    "license": "Some license",
+    # provider?
+    "extent": {
+        "spatial": [12.3, 34.5, 14.5, 36.7],
+        "temporal": ["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"],
+    },
+    "links": [{
+        "rel": "alternate",
+        "href": "https://openeo.org/csw",
+        "title": "openEO catalog (OGC Catalogue Services 3.0)",
+    }]
+}
 
 
 collection_model = Collection(
-        stac_version="0.9.0",
-        b_id="s2a",
-        title="Sentinet-2A",
-        description="Sentinel-2A description",
-        keywords=["keyword1", "keyword2", "keyword3"],
-        b_license="Some license",
-        # provider?
-        extent=Extent(
-            spatial=[12.3, 34.5, 14.5, 36.7],
-            temporal=["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"],
-        ),
-        links=[Link(
-            rel="alternate",
-            href="https://openeo.org/csw",
-            title="openEO catalog (OGC Catalogue Services 3.0)",
-        )],
-    )
+    stac_version="0.9.0",
+    b_id="s2a",
+    title="Sentinet-2A",
+    description="Sentinel-2A description",
+    keywords=["keyword1", "keyword2", "keyword3"],
+    b_license="Some license",
+    # provider?
+    extent=Extent(
+        spatial=[12.3, 34.5, 14.5, 36.7],
+        temporal=["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"],
+    ),
+    links=[Link(
+        rel="alternate",
+        href="https://openeo.org/csw",
+        title="openEO catalog (OGC Catalogue Services 3.0)",
+    )],
+)
 
 
-def test_get_all_products():
+def test_get_all_products() -> None:
     data_service = worker_factory(DataService)
     data_service.csw_session.get_all_products.return_value = Collections([collection_model], [])
     result = data_service.get_all_products()
@@ -60,7 +60,7 @@ def test_get_all_products():
     }
 
 
-def test_get_product_detail():
+def test_get_product_detail() -> None:
     collection_id = "s2a_prd_msil1c"
     json_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "dependencies", "jsons",
                              collection_id + ".json")
@@ -77,6 +77,3 @@ def test_get_product_detail():
         "code": 200,
         "data": json_data,
     }
-
-
-
