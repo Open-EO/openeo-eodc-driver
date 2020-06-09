@@ -8,9 +8,9 @@ from typing import Optional, Union
 
 from nameko.rpc import rpc
 
-from data.dependencies.arg_parser import ArgParserProvider, ValidationError
-from data.dependencies.csw import CSWSession
-from data.schemas import CollectionSchema, CollectionsSchema
+from .dependencies.arg_parser import ArgParserProvider, ValidationError
+from .dependencies.csw import CSWSession
+from .schemas import CollectionSchema, CollectionsSchema
 
 service_name = "data"
 LOGGER = logging.getLogger("standardlog")
