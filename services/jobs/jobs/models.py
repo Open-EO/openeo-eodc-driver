@@ -1,14 +1,15 @@
 import enum
 from datetime import datetime
+from typing import Any
 
-from sqlalchemy import Column, Integer, String, DateTime, JSON, Enum
+from sqlalchemy import Column, DateTime, Enum, Integer, JSON, String
 from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+Base: Any = declarative_base()
 
 
 class JobStatus(enum.Enum):
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.value)
 
     created = "created"  # JobStatus should never be queued -> does not exist for a dag in airflow

@@ -9,6 +9,7 @@ The basic auth credentials (USERNAME, PASSWORD) of a registered have to be store
 
 import json
 import os
+from typing import Dict
 
 import requests
 
@@ -18,18 +19,18 @@ job_url = backend_url + '/jobs'
 sync_job_url = backend_url + '/result'
 
 
-def get_auth():
+def get_auth() -> Dict[str, str]:
     auth_response = requests.get(basic_auth_url, auth=(os.environ.get('USERNAME'), os.environ.get('PASSWORD')))
     return {'Authorization': 'Bearer basic//' + auth_response.json()['access_token']}
 
 
-def load_json(filename):
+def load_json(filename: str) -> dict:
     json_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data', filename + '.json')
     with open(json_path) as f:
         return json.load(f)
 
 
-def check_jobs():
+def check_jobs() -> None:
     job = load_json('pg')
     response_create = requests.post(job_url, json=job, headers=get_auth())
     print(f"Create response: {response_create.status_code}")

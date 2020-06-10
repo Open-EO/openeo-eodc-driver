@@ -13,33 +13,33 @@ airflow_job_status_mapper = {
 }
 
 
-class Airflow:
+class AirflowRestConnection:
+    """
+    This class handles REST requests to the Airflow instance.
     """
 
-    """
-
-    def __init__(self):
+    def __init__(self) -> None:
         """
-        
+        Initialise Airflow REST connection service
         """
         self.header = {'Cache-Control': 'no-cache ', 'content-type': 'application/json'}
         self.data = '{}'
 
-    def get_api_url(self):
-        return environ.get('AIRFLOW_HOST') + "/api/experimental"
-
-    def get_dags_url(self):
-        return environ.get('AIRFLOW_HOST') + "/api/experimental/dags"
-
-    def check_api(self):
+    def get_api_url(self) -> str:
         """
-        
+        Returns the base Airflow Rest url.
         """
-        return requests.get(self.get_api_url() + "/test")
+        return environ.get('AIRFLOW_HOST') + "/api/experimental"  # type: ignore
+
+    def get_dags_url(self) -> str:
+        """
+        Returns the Airflow dag url.
+        """
+        return environ.get('AIRFLOW_HOST') + "/api/experimental/dags"  # type: ignore
 
     def unpause_dag(self, job_id: str, unpause: bool = True) -> bool:
         """
-        Pause/unpause DAG
+        Pause/unpause dag
         """
         request_url = f"{self.get_dags_url()}/{job_id}/paused/{str(not unpause)}"
         response = requests.get(request_url, headers=self.header, data=self.data)
@@ -50,7 +50,7 @@ class Airflow:
 
     def trigger_dag(self, job_id: str) -> bool:
         """
-        Trigger airflow DAG (only works if it is unpaused already)
+        Trigger airflow dag
         """
         _ = self.unpause_dag(job_id)
         job_url = f"{self.get_dags_url()}/{job_id}/dag_runs"
@@ -59,7 +59,7 @@ class Airflow:
 
     def check_dag_status(self, job_id: str) -> Tuple[Optional[JobStatus], Optional[datetime]]:
         """
-        Check status of airflow DAG
+        Check status of airflow dag and return it
         """
         dag_status = None
         execution_date = None

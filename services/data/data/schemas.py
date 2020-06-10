@@ -1,22 +1,35 @@
 """ Schemas """
+from typing import Any, List
 
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, post_dump
 
 
-class ExtentSchema(Schema):
+class BaseSchema(Schema):
+    __skip_values__: List[Any] = [None, []]
+    __return_anyway__: List[str] = []
+
+    @post_dump
+    def remove_skip_values(self, data: dict, **kwargs: Any) -> dict:
+        return {
+            key: value for key, value in data.items()
+            if value not in self.__skip_values__ or key in self.__return_anyway__
+        }
+
+
+class ExtentSchema(BaseSchema):
     """ Schema for Extent """
 
     spatial = fields.List(fields.Float(), required=True)
     temporal = fields.List(fields.String(), required=True)
 
 
-class ProvidersSchema(Schema):
+class ProvidersSchema(BaseSchema):
     """ Schema for Provider """
 
     # TODO Missing items in DB
 
 
-class LinkSchema(Schema):
+class LinkSchema(BaseSchema):
     """ Schema for Links """
 
     href = fields.String(required=True)
@@ -25,7 +38,7 @@ class LinkSchema(Schema):
     title = fields.String()
 
 
-class BandSchema(Schema):
+class BandSchema(BaseSchema):
     """ Schema for Band """
 
     band_id = fields.String(required=True)
@@ -37,7 +50,7 @@ class BandSchema(Schema):
     wavelength_nm = fields.Float(required=True)
 
 
-class CollectionSchema(Schema):
+class CollectionSchema(BaseSchema):
     """ Schema for Collection """
 
     stac_version = fields.String(required=True)
@@ -52,11 +65,12 @@ class CollectionSchema(Schema):
     links = fields.List(fields.Nested(LinkSchema), required=True)
 
 
-class CollectionsSchema(Schema):
+class CollectionsSchema(BaseSchema):
     """ Schema for Collections """
+    __return_anyway__ = ["links"]
 
     collections = fields.List(
-        fields.Nested(CollectionSchema(exclude=["properties", "other_properties"])),
+        fields.Nested(CollectionSchema()),
         required=True,
     )
     links = fields.List(fields.Nested(LinkSchema), required=True)

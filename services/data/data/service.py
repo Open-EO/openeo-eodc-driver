@@ -1,10 +1,10 @@
 """ EO Data Discovery """
 
-import os
 import json
 import logging
-from typing import Union
+import os
 from pprint import pformat
+from typing import Optional, Union
 
 from nameko.rpc import rpc
 
@@ -17,20 +17,20 @@ LOGGER = logging.getLogger("standardlog")
 
 
 class ServiceException(Exception):
-    """ServiceException raises if an exception occured while processing the 
+    """ServiceException raises if an exception occured while processing the
     request. The ServiceException is mapping any exception to a serializable
     format for the API gateway.
     """
 
     def __init__(
-        self, code: int, user_id: str, msg: str, internal: bool = True, links: list = []
-    ):
+            self, code: int, user_id: Optional[str], msg: str, internal: bool = True, links: list = None
+    ) -> None:
         self._service = service_name
         self._code = code
-        self._user_id = user_id
+        self._user_id = user_id if user_id else "None"
         self._msg = msg
         self._internal = internal
-        self._links = links
+        self._links = links if links else []
         LOGGER.exception(msg, exc_info=True)
 
     def to_dict(self) -> dict:
@@ -56,19 +56,18 @@ class DataService:
     """
 
     name = service_name
-
     arg_parser = ArgParserProvider()
     csw_session = CSWSession()
 
-    def __init__(self):
-        LOGGER.info("Initialized %s", self)
+    def __init__(self) -> None:
+        LOGGER.info(f"Initialized {self}")
 
-    def __repr__(self):
-        return "DataService('{}')".format(self.name)
+    def __repr__(self) -> str:
+        return f"DataService('{self.name}')"
 
     @rpc
     def get_all_products(self, user_id: str = None) -> Union[list, dict]:
-        """Requests will ask the back-end for available data and will return an array of 
+        """Requests will ask the back-end for available data and will return an array of
         available datasets with very basic information such as their unique identifiers.
 
         Keyword Arguments:
@@ -82,7 +81,7 @@ class DataService:
         LOGGER.debug("user_id requesting %s", user_id)
         try:
             product_records = self.csw_session.get_all_products()
-            response = CollectionsSchema().dump(product_records).data
+            response = CollectionsSchema().dump(product_records)
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
@@ -96,7 +95,7 @@ class DataService:
 
     @rpc
     def get_product_detail(
-        self, user_id: str = None, collection_id: str = None
+            self, user_id: str = None, collection_id: str = None
     ) -> dict:
         """The request will ask the back-end for further details about a dataset.
 
@@ -110,22 +109,23 @@ class DataService:
 
         try:
             LOGGER.info("%s product requested", collection_id)
-            collection_id = self.arg_parser.parse_product(collection_id)
-            product_record = self.csw_session.get_product(collection_id)
-            response = CollectionSchema().dump(product_record).data
+            product_id = self.arg_parser.parse_product(collection_id)
+            product_record = self.csw_session.get_product(product_id)
+            response = CollectionSchema().dump(product_record)
 
             # Add cube:dimensions and summaries
             json_file = os.path.join(
                 os.path.dirname(__file__),
                 "dependencies",
                 "jsons",
-                collection_id + ".json",
+                product_id + ".json",
             )
             if json_file:
                 with open(json_file) as file_json:
                     json_data = json.load(file_json)
                     for key in json_data.keys():
                         response[key] = json_data[key]
+            # TODO: what if json_file does not exist?
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}

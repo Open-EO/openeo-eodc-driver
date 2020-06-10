@@ -1,11 +1,11 @@
 import os
 from datetime import datetime
-from typing import Tuple, Optional
+from typing import Any, Dict, Optional, Tuple
 from unittest.mock import MagicMock
 
 from jobs.models import JobStatus
 
-PG_OLD_REF = {
+PG_OLD_REF: dict = {
     "status": "success",
     "code": 200,
     "data": {
@@ -53,7 +53,8 @@ PG_OLD_REF = {
                 "minItems": 0
             }
         },
-        "description": "Computes the Enhanced Vegetation Index (EVI). It is computed with the following formula: `2.5 * (NIR - RED) / (1 + NIR + 6*RED + -7.5*BLUE)`.",
+        "description": "Computes the Enhanced Vegetation Index (EVI). It is computed with the following formula:"
+                       " `2.5 * (NIR - RED) / (1 + NIR + 6*RED + -7.5*BLUE)`.",
         "process_graph": {
             "sub": {
                 "process_id": "subtract",
@@ -172,7 +173,7 @@ PG_OLD_REF = {
 
 class MockedAirflowConnection:
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def unpause_dag(self, job_id: str, unpause: bool = True) -> bool:
@@ -188,40 +189,40 @@ class MockedAirflowConnection:
         return True
 
 
-class MockedDagDomain:
+class MockedDagDomain:  # noqa
 
-    def __init__(self, filepath):
+    def __init__(self, filepath: str) -> None:
         self.filepath = filepath
 
 
 class MockedDagWriter(MagicMock):
 
-    def write_and_move_job(self, job_id, **kwargs):
+    def write_and_move_job(self, job_id: str, **kwargs: Any) -> None:
         dag_file = os.path.join(os.environ['AIRFLOW_DAGS'], f'dag_{job_id}.py')
         open(dag_file, 'a').close()
 
 
 class MockedProcessesService(MagicMock):
 
-    def get_user_defined(self, user_id, process_graph_id):
+    def get_user_defined(self, user_id: str, process_graph_id: str) -> dict:
         return PG_OLD_REF
 
-    def put_user_defined_pg(self, user_id, process_graph_id, **process):
+    def put_user_defined_pg(self, user_id: str, process_graph_id: str, **process: Any) -> Dict[str, Any]:
         return {
             'status': 'success',
             "code": 200,
         }
-        
+
 
 class MockedFilesService(MagicMock):
 
-    def get_job_output(self, user_id, job_id):
+    def get_job_output(self, user_id: str, job_id: str) -> Dict[str, Any]:
         job_folder = self.setup_jobs_result_folder(user_id, job_id)
         return {
             "status": "success",
             "code": 200,
             "data": {"file_list": [os.path.join(job_folder, "result", "sample-output.tif")]}
         }
-        
-    def setup_jobs_result_folder(self, user_id, job_id):
+
+    def setup_jobs_result_folder(self, user_id: str, job_id: str) -> str:
         return os.environ['JOB_FOLDER']

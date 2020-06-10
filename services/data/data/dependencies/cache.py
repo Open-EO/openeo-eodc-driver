@@ -1,13 +1,13 @@
 """ Module that contains caching functions """
 
+import logging
 from json import dumps, loads
 from os import path
-import logging
 
 LOGGER = logging.getLogger("standardlog")
 
 
-def cache_json(records: list, path_to_cache: str):
+def cache_json(records: list, path_to_cache: str) -> None:
     """Stores the output to a json file with the id if single record or
     to a full collection json file
 
@@ -60,7 +60,10 @@ def get_cache_path(
 
     if series and not product:
         path_to_cache = path.join(cache_path_dir, "collections.json")
-    else:
+    elif product:
         path_to_cache = path.join(cache_path_dir, product + ".json")
+    else:
+        raise OSError("Cache path can not be retieved. Either a product name has to be provided or the series flag and"
+                      " no product name has to be given.")
 
     return path_to_cache

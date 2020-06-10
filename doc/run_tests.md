@@ -1,6 +1,8 @@
 # Running tests
 
-This documents describes how to run test. Currently only covering the microservices.
+This documents describes how to run test. In general we use unittests and integration tests.
+
+# Microservice Tests
 
 ## Prerequisites
 
@@ -103,4 +105,13 @@ annotation checks for imported packages. Add the following section to ignore `py
 ```ini
 [mypy-nox.*,pytest]
 ignore_missing_imports = True
+```
+
+# Integration tests
+
+To be updated.
+A first implementation is found in some micro-services. In the tests folder of the microservice copy the file `sample-auth` to `auth` (which is not tracked by git) and fill the credentials of an existing user in your users-db. With the API running, run the following (e.g. in the files microservice):
+
+```
+python tests/rest_calls.py
 ```

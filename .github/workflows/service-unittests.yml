@@ -1,5 +1,5 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+# This workflow will install Python dependencies, run tests, lint and do static type analysis using nox
+# Each microservice is tested by its own job
 
 name: Micorservice Unittests
 
@@ -15,89 +15,88 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.6]
         os: [ubuntu-18.04]
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.6
       uses: actions/setup-python@v1
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r services/capabilities/requirements.txt
-        pip install -r services/capabilities/requirements-test.txt
-    - name: Test with pytest
-      run: |
-        pytest services/capabilities/tests
+        python-version: 3.6
+    - name: Install nox
+      run: pip install nox==2020.5.24
+    - name: Test with nox
+      run: cd services/capabilities && nox
+
+  data:
+    name: Data-Service
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.6
+      - name: Install nox
+        run: pip install nox==2020.5.24
+      - name: Test with nox
+        run: cd services/data && nox
+
 
   files:
     name: Files-Service
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.6]
         os: [ubuntu-18.04]
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.6
         uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r services/files/requirements.txt
-          pip install -r services/files/requirements-test.txt
-      - name: Test with pytest
-        run: |
-          pytest services/files/tests
+          python-version: 3.6
+      - name: Install nox
+        run: pip install nox==2020.5.24
+      - name: Test with nox
+        run: cd services/files && nox
 
   processes:
     name: Processes-Service
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.6]
         os: [ubuntu-18.04]
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.6
         uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r services/processes/requirements.txt
-          pip install -r services/processes/requirements-test.txt
-      - name: Test with pytest
-        run: |
-          pytest services/processes/tests
+          python-version: 3.6
+      - name: Install nox
+        run: pip install nox==2020.5.24
+      - name: Test with nox
+        run: cd services/processes && nox
 
   jobs:
     name: Jobs-Service
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.6]
         os: [ubuntu-18.04]
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.6
         uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r services/jobs/requirements.txt
-          pip install -r services/jobs/requirements-test.txt
-      - name: Test with pytest
-        run: |
-          pytest services/jobs/tests
+          python-version: 3.6
+      - name: Install nox
+        run: pip install nox==2020.5.24
+      - name: Test with nox
+        run: cd services/jobs && nox

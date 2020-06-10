@@ -5,13 +5,10 @@ Revises: 66a28397b413
 Create Date: 2020-03-17 18:31:00.819754
 
 """
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
-from sqlalchemy import func
-
 revision = 'e773c1a9c7f9'
 down_revision = '66a28397b413'
 branch_labels = None
@@ -31,7 +28,8 @@ def upgrade():
         sa.Column('return_type', sa.String(), nullable=True),
     )
     op.create_foreign_key('example_process_graph_fkey', 'example', 'process_graphs', ['process_graph_id'], ['id'])
-    op.create_check_constraint('check_process_graph_or_arguments', 'example', 'process_graph' != None or 'arguments' != None)
+    op.create_check_constraint('check_process_graph_or_arguments', 'example',
+                               'process_graph' != None or 'arguments' != None)
 
     op.add_column('parameter', sa.Column('default_type', sa.String(), nullable=True))
     op.add_column('schema', sa.Column('additional', sa.JSON(), nullable=True))

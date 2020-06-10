@@ -17,9 +17,7 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column('process_graphs',
-        sa.Column('process_graph', sa.JSON(), default={})
-    )
+    op.add_column('process_graphs', sa.Column('process_graph', sa.JSON(), default={}))
 
 
 def downgrade():

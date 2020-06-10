@@ -1,14 +1,15 @@
 """ Processes Models """
 
-from datetime import datetime
 import enum
+from datetime import datetime
+from typing import Any, Tuple
 
-from sqlalchemy import Column, String, TEXT, DateTime, JSON, Boolean, Enum, Float, CheckConstraint, ForeignKey, Integer, \
-    UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Enum, Float, ForeignKey, Integer, JSON, String,\
+    TEXT, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-Base = declarative_base()
+Base: Any = declarative_base()
 
 data_type_enum = Enum(
     'array',
@@ -51,7 +52,8 @@ class ProcessGraph(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     categories = relationship('Category', cascade='all, delete, delete-orphan')
-    parameters = relationship('Parameter', foreign_keys='Parameter.process_graph_id', cascade='all, delete, delete-orphan')
+    parameters = relationship('Parameter', foreign_keys='Parameter.process_graph_id',
+                              cascade='all, delete, delete-orphan')
     returns = relationship('Return', uselist=False, cascade='all, delete, delete-orphan')
     exceptions = relationship('ExceptionCode', cascade='all, delete, delete-orphan')
     links = relationship('Link', cascade='all, delete, delete-orphan')
@@ -73,7 +75,7 @@ class Example(Base):
     returns = Column(String, nullable=True)
     return_type = Column(String, nullable=True)
 
-    CheckConstraint('process_graph' != None or 'arguments' != None, name='check_process_graph_or_arguments')
+    CheckConstraint('process_graph' != None or 'arguments' != None, name='check_process_graph_or_arguments')  # noqa
 
 
 class Parameter(Base):
@@ -134,7 +136,7 @@ class Schema(Base):
     enums = relationship('SchemaEnum', cascade='all, delete, delete-orphan')
     parameters = relationship('Parameter', foreign_keys='Parameter.schema_id', cascade='all, delete, delete-orphan')
 
-    __table_args__ = (
+    __table_args__: Tuple = (
         CheckConstraint(min_items >= 0, name='check_min_items_positive'),
         CheckConstraint(max_items >= 0, name='check_max_items_positive'),
         {})

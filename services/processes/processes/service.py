@@ -3,17 +3,16 @@ import json
 import logging
 import os
 from copy import deepcopy
-from typing import Tuple, Optional
+from typing import Any, Optional
 
 import requests
 from jsonschema import ValidationError
-from nameko.rpc import rpc, RpcProxy
+from nameko.rpc import RpcProxy, rpc
 from nameko_sqlalchemy import DatabaseSession
 from openeo_pg_parser_python.validate import validate_process_graph
 
-from .dependencies import NodeParser, Validator
-from .models import Base, ProcessGraph, ProcessDefinitionEnum
-from .schema import ProcessGraphShortSchema, ProcessGraphFullSchema, ProcessGraphPredefinedSchema
+from processes.models import Base, ProcessDefinitionEnum, ProcessGraph
+from processes.schema import ProcessGraphFullSchema, ProcessGraphPredefinedSchema, ProcessGraphShortSchema
 
 service_name = "processes"
 LOGGER = logging.getLogger('standardlog')
@@ -25,7 +24,8 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, service: str, code: int, user_id: str, msg: str, internal: bool = True, links: list = None):
+    def __init__(self, service: str, code: int, user_id: Optional[str], msg: str, internal: bool = True,
+                 links: list = None) -> None:
         if not links:
             links = []
         self._service = service
@@ -61,8 +61,6 @@ class ProcessesService:
     name = service_name
     db = DatabaseSession(Base)
     data_service = RpcProxy("data")
-    validator = Validator()
-    node_parser = NodeParser()
 
     @rpc
     def get_user_defined(self, user_id: str, process_graph_id: str) -> dict:
@@ -77,9 +75,9 @@ class ProcessesService:
                 .filter_by(id_openeo=process_graph_id) \
                 .filter_by(process_definition=ProcessDefinitionEnum.user_defined) \
                 .first()
-            valid, response = self._exist_and_authorize(user_id, process_graph_id, process_graph)
-            if not valid:
-                return response
+            response = self._exist_and_authorize(user_id, process_graph_id, process_graph)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
             self.db.refresh(process_graph)  # To ensure the object is always taken from the db
             LOGGER.info(f"Return user-defined ProcessGraph {process_graph_id}.")
             return {
@@ -101,9 +99,9 @@ class ProcessesService:
         try:
             # Check process graph exists and user is allowed to access / delete it
             process_graph = self.db.query(ProcessGraph).filter_by(id_openeo=process_graph_id).first()
-            valid, response = self._exist_and_authorize(user_id, process_graph_id, process_graph)
-            if not valid:
-                return response
+            response = self._exist_and_authorize(user_id, process_graph_id, process_graph)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             self.db.delete(process_graph)
             self.db.commit()
@@ -168,7 +166,7 @@ class ProcessesService:
                                     links=["#tag/Job-Management/paths/~1process_graphs/get"]).to_dict()
 
     @rpc
-    def put_predefined(self, process_name: str, user_id: str = None, **process_args) -> dict:
+    def put_predefined(self, process_name: str, user_id: str = None, **process_args: Any) -> dict:
         """The request will ask the back-end to add the process from GitHub using the process_name.
 
         Arguments:
@@ -180,12 +178,12 @@ class ProcessesService:
 
         # TODO how to handle process extensions
         try:
-            process_url = os.environ.get('PROCESSES_GITHUB_URL') + process_name + '.json'
+            process_url = os.environ.get('PROCESSES_GITHUB_URL') + process_name + '.json'  # type: ignore
             process_graph_response = requests.get(process_url)
             if process_graph_response.status_code != 200:
                 return ServiceException(ProcessesService.name, process_graph_response.status_code,
                                         user_id, str(process_graph_response.text)).to_dict()
-            LOGGER.debug(f"Pre-defined Process {process_name} description is available in GitHub.")
+            LOGGER.debug(f"Pre-defined Process {process_name} description is available on GitHub.")
 
             process_graph = self.db.query(ProcessGraph).filter_by(id_openeo=process_name).first()
             if process_graph:
@@ -211,30 +209,31 @@ class ProcessesService:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
 
     @rpc
-    def put_user_defined(self, user_id: str, process_graph_id: str, **process_graph_args) -> dict:
-        """The request will ask the back-end to create a new process graph using the description send in the request body.
+    def put_user_defined(self, user_id: str, process_graph_id: str, **process_graph_args: Any) -> dict:
+        """
+        The request will ask the back-end to create a new process graph using the description send in the request body.
 
         Arguments:
             user_id {str} -- The identifier of the user
             process_graph_id {str} -- The identifier of the process graph
-            **process_graph_args {dict} -- The dictionary containing information needed to create a ProcessGraph
+            process_graph_args {Dict[str, Any]} -- The dictionary containing information needed to create a ProcessGraph
         """
 
         try:
-            valid, response = self._check_not_in_predefined(user_id, process_graph_id)
-            if not valid:
-                return response
+            response = self._check_not_in_predefined(user_id, process_graph_id)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             process_graph_args['id'] = process_graph_id  # path parameter overwrites id in json
-            validate = self.validate(user_id, **deepcopy(process_graph_args))
-            if validate["status"] == "error":
-                return validate
+            validate_result = self.validate(user_id, **deepcopy(process_graph_args))
+            if validate_result["status"] == "error":
+                return validate_result
 
             process_graph = self.db.query(ProcessGraph).filter_by(id_openeo=process_graph_id).first()
             if process_graph:
-                valid, response = self._authorize(user_id, process_graph)
-                if not valid:
-                    return response
+                response = self._authorize(user_id, process_graph)
+                if isinstance(response, ServiceException):
+                    return response.to_dict()
                 process_graph_args['id_internal'] = process_graph.id
 
             process_graph_args['process_definition'] = ProcessDefinitionEnum.user_defined
@@ -274,7 +273,8 @@ class ProcessesService:
                 return data_response
             collections = data_response["data"]["collections"]
 
-            valid = validate_process_graph(process['process_graph'], processes_src=processes, collections_src=collections)
+            valid = validate_process_graph(process['process_graph'], processes_src=processes,
+                                           collections_src=collections)
             if valid:
                 output_errors = []
             else:
@@ -297,7 +297,7 @@ class ProcessesService:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
 
     def _exist_and_authorize(self, user_id: str, process_graph_id: str, process_graph: ProcessGraph) \
-            -> Tuple[bool, Optional[dict]]:
+            -> Optional[ServiceException]:
         """Return Exception if given ProcessGraph does not exist or User is not allowed to access this ProcessGraph.
 
         Arguments:
@@ -306,17 +306,17 @@ class ProcessesService:
             process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
         """
         exists = self._check_exists(user_id, process_graph_id, process_graph)
-        if not exists[0]:
+        if isinstance(exists, ServiceException):
             return exists
 
         auth = self._authorize(user_id, process_graph)
-        if not auth[0]:
+        if not isinstance(auth, ServiceException):
             return auth
 
-        return True, None
+        return None
 
     def _check_exists(self, user_id: str, process_graph_id: str, process_graph: ProcessGraph) \
-            -> Tuple[bool, Optional[dict]]:
+            -> Optional[ServiceException]:
         """Return Exception if given ProcessGraph does not exist.
 
         Arguments:
@@ -325,14 +325,13 @@ class ProcessesService:
             process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
         """
         if process_graph is None:
-            return False, ServiceException(ProcessesService.name, 400, user_id,
-                                           f"The process_graph with id '{process_graph_id}' does not exist.",
-                                           internal=False,
-                                           links=[]).to_dict()
+            return ServiceException(ProcessesService.name, 400, user_id,
+                                    f"The process_graph with id '{process_graph_id}' does not exist.", internal=False,
+                                    links=[])
         LOGGER.info(f"ProcessGraph {process_graph_id} exists.")
-        return True, None
+        return None
 
-    def _authorize(self, user_id: str, process_graph: ProcessGraph) -> Tuple[bool, Optional[dict]]:
+    def _authorize(self, user_id: str, process_graph: ProcessGraph) -> Optional[ServiceException]:
         """Return Exception if the User is not allowed to access this ProcessGraph.
 
         Arguments:
@@ -340,16 +339,15 @@ class ProcessesService:
             process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
         """
         if not process_graph:
-            return True, None
+            return None
         # TODO: Permission (e.g admin)
         if process_graph.user_id != user_id:
-            return False, ServiceException(ProcessesService.name, 401, user_id,
-                                           "You are not allowed to access this resource.", internal=False,
-                                           links=[]).to_dict()
-        LOGGER.info(f"User {user_id} is authorized to access ProcesGraph {process_graph.id}")
-        return True, None
+            return ServiceException(ProcessesService.name, 401, user_id,
+                                    "You are not allowed to access this resource.", internal=False, links=[])
+        LOGGER.info(f"User {user_id} is authorized to access ProcessGraph {process_graph.id}")
+        return None
 
-    def _check_not_in_predefined(self, user_id: str, process_graph_id: str):
+    def _check_not_in_predefined(self, user_id: str, process_graph_id: str) -> Optional[ServiceException]:
         """
         Return Exception if the process_graph_id is defined as pre-defined process.
 
@@ -361,9 +359,9 @@ class ProcessesService:
                               self.db.query(ProcessGraph.id_openeo)
                               .filter_by(process_definition=ProcessDefinitionEnum.predefined).all()))
         if process_graph_id in predefined:
-            return False, ServiceException(ProcessesService.name, 400, user_id,
-                                           f"The process_graph_id {process_graph_id} is not allowed, as it corresponds"
-                                           f" to a predefined process. Please use another process_graph_id. E.g. "
-                                           f"user_{process_graph_id}", internal=False, links=[]).to_dict()
+            return ServiceException(ProcessesService.name, 400, user_id,
+                                    f"The process_graph_id {process_graph_id} is not allowed, as it corresponds"
+                                    f" to a predefined process. Please use another process_graph_id. E.g. "
+                                    f"user_{process_graph_id}", internal=False, links=[])
         LOGGER.debug(f"ProcessGraphId {process_graph_id} is not a predefined process")
-        return True, None
+        return None

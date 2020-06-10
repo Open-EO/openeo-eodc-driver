@@ -1,5 +1,5 @@
 """Aliases for products, to enable the finding of product with different specifiers.
-** Might be deprecated, if this information is included in the CSW database ** 
+** Might be deprecated, if this information is included in the CSW database **
 """
 
 product_aliases = [

@@ -4,18 +4,19 @@ import logging
 import os
 import shutil
 import threading
+from collections import namedtuple
 from datetime import datetime
 from time import sleep
-from typing import Tuple, Optional
+from typing import Any, Optional
 from uuid import uuid4
-from collections import namedtuple
+
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
-from nameko.rpc import rpc, RpcProxy
+from nameko.rpc import RpcProxy, rpc
 from nameko_sqlalchemy import DatabaseSession
 
-from .dependencies.airflow_conn import Airflow
+from .dependencies.airflow_conn import AirflowRestConnection
 from .models import Base, Job, JobStatus
-from .schema import JobShortSchema, JobFullSchema, JobResultsSchema, JobCreateSchema
+from .schema import JobCreateSchema, JobFullSchema, JobResultsSchema, JobShortSchema
 
 service_name = "jobs"
 LOGGER = logging.getLogger('standardlog')
@@ -27,7 +28,7 @@ class ServiceException(Exception):
     format for the API gateway.
     """
 
-    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None):
+    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None) -> None:
         if not links:
             links = []
 
@@ -59,13 +60,14 @@ class ServiceException(Exception):
 
 class JobLocked(ServiceException):
     """ JobLocked raised if job is queued / running when trying to modify it. """
-    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None):
+    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None) -> None:
         super(JobLocked, self).__init__(code, user_id, msg, internal, links)
 
 
 class JobNotFinished(ServiceException):
     """ JobNotFinished raised if job is not finished but results are requested . """
-    def __init__(self, code: int, user_id: str, job_id: str, msg: str = None, internal: bool = True, links: list = None):
+    def __init__(self, code: int, user_id: str, job_id: str, msg: str = None, internal: bool = True,
+                 links: list = None) -> None:
         if not msg:
             msg = f"Job {job_id} is not yet finished. Results cannot be accessed."
         super().__init__(code, user_id, msg, internal, links)
@@ -79,7 +81,7 @@ class JobService:
     db = DatabaseSession(Base)
     processes_service = RpcProxy("processes")
     files_service = RpcProxy("files")
-    airflow = Airflow()
+    airflow = AirflowRestConnection()
     dag_writer = AirflowDagWriter()
     check_stop_interval = 5  # should be similar or smaller than Airflow sensor's poke interval
 
@@ -93,15 +95,15 @@ class JobService:
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             self._update_job_status(job_id=job_id)
-            response = self.processes_service.get_user_defined(user_id, job.process_graph_id)
-            if response["status"] == "error":
-                return response
-            job.process = response["data"]["process_graph"]
+            process_response = self.processes_service.get_user_defined(user_id, job.process_graph_id)
+            if process_response["status"] == "error":
+                return process_response
+            job.process = process_response["data"]["process_graph"]
 
             return {
                 "status": "success",
@@ -112,18 +114,19 @@ class JobService:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
     @rpc
-    def modify(self, user_id: str, job_id: str, **job_args) -> dict:
+    def modify(self, user_id: str, job_id: str, **job_args: Any) -> dict:
         """The request will ask the back-end to modify the job with the given job_id.
 
         Arguments:
             user_id {str} -- The identifier of the user
             job_id {str} -- The id of the job
+            job_args {Dict[str, Any]} -- The job arguments to be moified
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.queued, JobStatus.running]:
@@ -178,9 +181,9 @@ class JobService:
         try:
             LOGGER.debug(f"Start deleting job {job_id}")
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.running, JobStatus.queued]:
@@ -229,12 +232,12 @@ class JobService:
                                     links=["#tag/Job-Management/paths/~1jobs/get"]).to_dict()
 
     @rpc
-    def create(self, user_id: str, **job_args) -> dict:
+    def create(self, user_id: str, **job_args: Any) -> dict:
         """The request will ask the back-end to create a new job using the description send in the request body.
 
         Arguments:
             user_id {str} -- The identifier of the user
-            job_args {dict} -- The information needed to create a job
+            job_args {Dict[str, Any]} -- The information needed to create a job
         """
         try:
             LOGGER.debug("Start creating job...")
@@ -291,9 +294,9 @@ class JobService:
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.queued, JobStatus.running]:
@@ -312,32 +315,30 @@ class JobService:
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
-    
-    
+
     @rpc
-    def process_sync(self, user_id: str, **job_args) -> dict:
+    def process_sync(self, user_id: str, **job_args: Any) -> dict:
         """The request will ask the back-end to start the processing of the given job.
         The job needs to exist on the back-end and must not already be queued or running.
 
         Arguments:
             user_id {str} -- The identifier of the user
             job_args {dict} -- The information needed to create a job
-        
         """
-        
+
         TypeMap = namedtuple('TypeMap', 'file_extension content_type')
         type_map = {
             'Gtiff': TypeMap('tif', 'image/tiff'),
             'png': TypeMap('png', 'image/png'),
             'jpeg': TypeMap('jpeg', 'image/jpeg'),
         }
-        
+
         try:
             # TODO: implement a check that the job qualifies for sync-processing
             # it has to be a "small" job, e.g. constriants for timespan and bboux, but also on spatial resolution
-            
+
             # Create Job
-            LOGGER.info(f"Creating job for sync processing.")
+            LOGGER.info("Creating job for sync processing.")
             job_args['vrt_flag'] = False
             response_create = self.create(user_id=user_id, **job_args)
             if response_create['status'] == 'error':
@@ -349,7 +350,7 @@ class JobService:
             response_process = self.process(user_id=user_id, job_id=job_id)
             if response_process['status'] == 'error':
                 return ServiceException(500, user_id, str(response_process['msg']), links=[]).to_dict()
-            
+
             LOGGER.info(f"Job {job_id} is running.")
             self._update_job_status(job_id=job_id)
             while job.status in [JobStatus.queued, JobStatus.running]:
@@ -358,7 +359,7 @@ class JobService:
             if job.status in [JobStatus.error, JobStatus.canceled]:
                 msg = f"Job {job_id} has status: {job.status}."
                 return ServiceException(500, user_id, msg, links=[]).to_dict()
-                
+
             LOGGER.info(f"Job {job_id} has been processed.")
             self.airflow.unpause_dag(job_id=job_id, unpause=False)  # just to hide from view on default Airflow web view
             response_files = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
@@ -368,13 +369,14 @@ class JobService:
 
             filepath = response_files['data']['file_list'][0]
             fmt = self.map_output_format(filepath.split('.')[-1])
-            
+
             # Copy directory to tmp location
-            job_folder = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id).replace('/result', '')
-            job_tmp_folder = os.path.join(os.environ.get("SYNC_RESULTS_FOLDER"), job_id)
+            job_folder = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)\
+                .replace('/result', '')
+            job_tmp_folder = os.path.join(os.environ.get("SYNC_RESULTS_FOLDER"), job_id)  # type: ignore
             shutil.copytree(job_folder, job_tmp_folder)
             filepath = filepath.replace(job_folder, job_tmp_folder)
-            
+
             # Remove job data (sync jobs must not be stored)
             response_delete = self.delete(user_id=user_id, job_id=job_id)
             if response_delete["status"] == "error":
@@ -383,7 +385,7 @@ class JobService:
 
             # Schedule async deletion of tmp folder
             threading.Thread(target=self._delayed_delete, args=(job_tmp_folder, )).start()
-            
+
             return {
                 "status": "success",
                 "code": 200,
@@ -393,7 +395,7 @@ class JobService:
                 },
                 "file": filepath
             }
-    
+
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
@@ -417,7 +419,7 @@ class JobService:
         }
 
     @rpc
-    def cancel_processing(self, user_id: str, job_id: str):
+    def cancel_processing(self, user_id: str, job_id: str) -> dict:
         """The request will ask the back-end to cancel the processing of the given job.
         This will stop the processing if the job is currently queued or running and remove all not persistent result.
         The job itself and results are kept.
@@ -430,9 +432,9 @@ class JobService:
             # TODO handle costs (stop it)
             LOGGER.debug(f"Start canceling job {job_id}")
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.running, JobStatus.queued]:
@@ -458,7 +460,7 @@ class JobService:
                                     links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
 
     @rpc
-    def get_results(self, user_id: str, job_id: str):
+    def get_results(self, user_id: str, job_id: str) -> dict:
         """The request will ask the back-end to get the location where the results of the given job can be retrieved.
         This only works if the job is in state finished.
 
@@ -469,18 +471,18 @@ class JobService:
         try:
             self._update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
-            valid, response = self.authorize(user_id, job_id, job)
-            if not valid:
-                return response
+            response = self.authorize(user_id, job_id, job)
+            if isinstance(response, ServiceException):
+                return response.to_dict()
 
             if job.status == JobStatus.error:
-                return ServiceException(424, user_id, job.error, internal=False)  # TODO store error!
+                return ServiceException(424, user_id, job.error, internal=False).to_dict()  # TODO store error!
 
             if job.status == JobStatus.canceled:
-                return ServiceException(400, user_id, f"Job {job_id} was canceled.")
+                return ServiceException(400, user_id, f"Job {job_id} was canceled.").to_dict()
 
             if job.status in [JobStatus.created, JobStatus.queued, JobStatus.running]:
-                return JobNotFinished(400, user_id, job_id, internal=False)
+                return JobNotFinished(400, user_id, job_id, internal=False).to_dict()
 
             # Job status is "finished"
             output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
@@ -506,7 +508,7 @@ class JobService:
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
 
-    def _get_download_url(self, public_path: str):
+    def _get_download_url(self, public_path: str) -> str:
         """ This will create the public url where result data can be downloaded
 
         Arguments:
@@ -515,10 +517,10 @@ class JobService:
         Returns:
             str -- Complete url path
         """
-        return os.path.join(os.environ.get("GATEWAY_URL"), "downloads", public_path)
+        return os.path.join(os.environ.get("GATEWAY_URL"), "downloads", public_path)  # type: ignore
 
     @staticmethod
-    def authorize(user_id: str, job_id: str, job: Job) -> Tuple[bool, Optional[dict]]:
+    def authorize(user_id: str, job_id: str, job: Job) -> Optional[ServiceException]:
         """Return Exception if given Job does not exist or User is not allowed to access this Job.
 
         Arguments:
@@ -527,16 +529,16 @@ class JobService:
             job {ProcessGraph} -- The Job object for the given job_id
         """
         if job is None:
-            return False, ServiceException(400, user_id, f"The job with id '{job_id}' does not exist.",
-                                           internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
+            return ServiceException(400, user_id, f"The job with id '{job_id}' does not exist.",
+                                    internal=False, links=["#tag/Job-Management/paths/~1data/get"])
 
         # TODO: Permission (e.g admin)
         if job.user_id != user_id:
-            return False, ServiceException(401, user_id, "You are not allowed to access this resource.",
-                                           internal=False, links=["#tag/Job-Management/paths/~1data/get"]).to_dict()
+            return ServiceException(401, user_id, "You are not allowed to access this resource.",
+                                    internal=False, links=["#tag/Job-Management/paths/~1data/get"])
 
         LOGGER.info(f"User is authorized to access job {job_id}.")
-        return True, None
+        return None
 
     def _update_job_status(self, job_id: str, manual_status: JobStatus = None) -> None:
         """Updates the job status.
@@ -590,7 +592,7 @@ class JobService:
         Returns:
             str -- Absolute location of the dag on the file system
         """
-        return os.path.join(os.environ.get("AIRFLOW_DAGS"), dag_id)
+        return os.path.join(os.environ.get("AIRFLOW_DAGS"), dag_id)  # type: ignore
 
     def _stop_airflow_job(self, user_id: str, job_id: str) -> None:
         """This triggers the airflow observer to set all running task to failed.
@@ -608,25 +610,23 @@ class JobService:
             LOGGER.info("Waiting for airflow sensor to detect STOP file...")
             sleep(self.check_stop_interval)
             job_stopped = self.airflow.check_dag_status(job_id) != JobStatus.running
-            
+
     @staticmethod
-    def map_output_format(output_format):
+    def map_output_format(output_format: str) -> str:
         out_map = [(['Gtiff', 'GTiff', 'tif', 'tiff'], 'Gtiff'),
                    (['jpg', 'jpeg'], 'jpeg'),
                    (['png'], 'png')
                    ]
-        for l, out in out_map:
-            if output_format in l:
-                return out
+        for synonyms, out_name in out_map:
+            if output_format in synonyms:
+                return out_name
         raise ValueError('{} is not a supported output format'.format(output_format))
-        
-    
-    def _delayed_delete(self, folder_path):
+
+    def _delayed_delete(self, folder_path: str) -> None:
         """
-        
         """
-        
+
         # Wait n minutes (allow for enough time to stream file(s) to user)
-        sleep(os.environ['SYNC_DEL_DELAY'])
+        sleep(float(os.environ['SYNC_DEL_DELAY']))
         # Remove tmp folder
         shutil.rmtree(folder_path)
