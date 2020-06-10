@@ -3,8 +3,8 @@ import os
 
 from nameko.testing.services import worker_factory
 
-from data.service import DataService
 from data.models import Collection, Collections, Extent, Link
+from data.service import DataService
 
 collection_dict = {
     "stac_version": "0.9.0",

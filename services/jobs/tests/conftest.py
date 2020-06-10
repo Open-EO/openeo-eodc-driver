@@ -36,12 +36,13 @@ def model_base() -> Base:
 def set_job_data() -> None:
     os.environ['JOB_DATA'] = ''
     os.environ['SYNC_RESULTS_FOLDER'] = os.path.join(get_test_data_folder(), 'sync-results')
-    
+
     # For sync job test
     if not os.path.isdir(os.environ['SYNC_RESULTS_FOLDER']):
         os.makedirs(os.environ['SYNC_RESULTS_FOLDER'])
-    os.environ['SYNC_DEL_DELAY'] = '5' # seconds
-    os.environ['JOB_FOLDER'] = os.path.join(get_test_data_folder(), 'jb-12345') # this env var is used in the mocked files service
+    os.environ['SYNC_DEL_DELAY'] = '5'  # seconds
+    # this env var is used in the mocked files service
+    os.environ['JOB_FOLDER'] = os.path.join(get_test_data_folder(), 'jb-12345')
     if not os.path.isdir(os.environ['JOB_FOLDER']):
         os.makedirs(os.environ['JOB_FOLDER'])
         # Create empty file (mock job output)

@@ -1,7 +1,7 @@
 import json
 import os
-from datetime import datetime
 import shutil
+from datetime import datetime
 
 import pytest
 from nameko.testing.services import worker_factory
@@ -9,7 +9,7 @@ from nameko_sqlalchemy.database_session import Session
 
 from jobs.models import Job
 from jobs.service import JobService
-from tests.mocks import MockedAirflowConnection, MockedDagWriter, MockedProcessesService, MockedFilesService, PG_OLD_REF
+from tests.mocks import MockedAirflowConnection, MockedDagWriter, MockedFilesService, MockedProcessesService, PG_OLD_REF
 
 
 def load_json(filename: str) -> dict:
@@ -52,7 +52,7 @@ def test_create_job(db_session: Session, set_job_data: pytest.fixture, dag_folde
     assert result['headers']['Location'].startswith('jobs/jb-')
     assert result['headers']['OpenEO-Identifier'].startswith('jb-')
     assert result['headers']['OpenEO-Identifier'] == result['headers']['Location'][5:]
-    assert db_session.query(Job).filter(Job.user_id == 'test-user')\
+    assert db_session.query(Job).filter(Job.user_id == 'test-user') \
         .filter(Job.id == result['headers']['OpenEO-Identifier']).count() == 1
     assert os.path.isfile(os.path.join(os.environ['AIRFLOW_DAGS'], f'dag_{result["headers"]["OpenEO-Identifier"]}.py'))
 
@@ -183,7 +183,8 @@ def test_start_processing_job(db_session: Session, set_job_data: pytest.fixture,
     assert result == {'code': 202, 'status': 'success'}
 
 
-def test_start_processing_sync_job(db_session, set_job_data, dag_folder):
+def test_start_processing_sync_job(db_session: Session, set_job_data: pytest.fixture, dag_folder: pytest.fixture) \
+        -> None:
     job_service = get_configured_job_service(db_session)
 
     job_data = load_json('pg')
@@ -191,16 +192,14 @@ def test_start_processing_sync_job(db_session, set_job_data, dag_folder):
     _ = job_data.pop("description")
 
     result = job_service.process_sync(user_id='test-user', **job_data)
-    
+
     assert result['status'] == 'success'
     assert 'result/sample-output.tif' in result['file']
     _ = result.pop('file')
     assert result == {'code': 200, 'status': 'success',
                       'headers': {'Content-Type': 'image/tiff', 'OpenEO-Costs': 0}
                       }
-    
+
     # Clean up
-    #shutil.rmtree("data/jb-12345")
     shutil.rmtree(os.environ['JOB_FOLDER'])
     shutil.rmtree(os.environ['SYNC_RESULTS_FOLDER'])
-    

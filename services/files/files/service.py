@@ -312,7 +312,7 @@ class FilesService:
 
     # needed for job management
     @rpc
-    def setup_jobs_result_folder(self, user_id: str, job_id: str) -> None:
+    def setup_jobs_result_folder(self, user_id: str, job_id: str) -> str:
         """
         Create user folder structure with folder for the given job_id.
 
