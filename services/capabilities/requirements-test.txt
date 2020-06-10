@@ -1,6 +1,0 @@
-pytest==5.4
-pytest-cov
-nameko==2.12
-
-pylint==2.4.4
-black==19.10b0
