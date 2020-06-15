@@ -143,7 +143,7 @@ class JobService:
                 if process_response["status"] == "error":
                     return process_response
                 job.process_graph_id = process_graph_id
-                
+
                 # Get all processes
                 process_response = self.processes_service.get_all_predefined()
                 if process_response["status"] == "error":
@@ -267,7 +267,7 @@ class JobService:
             job_id = str(job.id)
 
             _ = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)
-            
+
             # Get all processes
             process_response = self.processes_service.get_all_predefined()
             if process_response["status"] == "error":

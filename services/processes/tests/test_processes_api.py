@@ -31,13 +31,13 @@ def mock_processes_service(db_session: Session, add_processes: bool = False) -> 
     if add_processes:
         # Add processes to mocked process service.
         processes = [
-            "absolute", 
-            "add", 
-            "divide", 
-            "product", 
-            "subtract", 
+            "absolute",
+            "add",
+            "divide",
+            "product",
+            "subtract",
             "sum"
-            ]
+        ]
         for proc in processes:
             processes_service.put_predefined(process_name=proc)
 
