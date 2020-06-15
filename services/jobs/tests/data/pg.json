@@ -64,7 +64,7 @@
         }
       } ,
       "evi": {
-        "process_id": "reduce" ,
+        "process_id": "reduce_dimension" ,
         "description": "Compute the EVI. Formula: 2.5 * (NIR - RED) / (1 + NIR + 6*RED + -7.5*BLUE)" ,
         "arguments": {
           "data": {
@@ -182,7 +182,7 @@
         }
       } ,
       "mintime": {
-        "process_id": "reduce" ,
+        "process_id": "reduce_dimension" ,
         "description": "Compute a minimum time composite by reducing the temporal dimension" ,
         "arguments": {
           "data": {

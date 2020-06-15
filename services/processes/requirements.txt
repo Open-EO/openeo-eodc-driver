@@ -4,4 +4,4 @@ marshmallow>=3.0
 nameko-sqlalchemy==1.4.0
 psycopg2==2.7.4
 
-git+git://github.com/Open-EO/openeo-pg-parser-python.git@8386d55#egg=openeo-pg-parser-python
+git+git://github.com/Open-EO/openeo-pg-parser-python.git@tow_v1.0#egg=openeo-pg-parser-python
