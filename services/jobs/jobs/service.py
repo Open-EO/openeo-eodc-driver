@@ -144,12 +144,19 @@ class JobService:
                     return process_response
                 job.process_graph_id = process_graph_id
 
+                # Get all processes
+                process_response = self.processes_service.get_all_predefined()
+                if process_response["status"] == "error":
+                    return process_response
+                backend_processes = process_response["data"]["processes"]
+
                 # handle dag file (remove and recreate it) - only needs to be updated if process graph changes
                 os.remove(self.get_dag_path(job.dag_filename))
                 self.dag_writer.write_and_move_job(job_id=job_id, user_name=user_id,
                                                    process_graph_json=process_graph_args['process_graph'],
                                                    job_data=self.get_job_folder(user_id, job_id),
-                                                   vrt_only=True, add_delete_sensor=True)
+                                                   vrt_only=True, add_delete_sensor=True,
+                                                   process_defs=backend_processes)
 
             # Maybe there is a better option to do this update? e.g. using marshmallow schemas?
             job.title = job_args.get("title", job.title)
@@ -261,10 +268,16 @@ class JobService:
 
             _ = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)
 
+            # Get all processes
+            process_response = self.processes_service.get_all_predefined()
+            if process_response["status"] == "error":
+                return process_response
+            backend_processes = process_response["data"]["processes"]
             self.dag_writer.write_and_move_job(job_id=job_id, user_name=user_id,
-                                               process_graph_json=process["process_graph"],
+                                               process_graph_json=process,
                                                job_data=self.get_job_folder(user_id, job_id),
-                                               vrt_only=vrt_flag, add_delete_sensor=True)
+                                               vrt_only=vrt_flag, add_delete_sensor=True,
+                                               process_defs=backend_processes)
             job.dag_filename = f"dag_{job_id}.py"
             self.db.add(job)
             self.db.commit()

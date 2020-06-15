@@ -11,8 +11,8 @@ from nameko.rpc import RpcProxy, rpc
 from nameko_sqlalchemy import DatabaseSession
 from openeo_pg_parser_python.validate import validate_process_graph
 
-from processes.models import Base, ProcessDefinitionEnum, ProcessGraph
-from processes.schema import ProcessGraphFullSchema, ProcessGraphPredefinedSchema, ProcessGraphShortSchema
+from .models import Base, ProcessDefinitionEnum, ProcessGraph
+from .schema import ProcessGraphFullSchema, ProcessGraphPredefinedSchema, ProcessGraphShortSchema
 
 service_name = "processes"
 LOGGER = logging.getLogger('standardlog')
@@ -273,7 +273,7 @@ class ProcessesService:
                 return data_response
             collections = data_response["data"]["collections"]
 
-            valid = validate_process_graph(process['process_graph'], processes_src=processes,
+            valid = validate_process_graph(process, processes_src=processes,
                                            collections_src=collections)
             if valid:
                 output_errors = []
