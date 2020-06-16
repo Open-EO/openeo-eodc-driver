@@ -1,9 +1,9 @@
 """ Gateway """
 
-from os import environ
 from sys import exit
-from typing import Union, Callable
+from typing import Union, Callable, Tuple
 
+from dynaconf import FlaskDynaconf, settings
 from flask import Flask
 from flask.ctx import AppContext
 from flask.wrappers import Response
@@ -44,7 +44,7 @@ class Gateway:
         """
         return self._service
 
-    def get_rpc_context(self) -> Union[AppContext, FlaskPooledClusterRpcProxy]:
+    def get_rpc_context(self) -> Tuple[AppContext, FlaskPooledClusterRpcProxy]:
         """Returns the application context of the Flask application object and the
         RPC proxy object to create new endpoints.
 
@@ -60,14 +60,14 @@ class Gateway:
     def get_user_db(self):
         return self._user_db
 
-    def set_cors(self, resources: dict = {r"/*": {"origins": "*"}}):
+    def set_cors(self, resources: dict = None):
         """Initializes the CORS header. The header rules/resources are passed using a dictonary.
         FOr more information visit: https://flask-cors.readthedocs.io/en/latest/
 
         Arguments:
             resources {dict} -- The resource description (default: {{r"/*": {"origins": "*"}}})
         """
-
+        resources = resources if resources else {r"/*": {"origins": "*"}}
         CORS(self._service, resources=resources, vary_header=False, supports_credentials=True)
 
     def add_endpoint(self, route: str, func: Callable, methods: list = None, auth: bool = False,
@@ -130,14 +130,14 @@ class Gateway:
             exit(1)
 
     def _init_service(self) -> Flask:
-        """Initalizes the Flask application
+        """Initializes the Flask application
 
         Returns:
             Flask -- The instantiated Flask object
         """
 
         service = Flask(__name__)
-        service.config.from_object(environ.get("GATEWAY_SETTINGS"))
+        FlaskDynaconf(service)  # configure - set ENV_FOR_DYNACONF to select dev / prod (default: dev)
 
         return service
 
@@ -150,14 +150,9 @@ class Gateway:
 
         self._service.config.update({
             "NAMEKO_AMQP_URI":
-                "pyamqp://{0}:{1}@{2}:{3}".format(
-                    environ.get("RABBIT_USER"),
-                    environ.get("RABBIT_PASSWORD"),
-                    environ.get("RABBIT_HOST"),
-                    environ.get("RABBIT_PORT")
-                ),
+                f"pyamqp://{settings.RABBIT_USER}:{settings.RABBIT_PASSWORD}"
+                f"@{settings.RABBIT_HOST}:{settings.RABBIT_PORT}"
         })
-
         rpc = FlaskPooledClusterRpcProxy()
         rpc.init_app(self._service)
         return rpc
@@ -186,27 +181,18 @@ class Gateway:
             AuthenticationHandler -- The instantiated AuthenticationHandler object
         """
 
-        oidc_config = {
-            "SECRET_KEY": environ.get("SECRET_KEY"),
-            "OIDC_CLIENT_SECRETS": environ.get("OIDC_CLIENT_SECRETS"),
-            "OIDC_OPENID_REALM": environ.get("OIDC_OPENID_REALM"),
-            'OIDC_ID_TOKEN_COOKIE_SECURE': environ.get("OIDC_ID_TOKEN_COOKIE_SECURE") == "true"
-        }
-        self._service.config.update(oidc_config)
+        # oidc_config = {
+            # "OIDC_CLIENT_SECRETS": environ.get("OIDC_CLIENT_SECRETS"),<
+            # "OIDC_OPENID_REALM": environ.get("OIDC_OPENID_REALM"),
+        # }
+        # self._service.config.update(oidc_config)
 
         return AuthenticationHandler(self._res)
 
     def _init_users_db(self) -> SQLAlchemy:
-        db_url = "postgresql://{0}:{1}@{2}:{3}/{4}".format(
-            environ.get("DB_USER"),
-            environ.get("DB_PASSWORD"),
-            environ.get("DB_HOST"),
-            environ.get("DB_PORT"),
-            environ.get("DB_NAME")
-        )
         self._service.config.update({
-            "SQLALCHEMY_DATABASE_URI": db_url,
-            "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+            "SQLALCHEMY_DATABASE_URI": f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}"
+                                       f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}",
         })
         return SQLAlchemy(self._service)
 

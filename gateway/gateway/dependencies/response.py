@@ -1,7 +1,5 @@
 """ ResponseParser, APIException """
 
-import os
-import shutil
 from typing import Union
 from uuid import uuid4
 

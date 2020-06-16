@@ -1,5 +1,4 @@
-import os
-
+from dynaconf import settings
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
 
 from passlib.apps import custom_app_context as pwd_context
@@ -300,12 +299,12 @@ class BasicAuthService:
         return pwd_context.verify(password, user.password_hash)
 
     def generate_auth_token(self, user: Users, expiration: int = 600):
-        serialized = Serializer(os.environ.get('SECRET_KEY'), expires_in=expiration)
+        serialized = Serializer(settings.SECRET_KEY, expires_in=expiration)
         return serialized.dumps({'id': user.id}).decode('utf-8')
 
     def verify_auth_token(self, token):
         # Verify token
-        s = Serializer(os.environ.get('SECRET_KEY'))
+        s = Serializer(settings.SECRET_KEY)
         try:
             data = s.loads(token)
         except SignatureExpired:
