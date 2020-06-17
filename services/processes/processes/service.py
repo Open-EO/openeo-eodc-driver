@@ -1,21 +1,23 @@
 """ Process Discovery """
 import json
 import logging
-import os
 from copy import deepcopy
 from typing import Any, Optional
 
 import requests
+from dynaconf import settings
 from jsonschema import ValidationError
 from nameko.rpc import RpcProxy, rpc
 from nameko_sqlalchemy import DatabaseSession
 from openeo_pg_parser_python.validate import validate_process_graph
 
+from .dependencies.settings import initialise_settings
 from .models import Base, ProcessDefinitionEnum, ProcessGraph
 from .schema import ProcessGraphFullSchema, ProcessGraphPredefinedSchema, ProcessGraphShortSchema
 
 service_name = "processes"
 LOGGER = logging.getLogger('standardlog')
+initialise_settings()
 
 
 class ServiceException(Exception):
@@ -178,7 +180,7 @@ class ProcessesService:
 
         # TODO how to handle process extensions
         try:
-            process_url = os.environ.get('PROCESSES_GITHUB_URL') + process_name + '.json'  # type: ignore
+            process_url = f"{settings.PROCESSES_GITHUB_URL}{process_name}.json"
             process_graph_response = requests.get(process_url)
             if process_graph_response.status_code != 200:
                 return ServiceException(ProcessesService.name, process_graph_response.status_code,

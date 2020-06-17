@@ -8,8 +8,6 @@ from sqlalchemy.orm import Session
 from processes.models import ProcessGraph
 from processes.service import ProcessesService
 
-os.environ["PROCESSES_GITHUB_URL"] = "https://raw.githubusercontent.com/Open-EO/openeo-processes/1.0.0-rc.1/"
-
 
 def load_json(filename: str) -> dict:
     """
