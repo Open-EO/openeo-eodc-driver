@@ -297,6 +297,7 @@ class ProcessGraphFullSchema(ProcessGraphShortSchema):
 
 
 class ProcessGraphPredefinedSchema(ProcessGraphShortSchema):
+    __return_anyway__ = ['parameters']
     __model__ = ProcessGraph
 
     exceptions = NestedDict(key='error_code', nested=ExceptionSchema)
