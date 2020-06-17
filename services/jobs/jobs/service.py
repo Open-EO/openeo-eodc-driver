@@ -10,16 +10,19 @@ from time import sleep
 from typing import Any, Optional
 from uuid import uuid4
 
+from dynaconf import settings
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
 from nameko.rpc import RpcProxy, rpc
 from nameko_sqlalchemy import DatabaseSession
 
-from .dependencies.airflow_conn import AirflowRestConnection
+from .dependencies.airflow_conn import AirflowRestConnectionProvider
+from .dependencies.settings import initialise_settings
 from .models import Base, Job, JobStatus
 from .schema import JobCreateSchema, JobFullSchema, JobResultsSchema, JobShortSchema
 
 service_name = "jobs"
 LOGGER = logging.getLogger('standardlog')
+initialise_settings()
 
 
 class ServiceException(Exception):
@@ -81,7 +84,7 @@ class JobService:
     db = DatabaseSession(Base)
     processes_service = RpcProxy("processes")
     files_service = RpcProxy("files")
-    airflow = AirflowRestConnection()
+    airflow = AirflowRestConnectionProvider()
     dag_writer = AirflowDagWriter()
     check_stop_interval = 5  # should be similar or smaller than Airflow sensor's poke interval
 
@@ -386,7 +389,7 @@ class JobService:
             # Copy directory to tmp location
             job_folder = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)\
                 .replace('/result', '')
-            job_tmp_folder = os.path.join(os.environ.get("SYNC_RESULTS_FOLDER"), job_id)  # type: ignore
+            job_tmp_folder = os.path.join(settings.SYNC_RESULTS_FOLDER, job_id)
             shutil.copytree(job_folder, job_tmp_folder)
             filepath = filepath.replace(job_folder, job_tmp_folder)
 
@@ -530,7 +533,7 @@ class JobService:
         Returns:
             str -- Complete url path
         """
-        return os.path.join(os.environ.get("GATEWAY_URL"), "downloads", public_path)  # type: ignore
+        return os.path.join(settings.GATEWAY_URL, "downloads", public_path)
 
     @staticmethod
     def authorize(user_id: str, job_id: str, job: Job) -> Optional[ServiceException]:
@@ -594,7 +597,7 @@ class JobService:
         Returns:
             str -- The complete path to the job folder on the file system
         """
-        return os.path.join(os.environ["JOB_DATA"], user_id, "jobs", job_id)
+        return os.path.join(settings.JOB_DATA, user_id, "jobs", job_id)
 
     def get_dag_path(self, dag_id: str) -> str:
         """Get the complete path on the file system of a dag file.
@@ -605,7 +608,7 @@ class JobService:
         Returns:
             str -- Absolute location of the dag on the file system
         """
-        return os.path.join(os.environ.get("AIRFLOW_DAGS"), dag_id)  # type: ignore
+        return os.path.join(settings.AIRFLOW_DAGS, dag_id)
 
     def _stop_airflow_job(self, user_id: str, job_id: str) -> None:
         """This triggers the airflow observer to set all running task to failed.
@@ -640,6 +643,6 @@ class JobService:
         """
 
         # Wait n minutes (allow for enough time to stream file(s) to user)
-        sleep(float(os.environ['SYNC_DEL_DELAY']))
+        sleep(settings.SYNC_DEL_DELAY)
         # Remove tmp folder
         shutil.rmtree(folder_path)

@@ -1,8 +1,9 @@
 from datetime import datetime
-from os import environ
 from typing import Optional, Tuple
 
 import requests
+from dynaconf import settings
+from nameko.extensions import DependencyProvider
 
 from ..models import JobStatus
 
@@ -18,30 +19,20 @@ class AirflowRestConnection:
     This class handles REST requests to the Airflow instance.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, airflow_base_url: str) -> None:
         """
         Initialise Airflow REST connection service
         """
         self.header = {'Cache-Control': 'no-cache ', 'content-type': 'application/json'}
         self.data = '{}'
-
-    def get_api_url(self) -> str:
-        """
-        Returns the base Airflow Rest url.
-        """
-        return environ.get('AIRFLOW_HOST') + "/api/experimental"  # type: ignore
-
-    def get_dags_url(self) -> str:
-        """
-        Returns the Airflow dag url.
-        """
-        return environ.get('AIRFLOW_HOST') + "/api/experimental/dags"  # type: ignore
+        self.api_url = f"{airflow_base_url}/api/experimental"
+        self.dag_url = f"{self.api_url}/dags"
 
     def unpause_dag(self, job_id: str, unpause: bool = True) -> bool:
         """
         Pause/unpause dag
         """
-        request_url = f"{self.get_dags_url()}/{job_id}/paused/{str(not unpause)}"
+        request_url = f"{self.dag_url}/{job_id}/paused/{str(not unpause)}"
         response = requests.get(request_url, headers=self.header, data=self.data)
         # NB It may take 1-2 seconds before the DAG has the attribute "is_paused" set
         while not response.ok:
@@ -53,7 +44,7 @@ class AirflowRestConnection:
         Trigger airflow dag
         """
         _ = self.unpause_dag(job_id)
-        job_url = f"{self.get_dags_url()}/{job_id}/dag_runs"
+        job_url = f"{self.dag_url}/{job_id}/dag_runs"
         response = requests.post(job_url, headers=self.header, data=self.data)
         return response.ok
 
@@ -64,7 +55,7 @@ class AirflowRestConnection:
         dag_status = None
         execution_date = None
 
-        job_url = f"{self.get_dags_url()}/{job_id}/dag_runs"
+        job_url = f"{self.dag_url}/{job_id}/dag_runs"
         response = requests.get(job_url, headers=self.header, data=self.data)
         if response.status_code == 200:
             if not response.json():
@@ -84,6 +75,14 @@ class AirflowRestConnection:
         """
         Delete the dag with the given id.
         """
-        job_url = f"{self.get_dags_url()}/{job_id}"
+        job_url = f"{self.dag_url}/{job_id}"
         response = requests.delete(job_url)
         return response.status_code == 200
+
+
+class AirflowRestConnectionProvider(DependencyProvider):
+
+    def get_dependency(self, worker_ctx: object) -> AirflowRestConnection:
+        return AirflowRestConnection(
+            airflow_base_url=settings.AIRFLOW_HOST
+        )
