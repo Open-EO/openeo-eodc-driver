@@ -7,7 +7,8 @@ LOGGER = logging.getLogger("standardlog")
 class Extent:  # noqa
     """ Represents spatial and temporal extent """
 
-    def __init__(self, spatial: list, temporal: list) -> None:
+    def __init__(self, spatial: dict, temporal: dict) -> None:
+        
         self.spatial = spatial
         self.temporal = temporal
 

@@ -19,8 +19,8 @@ class BaseSchema(Schema):
 class ExtentSchema(BaseSchema):
     """ Schema for Extent """
 
-    spatial = fields.List(fields.Float(), required=True)
-    temporal = fields.List(fields.String(), required=True)
+    spatial = fields.Dict(values=fields.List(fields.List(fields.Float())), required=True)
+    temporal = fields.Dict(fields.String(), required=True)
 
 
 class ProvidersSchema(BaseSchema):

@@ -1,5 +1,6 @@
 """ CSW Session """
 
+import ast
 import logging
 from json import dumps, loads
 from os import environ, makedirs, path
@@ -57,6 +58,10 @@ class CSWHandler:
 
         collection_list = []
         for collection in data:
+            # TODO find way to write to JSON with correct format
+            collection['extent']['spatial']['bbox'] = ast.literal_eval(collection['extent']['spatial']['bbox'])
+            collection['extent']['temporal']['interval'] = ast.literal_eval(collection['extent']['temporal']['interval'])
+            
             collection_list.append(
                 Collection(
                     # TODO change back to collection["stac_version"]
@@ -84,7 +89,10 @@ class CSWHandler:
         """
 
         data = self._get_records(data_id, series=True)[0]
-
+        # TODO find way to write to JSON with correct format
+        data['extent']['spatial']['bbox'] = ast.literal_eval(data['extent']['spatial']['bbox'])
+        data['extent']['temporal']['interval'] = ast.literal_eval(data['extent']['temporal']['interval'])
+        
         collection = Collection(
             stac_version=data["stac_version"],
             b_id=data["id"],
@@ -276,7 +284,7 @@ class CSWHandler:
             LOGGER.error("%s", xml.toprettyxml())
             raise CSWError("Error while communicating with CSW server.")
 
-        response_json = loads(response.text)
+        response_json = response.json()
 
         if "ows:ExceptionReport" in response_json:
             LOGGER.error("%s", dumps(response_json, indent=4, sort_keys=True))
