@@ -8,19 +8,10 @@ from os.path import dirname
 
 import pytest
 from _pytest.fixtures import FixtureRequest
-from nameko.testing.services import worker_factory
 
-from files.service import FilesService
 
 root_dir = dirname(dirname(abspath(__file__)))
 sys.path.append(root_dir)
-
-service = worker_factory(FilesService)
-
-
-@pytest.fixture()
-def file_service() -> FilesService:
-    return service
 
 
 def get_data_folder() -> str:
@@ -39,7 +30,8 @@ def get_filesystem_folder() -> str:
     return os.path.join(get_data_folder(), 'file-system')
 
 
-os.environ['OPENEO_FILES_DIR'] = get_filesystem_folder()
+os.environ['OEO_OPENEO_FILES_DIR'] = get_filesystem_folder()
+os.environ['OEO_UPLOAD_TMP_DIR'] = get_tmp_folder()
 
 
 @pytest.fixture()
@@ -69,7 +61,11 @@ def input_folder() -> str:
 @pytest.fixture()
 def user_folder(request: FixtureRequest) -> str:
     folder = os.path.join(get_filesystem_folder(), 'test-user')
-    service.setup_user_folder(user_id='test-user')
+    dirs_to_create = [os.path.join(folder, dir_name) for dir_name in ["files", "jobs"]]
+
+    for d in dirs_to_create:
+        if not os.path.exists(d):
+            os.makedirs(d)
 
     def fin() -> None:
         shutil.rmtree(folder)
