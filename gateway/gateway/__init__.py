@@ -2,11 +2,11 @@
 
 from dynaconf import settings
 
-from .dependencies import settings_validator
+from .dependencies.settings_validator import initialise_settings
 from .gateway import Gateway
 
 # Check config variables are there and correct
-settings.validators.validate()
+initialise_settings()
 
 # Firs initialise Gateway app (before other imports)
 gateway = Gateway()
