@@ -1,8 +1,8 @@
 """ Argument Parser """
 
 import logging
-from os import environ
 
+from dynaconf import settings
 from nameko.extensions import DependencyProvider
 
 from .cache import get_cache_path, get_json_cache
@@ -64,4 +64,4 @@ class ArgParserProvider(DependencyProvider):
             ArgParser -- he instantiated ArgParser object
         """
 
-        return ArgParser(environ.get("CACHE_PATH"))  # type: ignore
+        return ArgParser(settings.CACHE_PATH)

@@ -10,10 +10,12 @@ from nameko.rpc import rpc
 
 from .dependencies.arg_parser import ArgParserProvider, ValidationError
 from .dependencies.csw import CSWSession
+from .dependencies.settings import initialise_settings
 from .schemas import CollectionSchema, CollectionsSchema
 
 service_name = "data"
 LOGGER = logging.getLogger("standardlog")
+initialise_settings()
 
 
 class ServiceException(Exception):

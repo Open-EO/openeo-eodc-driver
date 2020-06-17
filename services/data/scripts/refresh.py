@@ -8,6 +8,7 @@ if os.environ.get('DNS_URL'):
 else:
     SERVICE_URI = 'http://127.0.0.1:3000/collections'
 
+
 def refresh_data():
 
     token = get_oidc_id_token(
@@ -46,6 +47,7 @@ def get_oidc_id_token(username, password, client_id, realm, url, client_secret=N
         print('Couldn\'t fetch token. {} - {}'.format(res.status_code, res.reason))
         return
     return res.json()
+
 
 if __name__ == '__main__':
     refresh_data()
