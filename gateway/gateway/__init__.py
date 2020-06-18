@@ -15,7 +15,7 @@ gateway.set_cors()
 from .users.service import UsersService, BasicAuthService
 
 # Initialize non-RPC services
-auth_service = BasicAuthService()
+auth_service = BasicAuthService(settings.SECRET_KEY)
 users_service = UsersService()
 
 # Get application context and map RPCs to endpoints

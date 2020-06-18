@@ -1,6 +1,4 @@
-from dynaconf import settings
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
-
 from passlib.apps import custom_app_context as pwd_context
 
 import gateway.users.repository as rep
@@ -275,6 +273,9 @@ class BasicAuthService:
 
     service_name = 'gateway-auth'
 
+    def __init__(self, secret_key: str):
+        self.secret_key = secret_key
+
     def get_basic_token(self, username: str, password: str) -> dict:
         """
         Generate token for basic user.
@@ -299,12 +300,12 @@ class BasicAuthService:
         return pwd_context.verify(password, user.password_hash)
 
     def generate_auth_token(self, user: Users, expiration: int = 600):
-        serialized = Serializer(settings.SECRET_KEY, expires_in=expiration)
+        serialized = Serializer(self.secret_key, expires_in=expiration)
         return serialized.dumps({'id': user.id}).decode('utf-8')
 
     def verify_auth_token(self, token):
         # Verify token
-        s = Serializer(settings.SECRET_KEY)
+        s = Serializer(self.secret_key)
         try:
             data = s.loads(token)
         except SignatureExpired:
