@@ -2,7 +2,7 @@
 
 from dynaconf import settings
 
-from .dependencies.settings_validator import initialise_settings
+from .dependencies.settings import initialise_settings
 from .gateway import Gateway
 
 # Check config variables are there and correct
