@@ -181,12 +181,6 @@ class Gateway:
             AuthenticationHandler -- The instantiated AuthenticationHandler object
         """
 
-        # oidc_config = {
-            # "OIDC_CLIENT_SECRETS": environ.get("OIDC_CLIENT_SECRETS"),<
-            # "OIDC_OPENID_REALM": environ.get("OIDC_OPENID_REALM"),
-        # }
-        # self._service.config.update(oidc_config)
-
         return AuthenticationHandler(self._res)
 
     def _init_users_db(self) -> SQLAlchemy:
