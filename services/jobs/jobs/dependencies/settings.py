@@ -1,4 +1,4 @@
-from os import makedirs, environ
+from os import environ, makedirs
 from os.path import isdir
 from urllib.error import URLError
 from urllib.parse import urlparse
