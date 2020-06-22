@@ -1,3 +1,4 @@
+import pytest
 from nameko.testing.services import worker_factory
 
 from capabilities.service import CapabilitiesService
@@ -153,9 +154,12 @@ def test_get_index() -> None:
         }}
 
 
-def test_get_versions() -> None:
+def test_get_versions(get_envs: pytest.fixture) -> None:
     service = worker_factory(CapabilitiesService)
     result = service.get_versions(MOCKED_API_SPEC)
+    # import pdb; pdb.set_trace()
+    # result['data']['versions'][0]['url'] = 'https://openeo.eodc.eu/v1.0'
+    # result['data']['versions'][1]['url'] = 'https://openeo.eodc.eu/v0.4'
     assert result == {'status': 'success',
                       'code': 200,
                       'data': {
