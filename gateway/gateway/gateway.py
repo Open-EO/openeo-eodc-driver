@@ -4,7 +4,7 @@ from os import environ
 from sys import exit
 from typing import Union, Callable
 
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask.ctx import AppContext
 from flask.wrappers import Response
 from flask_cors import CORS
@@ -250,6 +250,10 @@ class Gateway:
         def local_decorator(**arguments):
             try:
                 local_response = f(**arguments, **kwargs)
+                if local_response.status_code == 302:
+                    # This is a redirect, pass repsonse as it is
+                    # currently used only to redirect "/" to ".well-known/openeo" 
+                    return local_response
 
                 if local_response["status"] == "error":
                     return self._res.error(local_response)
@@ -298,6 +302,19 @@ class Gateway:
             "status": "success",
             "html": "redoc.html",
         }
+    
+    
+    def main_page(self) -> dict:
+        """
+        Redirect main page "/" to openeo well known dodument "/.well-known/openeo".
+        """
+        
+        if environ['DEVELOPMENT']:
+            base_url = environ['GATEWAY_URL']
+        else:
+            base_url = environ['DNS_URL']
+        return redirect(base_url + "/.well-known/openeo")
+        
 
     def _parse_error_to_json(self, exc):
         return self._res.error(

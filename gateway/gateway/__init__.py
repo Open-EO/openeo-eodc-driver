@@ -24,7 +24,8 @@ with ctx:
 
     # Capabilities
     gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/", func=rpc.capabilities.send_index, auth=False, validate=True, parse_spec=True)
-    gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/.well-known/openeo", func=rpc.capabilities.get_versions, auth=False, validate=True, parse_spec=True)
+    gateway.add_endpoint("/", func=gateway.main_page, auth=False, rpc=False)  # NB: no versioning here
+    gateway.add_endpoint("/.well-known/openeo", func=rpc.capabilities.get_versions, auth=False, validate=True, parse_spec=True)  # NB: no versioning here
     gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/file_formats", func=rpc.capabilities.get_file_formats, auth=False, validate=True, parse_spec=True)
     # gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/conformance", func=rpc.capabilities)
     gateway.add_endpoint(f"/{environ['OPENEO_VERSION']}/udf_runtimes", func=rpc.capabilities.get_udfs, auth=False, validate=True, parse_spec=True)

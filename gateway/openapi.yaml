@@ -83,6 +83,17 @@ tags:
     description: On-demand access to data using other web service protocols.
 
 paths:
+  # Note: all endpoints are later mapped to /endpoint/{openeo_version}
+  # Two exceptions are: 
+  #  - /.well-known/openeo -> no versioning allowed according to specs
+  #  - /base -> maps to "/" which redirects to /.well-known/openeo (but this endpoint can do whatever we want)
+  # Note that /{openeo_version} actually maps to "/" of the openEO API
+  /base:
+    description: >-
+      This endpoint is mapped to "/", which then redirects to "/.well-known/openeo"
+    get:
+      responses:
+        '302': successfully redirects to /.well-known/openeo
   /:
     $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1
   /.well-known/openeo:

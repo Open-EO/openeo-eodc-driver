@@ -57,7 +57,17 @@ class OpenAPISpecParser:
         # Extract the target specified blueprint of the API
         target = {}
         for endpoint, methods in self._specs["paths"].items():
-            endpoint = f"/{environ['OPENEO_VERSION']}{endpoint}"
+            # Add versioning to ever URL. Exceptions:
+            #  - "/.well-known/openeo" -> no versioning allowed
+            #  - "/base" -> maps to "/" which redirects to "/.well-known/openeo"
+            # Note that this still creates "/v1.0" which maps to "/" of the opeEO specs
+            if not endpoint == '/.well-known/openeo':
+                if endpoint == "/base":
+                    endpoint = "/"
+                else:
+                    # Add versioning
+                    endpoint = f"/{environ['OPENEO_VERSION']}{endpoint}"
+            
             target[endpoint] = []
             for method in methods:
                 if method in allowed_methods:
