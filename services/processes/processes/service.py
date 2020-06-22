@@ -272,27 +272,27 @@ class ProcessesService:
             if data_response["status"] == "error":
                 return data_response
             collections = data_response["data"]["collections"]
-            
+
             try:
-                valid = validate_process_graph(process, processes_src=processes, collections_src=collections)
-                output_errors = {'errors': []}
+                _ = validate_process_graph(process, processes_src=processes, collections_src=collections)
+                output_errors: list = []
             except ValidationError as exp:
-                output_errors = {
-                    'errors': [
-                        {
+                output_errors = [
+                    {
                         'code': 400,
-                        'message': exp.message
-                        }
-                    ]
-                }
+                        'message': str(exp)
+                    }
+                ]
 
             return {
                 "status": "success",
                 "code": 200,
-                "data": output_errors
+                "data": {
+                    'errors': output_errors
+                }
             }
         except ValidationError as exp:
-            return ServiceException(ProcessesService.name, 400, user_id, exp.message, internal=False,
+            return ServiceException(ProcessesService.name, 400, user_id, str(exp), internal=False,
                                     links=["#tag/EO-Data-Discovery/paths/~1process_graph/post"]).to_dict()
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
