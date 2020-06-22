@@ -4,7 +4,7 @@ from os import environ
 from sys import exit
 from typing import Union, Callable
 
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect
 from flask.ctx import AppContext
 from flask.wrappers import Response
 from flask_cors import CORS
