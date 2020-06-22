@@ -272,18 +272,19 @@ class ProcessesService:
             if data_response["status"] == "error":
                 return data_response
             collections = data_response["data"]["collections"]
-
-            valid = validate_process_graph(process, processes_src=processes,
-                                           collections_src=collections)
-            if valid:
-                output_errors = []
-            else:
-                # TODO clarify errors -> use again json schemas for validation
-                output_errors = [
-                    {
-                        "message": "error."
-                    }
-                ]
+            
+            try:
+                valid = validate_process_graph(process, processes_src=processes, collections_src=collections)
+                output_errors = {'errors': []}
+            except ValidationError as exp:
+                output_errors = {
+                    'errors': [
+                        {
+                        'code': 400,
+                        'message': exp.message
+                        }
+                    ]
+                }
 
             return {
                 "status": "success",
