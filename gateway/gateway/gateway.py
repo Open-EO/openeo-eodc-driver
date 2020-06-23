@@ -11,13 +11,16 @@ from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
 from flask_sqlalchemy import SQLAlchemy
 
-from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException
+from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException, \
+    GatewayUtils
 
 
 class Gateway:
     """Gateway is the central class to instantiate a RPC based API gateway object based on
     an OpenAPI v3 specification.
     """
+
+    utils = GatewayUtils()
 
     def __init__(self):
         self._service = self._init_service()
@@ -137,7 +140,8 @@ class Gateway:
         """
 
         service = Flask(__name__)
-        FlaskDynaconf(service)  # configure - set ENV_FOR_DYNACONF to select dev / prod (default: dev)
+        service.before_request(self.utils.fix_transfer_encoding)
+        FlaskDynaconf(service)  # configure - set ENV_FOR_DYNACONF to select dev / prod / test (default: dev)
 
         return service
 
