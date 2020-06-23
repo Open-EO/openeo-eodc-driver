@@ -3,7 +3,7 @@ import os
 
 from nameko.testing.services import worker_factory
 
-from data.models import Collection, Collections, Extent, Link
+from data.models import Collection, Collections, Extent, Link, SpatialExtent, TemporalExtent
 from data.service import DataService
 
 collection_dict = {
@@ -15,8 +15,12 @@ collection_dict = {
     "license": "Some license",
     # provider?
     "extent": {
-        "spatial": [12.3, 34.5, 14.5, 36.7],
-        "temporal": ["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"],
+        "spatial": {
+            "bbox": [12.3, 34.5, 14.5, 36.7]
+        },
+        "temporal": {
+            "interval": ["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"]
+        },
     },
     "links": [{
         "rel": "alternate",
@@ -28,15 +32,19 @@ collection_dict = {
 
 collection_model = Collection(
     stac_version="0.9.0",
-    b_id="s2a",
+    id="s2a",
     title="Sentinet-2A",
     description="Sentinel-2A description",
     keywords=["keyword1", "keyword2", "keyword3"],
-    b_license="Some license",
+    license="Some license",
     # provider?
     extent=Extent(
-        spatial=[12.3, 34.5, 14.5, 36.7],
-        temporal=["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"],
+        spatial=SpatialExtent(
+            bbox=[12.3, 34.5, 14.5, 36.7],
+        ),
+        temporal=TemporalExtent(
+            interval=["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"],
+        ),
     ),
     links=[Link(
         rel="alternate",

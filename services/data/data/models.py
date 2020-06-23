@@ -1,16 +1,23 @@
 """ Models """
 import logging
+from typing import List, NamedTuple, Optional
 
 LOGGER = logging.getLogger("standardlog")
 
 
-class Extent:  # noqa
+class SpatialExtent(NamedTuple):
+    bbox: List[float]
+
+
+class TemporalExtent(NamedTuple):
+    interval: List[str]
+
+
+class Extent(NamedTuple):
     """ Represents spatial and temporal extent """
 
-    def __init__(self, spatial: dict, temporal: dict) -> None:
-        
-        self.spatial = spatial
-        self.temporal = temporal
+    spatial: SpatialExtent
+    temporal: TemporalExtent
 
 
 class Providers:
@@ -19,85 +26,51 @@ class Providers:
     # Missing items in DB
 
 
-class Link:
+class Link(NamedTuple):
     """ Represents Links """
 
-    def __init__(self, href: str, rel: str, b_type: str = None, title: str = None) -> None:
-        self.href = href
-        self.rel = rel
-        self.type = b_type
-        if title:
-            self.title = title
+    href: str
+    rel: str
+    type: Optional[str] = None
+    title: Optional[str] = None
 
 
 class Band:
     """ Represents a single band. """
 
-    def __init__(
-        self,
-        band_id: str,
-        wavelength_nm: float,
-        res_m: int,
-        scale: float,
-        offset: int,
-        b_type: str,
-        unit: str,
-        name: str = None,
-    ) -> None:
-        self.band_id = band_id
-        self.name = name if name else ""
-        self.wavelength_nm = wavelength_nm
-        self.res_m = res_m
-        self.scale = scale
-        self.offset = offset
-        self.type = b_type
-        self.unit = unit
+    band_id: str
+    wavelength_nm: float
+    res_m: int
+    scale: float
+    offset: int
+    b_type: str
+    unit: str
+    name: str = ""
 
 
-class Collection:
+class Collection(NamedTuple):
     """ Represents a single collection """
 
-    def __init__(
-        self,
-        stac_version: str,
-        b_id: str,
-        description: str,
-        b_license: str,
-        extent: Extent,
-        links: list,
-        title: str = None,
-        keywords: list = None,
-        providers: list = None,
-        version: str = None,
-    ) -> None:
-        self.stac_version = stac_version
-        self.id = b_id
-        self.description = description
-        self.license = b_license
-        self.extent = extent
-        self.links = links
-        if title:
-            self.title = title
-        if keywords:
-            self.keywords = keywords
-        if providers:
-            self.providers = providers
-        if version:
-            self.version = version
-
-        LOGGER.debug(f"Initialized {self} from CSW")
+    stac_version: str
+    id: str
+    description: str
+    license: str
+    extent: Extent
+    links: list
+    title: Optional[str] = None
+    keywords: Optional[List[str]] = None
+    providers: Optional[List[str]] = None
+    version: Optional[str] = None
 
     def __repr__(self) -> str:
         return f"Collection({self.id})"
 
 
-class Collections:
+class Collections(NamedTuple):
     """ Represents multiple collections """
 
-    def __init__(self, collections: list, links: list) -> None:
-        self.collections = collections
-        self.links = links
-        LOGGER.debug("Initialized %s", self)
+    collections: List[Collection]
+    links: List[Link]
 
     def __repr__(self) -> str:
         return f"Collections({self.collections})"
