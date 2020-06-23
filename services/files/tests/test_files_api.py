@@ -3,15 +3,18 @@ import shutil
 from datetime import datetime
 
 import pytest
+from nameko.testing.services import worker_factory
 
 from files.service import FilesService
+
+file_service = worker_factory(FilesService)
 
 
 @pytest.mark.parametrize(
     'ref_path',
     ['final.txt', 'folder1/folder2/final.txt']
 )
-def test_upload_path(file_service: FilesService, user_folder: str, user_id: str, tmp_folder: str, upload_file: str,
+def test_upload_path(user_folder: str, user_id: str, tmp_folder: str, upload_file: str,
                      ref_path: str) -> None:
     tmp_path = os.path.join(tmp_folder, 'upload.txt')
     shutil.copyfile(upload_file, tmp_path)
@@ -32,7 +35,7 @@ def test_upload_path(file_service: FilesService, user_folder: str, user_id: str,
 @pytest.mark.parametrize(
     'folders_only',
     ['', 'folder1/folder2'])
-def test_delete(file_service: FilesService, user_folder: str, user_id: str, upload_file: str, folders_only: str) \
+def test_delete(user_folder: str, user_id: str, upload_file: str, folders_only: str) \
         -> None:
     folders_path = os.path.join(user_folder, 'files', folders_only)
     filepath = os.path.join(folders_path, 'delete.txt')
@@ -46,7 +49,7 @@ def test_delete(file_service: FilesService, user_folder: str, user_id: str, uplo
     assert not os.path.isfile(filepath)
 
 
-def test_get_all(file_service: FilesService, user_folder: str, user_id: str, upload_file: str) -> None:
+def test_get_all(user_folder: str, user_id: str, upload_file: str) -> None:
     shutil.copyfile(upload_file, os.path.join(user_folder, 'files', '1.txt'))
     folders2 = os.path.join(user_folder, 'files', 'folder1', 'folder2')
     os.makedirs(folders2)
@@ -72,7 +75,7 @@ def test_get_all(file_service: FilesService, user_folder: str, user_id: str, upl
             'links': []}}
 
 
-def test_download(file_service: FilesService, user_folder: str, user_id: str, upload_file: str) -> None:
+def test_download(user_folder: str, user_id: str, upload_file: str) -> None:
     filepath = os.path.join(user_folder, 'files', 'download.txt')
     shutil.copyfile(upload_file, filepath)
     assert os.path.isfile(filepath)

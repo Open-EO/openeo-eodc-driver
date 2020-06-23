@@ -1,5 +1,6 @@
 alembic==0.9.9
 cryptography==2.3
+dynaconf
 Flask==1.0.2
 #flask-apispec==0.7.0
 Flask-Cors==3.0.4

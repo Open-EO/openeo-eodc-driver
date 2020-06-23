@@ -3,10 +3,11 @@
 import ast
 import logging
 from json import dumps
-from os import environ, makedirs, path
+from os import makedirs, path
 from typing import Tuple
 
 from defusedxml.minidom import parseString
+from dynaconf import settings
 from nameko.extensions import DependencyProvider
 from requests import post
 
@@ -324,7 +325,7 @@ class CSWSession(DependencyProvider):
         """
 
         return CSWHandler(
-            environ.get("CSW_SERVER"),  # type: ignore
-            environ.get("CACHE_PATH"),  # type: ignore
-            environ.get("DNS_URL"),  # type: ignore
+            settings.CSW_SERVER,
+            settings.CACHE_PATH,
+            settings.DNS_URL,
         )

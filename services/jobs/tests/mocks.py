@@ -1,7 +1,9 @@
 import os
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, NamedTuple, Optional, Tuple
 from unittest.mock import MagicMock
+
+from dynaconf import settings
 
 from jobs.models import JobStatus
 
@@ -189,16 +191,14 @@ class MockedAirflowConnection:
         return True
 
 
-class MockedDagDomain:  # noqa
-
-    def __init__(self, filepath: str) -> None:
-        self.filepath = filepath
+class MockedDagDomain(NamedTuple):
+    filepath: str
 
 
 class MockedDagWriter(MagicMock):
 
     def write_and_move_job(self, job_id: str, **kwargs: Any) -> None:
-        dag_file = os.path.join(os.environ['AIRFLOW_DAGS'], f'dag_{job_id}.py')
+        dag_file = os.path.join(settings.AIRFLOW_DAGS, f'dag_{job_id}.py')
         open(dag_file, 'a').close()
 
 
@@ -225,4 +225,4 @@ class MockedFilesService(MagicMock):
         }
 
     def setup_jobs_result_folder(self, user_id: str, job_id: str) -> str:
-        return os.environ['JOB_FOLDER']
+        return settings.JOB_FOLDER

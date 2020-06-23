@@ -1,9 +1,10 @@
 alembic==0.9.9
+dynaconf==2.2.3
 marshmallow>=3.0
 nameko-sqlalchemy==1.4.0
 pyproj==1.9.6
 psycopg2==2.7.4
 SQLAlchemy==1.3.0
 OWSLib==0.18.0
-git+git://github.com/Open-EO/openeo-pg-parser-python.git@v2.0.0#egg=openeo-pg-parser
+git+git://github.com/Open-EO/openeo-pg-parser-python.git@v2.0.0#egg=openeo-pg-parser-python
 git+git://github.com/eodcgmbh/eodc-openeo-bindings.git#egg=eodc-openeo-bindings

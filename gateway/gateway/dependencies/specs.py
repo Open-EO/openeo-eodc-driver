@@ -2,11 +2,12 @@
 import base64
 import json
 import uuid
-from os import path, environ, mkdir
+from os import path, mkdir
 from pathlib import Path
 from re import match
 from typing import Callable, Any
 
+from dynaconf import settings
 from flask import request
 from requests import get
 from werkzeug.exceptions import BadRequest
@@ -66,8 +67,7 @@ class OpenAPISpecParser:
                     endpoint = "/"
                 else:
                     # Add versioning
-                    endpoint = f"/{environ['OPENEO_VERSION']}{endpoint}"
-            
+                    endpoint = f"/{settings.OPENEO_VERSION}{endpoint}"
             target[endpoint] = []
             for method in methods:
                 if method in allowed_methods:
@@ -139,7 +139,7 @@ class OpenAPISpecParser:
         def get_parameter_specs():
             # Get the OpenAPI parameter specifications for the route and method
             req_path = str(request.url_rule).replace("<", "{").replace(">", "}")
-            req_path = req_path.replace(f"/{environ['OPENEO_VERSION']}", "")
+            req_path = req_path.replace(f"/{settings.OPENEO_VERSION}", "")
             req_method = request.method.lower()
             route_specs = self._route(req_path)
 
@@ -206,11 +206,11 @@ class OpenAPISpecParser:
                     internal=False)
 
         def get_file_data():
-            if not path.exists(environ.get("UPLOAD_TMP_DIR")):
-                mkdir(environ.get("UPLOAD_TMP_DIR"))
+            if not path.exists(settings.UPLOAD_TMP_DIR):
+                mkdir(settings.UPLOAD_TMP_DIR)
 
             # Create a tmp file where the binary data is stored > does not need to be passed over the rabbit
-            temp_file = path.join(environ.get("UPLOAD_TMP_DIR"), str(uuid.uuid4()))
+            temp_file = path.join(settings.UPLOAD_TMP_DIR, str(uuid.uuid4()))
             with open(temp_file, 'wb') as file:
                 file.write(request.data)
             request.data = None
