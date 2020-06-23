@@ -24,6 +24,8 @@ def get_test_job_folder() -> str:
     return os.path.join(get_test_data_folder(), 'jb-12345')
 
 
+os.environ["ENV_FOR_DYNACONF"] = "unittest"
+
 os.environ["OEO_GATEWAY_URL"] = "http://0.0.0.0:3000/v1.0"
 os.environ["OEO_AIRFLOW_HOST"] = "http://airflow-webserver:8080"
 os.environ["OEO_JOB_DATA"] = get_test_data_folder()
