@@ -3,6 +3,7 @@
 from typing import Union, Optional, Callable, Tuple
 
 import requests
+from dynaconf import settings
 from flask import request
 from flask.wrappers import Request, Response
 
@@ -125,7 +126,7 @@ class AuthenticationHandler:
             str -- The user_id corresponding to the token
         """
         from gateway.users.service import BasicAuthService
-        return BasicAuthService().verify_auth_token(token)
+        return BasicAuthService(settings.SECRET_KEY).verify_auth_token(token)
 
     def _verify_oidc_token(self, token: str, provider: str) -> Optional[str]:
         """

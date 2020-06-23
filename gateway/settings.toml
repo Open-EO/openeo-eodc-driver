@@ -1,0 +1,12 @@
+[default]
+# formatting only creates lazy loading strings - how to change?
+sqlalchemy_track_modification = false
+oidc_id_token_cookie_secure = true
+
+[development]
+debug = true
+testing = true
+
+[production]
+debug = false
+testing = false

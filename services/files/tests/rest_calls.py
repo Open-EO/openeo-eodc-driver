@@ -14,9 +14,11 @@ from typing import Dict, Optional
 import requests
 
 backend_url = os.environ.get('BACKEND_URL')
-files_url = backend_url + '/files'  # type: ignore
+if backend_url is None:
+    raise OSError("Environment variable BACKEND_URL needs to be specified!")
+files_url = backend_url + '/files'
 file_single_url = files_url + '/folder1/upload.txt'
-basic_auth_url = backend_url + '/credentials/basic'  # type: ignore
+basic_auth_url = backend_url + '/credentials/basic'
 
 
 def get_auth() -> Optional[Dict[str, str]]:

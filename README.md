@@ -5,7 +5,8 @@
 
 ## Information
 
-This repository contains a fully dockerized implementation of the openEO API (openeo.org), written in Python. The web app implementation is based on Flask, while openEO functionalities are implemented as micro-services with Nameko.
+This repository contains a fully dockerized implementation of the openEO API (openeo.org), written in Python. The web
+app implementation is based on Flask, while openEO functionalities are implemented as micro-services with Nameko.
 
 Additionally, three docker-compose files implement a CSW server for data access (`/csw`), an Apache Airflow workflow management platform coupled to a Celery cluster for data processing (`/airflow`), and UDF Services for the R and Python languages (`/udf`). The whole setup can be installed on a laptop to simplify development, but each service can run on independent (set of) machines.
 
@@ -15,14 +16,22 @@ In order to start the API web app and its micro-services, a simple docker-compos
 
 #### Set environment variables
 
-Copy the `sample.env` file and the `/sample-envs` folder to to `.env` and `/envs`, respectively. The latter are included in the `.gitignore` by default. Do not change this. Variables in the `.env`file are used in `docker-compose.yml` when bringing up the project, while variables in the individual env files in `/envs` are available within each respective container. The following is the list of files to updte:
+Copy the `sample.env` file and the `/sample-envs` folder to to `.env` and `/envs`, respectively. The latter are
+included in the `.gitignore` by default. Do not change this. Variables in the `.env`file are used in
+`docker-compose.yml` when bringing up the project, while variables in the individual env files in `/envs` are available
+within each respective container. The following is the list of files to update.
 
-- `.env` : note that you MUST create manually the folder specififed for 'LOG_DIR'
+It should be mentioned that most of the env variables are prefixed with `OEO_` those variables are used by
+[dynaconf](https://dynaconf.readthedocs.io/en/latest/index.html) - the configuration management tool we use. The env
+variables which are not prefixed are used outside of Python and are directly accessed as environment variables without
+prior validation.
+
+- `.env` : note that you MUST create manually the folder specified for 'LOG_DIR'
+- `envs/csw.env`
 - `envs/data.env`
-- `envs/eodatareaders.env`: do not change the content in this env file
 - `envs/gateway.env`
 - `envs/jobs.env`
-- `envs/oidc.env`
+- `envs/files.env`
 - `envs/processes.env`
 - `envs/pycsw.env`
 - `envs/rabbitmq.env`
@@ -30,8 +39,6 @@ Copy the `sample.env` file and the `/sample-envs` folder to to `.env` and `/envs
 
 
 #### Bring up web app and services
-
-**Small caveat**: one service in the API docker-compose (eodatareaders_rpc) depends on the docker image in `/airflow/build`, so that one must be built first (see instructions [here](./airflow/README.md)). This will change as soon as possible.
 
 For local development, you will need a docker network shared across the API, CSW and Airflow setups. Create one like this:
 
@@ -48,7 +55,7 @@ docker-compose -f docker-compose.yml -f docker-compose_dev.yml up -d
 ```
 
 The `docker-compose_dev.yml` file is identical to `docker-compose.yml`, but additionally exposes some ports and assigns the containers to the docker network created above.
-Additionally, the bash functions in `dev_openeo_sample` can be used (after filling in the relevant fileds) to start the services (Nameko) or the gateway (Flask) locally without Docker containers. In this case one can use breakpoints to debug.
+Additionally, the bash functions in `dev_openeo_sample` can be used (after filling in the relevant fields) to start the services (Nameko) or the gateway (Flask) locally without Docker containers. In this case one can use breakpoints to debug.
 
 
 #### Set up all databases with Alembic
@@ -133,5 +140,5 @@ docker-compose down
 
 ## Tests
 
-For development we provide set of tests including unittests, linting and static type checking. Find more details
+For development we provide a set of tests including unittests, linting and static type checking. Find more details
 [here](https://github.com/Open-EO/openeo-openshift-driver/blob/master/doc/run_tests.md).

@@ -8,11 +8,15 @@ import shutil
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
+from dynaconf import settings
 from nameko.rpc import rpc
 from werkzeug.security import safe_join
 
+from .dependencies.settings import initialise_settings
+
 service_name = "files"
 LOGGER = logging.getLogger('standardlog')
+initialise_settings()
 
 
 class ServiceException(Exception):
@@ -211,7 +215,7 @@ class FilesService:
 
     @staticmethod
     def get_user_folder(user_id: str) -> str:
-        return os.path.join(os.environ.get("OPENEO_FILES_DIR"), user_id)  # type: ignore
+        return os.path.join(settings.OPENEO_FILES_DIR, user_id)
 
     def authorize_file(self, user_id: str, path: str, source_dir: str = 'files') \
             -> Union[ServiceException, str]:

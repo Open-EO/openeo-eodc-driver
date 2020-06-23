@@ -3,8 +3,10 @@ import os
 import requests
 
 
-def test_collections() -> None:
-    backend_url = "http://127.0.0.1:3000"
+def check_collections() -> None:
+    backend_url = os.environ.get('BACKEND_URL')
+    if backend_url is None:
+        raise OSError("Environment variable BACKEND_URL needs to be specified!")
     basic_auth_url = backend_url + "/credentials/basic"
     collections_url = backend_url + "/collections"
 
@@ -22,4 +24,4 @@ def test_collections() -> None:
 
 
 if __name__ == '__main__':
-    test_collections()
+    check_collections()

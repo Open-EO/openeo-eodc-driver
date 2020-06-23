@@ -13,7 +13,9 @@ from typing import Dict
 
 import requests
 
-backend_url = 'http://127.0.0.1:3000/v1.0'
+backend_url = os.environ.get("BACKEND_URL")
+if backend_url is None:
+    raise OSError("Environment variable BACKEND_URL needs to be specified!")
 basic_auth_url = backend_url + '/credentials/basic'
 job_url = backend_url + '/jobs'
 sync_job_url = backend_url + '/result'
