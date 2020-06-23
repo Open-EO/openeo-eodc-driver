@@ -5,7 +5,8 @@
 
 ## Information
 
-This repository contains a fully dockerized implementation of the openEO API (openeo.org), written in Python. The web app implementation is based on Flask, while openEO functionalities are implemented as micro-services with Nameko.
+This repository contains a fully dockerized implementation of the openEO API (openeo.org), written in Python. The web
+app implementation is based on Flask, while openEO functionalities are implemented as micro-services with Nameko.
 
 Additionally, three docker-compose files implement a CSW server for data access (`/csw`), an Apache Airflow workflow management platform coupled to a Celery cluster for data processing (`/airflow`), and UDF Services for the R and Python languages (`/udf`). The whole setup can be installed on a laptop to simplify development, but each service can run on independent (set of) machines.
 
@@ -139,5 +140,5 @@ docker-compose down
 
 ## Tests
 
-For development we provide set of tests including unittests, linting and static type checking. Find more details
+For development we provide a set of tests including unittests, linting and static type checking. Find more details
 [here](https://github.com/Open-EO/openeo-openshift-driver/blob/master/doc/run_tests.md).

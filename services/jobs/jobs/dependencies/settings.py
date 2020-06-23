@@ -38,7 +38,7 @@ def initialise_settings() -> None:
     utils = SettingValidationUtils()
     settings.validators.register(
         Validator("GATEWAY_URL", must_exist=True, condition=utils.check_is_url),
-        Validator("AIRFLOW_HOST", must_exist=True, condition=utils.check_url_is_reachable,
+        Validator("AIRFLOW_HOST", must_exist=True, condition=utils.check_is_url,
                   when=Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"])),
         Validator("JOB_DATA", must_exist=True),
         Validator("AIRFLOW_DAGS", must_exist=True, condition=utils.check_create_folder),
