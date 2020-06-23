@@ -250,7 +250,7 @@ class Gateway:
         def local_decorator(**arguments):
             try:
                 local_response = f(**arguments, **kwargs)
-                if local_response.status_code == 302:
+                if not isinstance(local_response, dict) and local_response.status_code == 302:
                     # This is a redirect, pass repsonse as it is
                     # currently used only to redirect "/" to ".well-known/openeo" 
                     return local_response
