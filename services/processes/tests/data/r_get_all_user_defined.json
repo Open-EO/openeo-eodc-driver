@@ -10,7 +10,7 @@
         ],
         "experimental": false,
         "deprecated": false,
-        "id": "test-pg-1",
+        "id": "test_pg_1",
         "returns": {
           "description": "Computed EVI.",
           "schema": {
@@ -63,7 +63,7 @@
         ],
         "experimental": false,
         "deprecated": false,
-        "id": "test-pg-2",
+        "id": "test_pg_2",
         "returns": {
           "description": "Computed EVI.",
           "schema": {

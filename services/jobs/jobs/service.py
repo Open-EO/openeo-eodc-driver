@@ -3,12 +3,13 @@
 import logging
 import os
 import shutil
+import random
+import string
 import threading
 from collections import namedtuple
 from datetime import datetime
 from time import sleep
 from typing import Any, Optional
-from uuid import uuid4
 
 from dynaconf import settings
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
@@ -106,7 +107,7 @@ class JobService:
             process_response = self.processes_service.get_user_defined(user_id, job.process_graph_id)
             if process_response["status"] == "error":
                 return process_response
-            job.process = process_response["data"]["process_graph"]
+            job.process = process_response["data"]
 
             return {
                 "status": "success",
@@ -140,7 +141,8 @@ class JobService:
 
                 # handle processes db
                 process_graph_args = job_args.pop('process')
-                process_graph_id = process_graph_args["id"] if "id" in process_graph_args else str(uuid4())
+                process_graph_id = process_graph_args["id"] if "id" in process_graph_args \
+                    else self.generate_alphanumeric_id()
                 process_response = self.processes_service.put_user_defined(
                     user_id=user_id, process_graph_id=process_graph_id, **process_graph_args)
                 if process_response["status"] == "error":
@@ -156,7 +158,7 @@ class JobService:
                 # handle dag file (remove and recreate it) - only needs to be updated if process graph changes
                 os.remove(self.get_dag_path(job.dag_filename))
                 self.dag_writer.write_and_move_job(job_id=job_id, user_name=user_id,
-                                                   process_graph_json=process_graph_args['process_graph'],
+                                                   process_graph_json=process_graph_args,
                                                    job_data=self.get_job_folder(user_id, job_id),
                                                    vrt_only=True, add_delete_sensor=True,
                                                    process_defs=backend_processes)
@@ -255,7 +257,7 @@ class JobService:
             if 'vrt_flag' in job_args.keys():
                 vrt_flag = job_args.pop("vrt_flag")
             process = job_args.pop("process")
-            process_graph_id = process["id"] if "id" in process else str(uuid4())
+            process_graph_id = process["id"] if "id" in process else self.generate_alphanumeric_id()
             process_response = self.processes_service.put_user_defined(
                 user_id=user_id, process_graph_id=process_graph_id, **process)
             if process_response["status"] == "error":
@@ -646,3 +648,9 @@ class JobService:
         sleep(settings.SYNC_DEL_DELAY)
         # Remove tmp folder
         shutil.rmtree(folder_path)
+
+    def generate_alphanumeric_id(self, k: int = 16) -> str:
+        """
+        Generates a random alpha numeric value.
+        """
+        return ''.join(random.choices(string.ascii_letters + string.digits, k=16))
