@@ -35,18 +35,18 @@ class LinkHandler:
     def _get_source(self) -> None:
         pass
 
-    def get_links(self, records: list = None, collection: bool = False) -> List[Link]:
+    def get_links(self, records: list = None, collection: bool = False) -> List[dict]:
         if not records:
             records = []
         if not collection:
             for record in records:
                 links = [
-                    self._get_self_record(record),
-                    self._get_parent_record(),
-                    self._get_root_record(),
+                    self._get_self_record(record).to_dict(),
+                    self._get_parent_record().to_dict(),
+                    self._get_root_record().to_dict(),
                 ]
                 record.update({"links": links})
             return records
         else:
-            links = [self._get_self_collection()]
+            links = [self._get_self_collection().to_dict()]
             return links

@@ -34,6 +34,17 @@ class Link(NamedTuple):
     type: Optional[str] = None
     title: Optional[str] = None
 
+    def to_dict(self) -> dict:
+        ret = {
+            "href": self.href,
+            "rel": self.rel,
+        }
+        if self.type:
+            ret.update({"type": self.type})
+        if self.title:
+            ret.update({"title": self.title})
+        return ret
+
 
 class Band:
     """ Represents a single band. """
