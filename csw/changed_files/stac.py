@@ -74,7 +74,7 @@ def write_record(result, esn, context, url=None):
     val = util.getqattr(result, context.md_core_model["mappings"]["pycsw:BoundingBox"])
     if val:
         bbox = util.wkt2geom(val)
-        etree.SubElement(ext_spatial, "bbox").text = '[' + str(bbox) + ']'
+        etree.SubElement(ext_spatial, "bbox").text = '[' + str(list(bbox)) + ']'
 
     return node
 

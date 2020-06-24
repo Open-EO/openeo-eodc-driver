@@ -45,7 +45,7 @@ class LinkHandler:
                     self._get_parent_record(),
                     self._get_root_record(),
                 ]
-                record.extent(links)
+                record.update({"links": links})
             return records
         else:
             links = [self._get_self_collection()]

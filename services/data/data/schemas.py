@@ -19,13 +19,13 @@ class BaseSchema(Schema):
 class SpatialExtentSchema(BaseSchema):
     """ Schema for spatial Extent """
 
-    bbox = fields.List(fields.Float(), required=True)
+    bbox = fields.List(fields.List(fields.Float()), required=True)
 
 
 class TemporalExtentSchema(BaseSchema):
     """ Schema for temporal Extent """
 
-    interval = fields.List(fields.String(), required=True)
+    interval = fields.List(fields.List(fields.String()), required=True)
 
 
 class ExtentSchema(BaseSchema):

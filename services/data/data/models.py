@@ -6,11 +6,11 @@ LOGGER = logging.getLogger("standardlog")
 
 
 class SpatialExtent(NamedTuple):
-    bbox: List[float]
+    bbox: List[List[float]]
 
 
 class TemporalExtent(NamedTuple):
-    interval: List[str]
+    interval: List[List[str]]
 
 
 class Extent(NamedTuple):

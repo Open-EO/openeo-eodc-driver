@@ -16,10 +16,10 @@ collection_dict = {
     # provider?
     "extent": {
         "spatial": {
-            "bbox": [12.3, 34.5, 14.5, 36.7]
+            "bbox": [[12.3, 34.5, 14.5, 36.7]]
         },
         "temporal": {
-            "interval": ["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"]
+            "interval": [["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"]],
         },
     },
     "links": [{
@@ -39,12 +39,8 @@ collection_model = Collection(
     license="Some license",
     # provider?
     extent=Extent(
-        spatial=SpatialExtent(
-            bbox=[12.3, 34.5, 14.5, 36.7],
-        ),
-        temporal=TemporalExtent(
-            interval=["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"],
-        ),
+        spatial=SpatialExtent(bbox=[[12.3, 34.5, 14.5, 36.7]]),
+        temporal=TemporalExtent(interval=[["2015-06-23T00:00:00Z", "2019-01-01T00:00:00Z"]])
     ),
     links=[Link(
         rel="alternate",

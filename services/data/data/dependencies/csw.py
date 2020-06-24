@@ -14,7 +14,7 @@ from requests import post
 from .cache import cache_json, get_cache_path, get_json_cache
 from .links import LinkHandler
 from .xml_templates import xml_and, xml_base, xml_bbox, xml_begin, xml_end, xml_product, xml_series
-from ..models import Collection, Collections
+from ..models import Collection, Collections, Extent, SpatialExtent, TemporalExtent
 
 LOGGER = logging.getLogger("standardlog")
 
@@ -59,10 +59,10 @@ class CSWHandler:
 
         collection_list = []
         for collection in data:
-            # TODO find way to write to JSON with correct format
-            collection['extent']['spatial']['bbox'] = ast.literal_eval(collection['extent']['spatial']['bbox'])
-            collection['extent']['temporal']['interval'] = ast.literal_eval(collection['extent']['temporal']['interval'])
+            bbox = ast.literal_eval(collection["extent"]["spatial"]["bbox"])
+            interval = ast.literal_eval(collection["extent"]["temporal"]["interval"])
 
+            # TODO find way to write to JSON with correct format
             collection_list.append(
                 Collection(
                     # TODO change back to collection["stac_version"]
@@ -70,7 +70,9 @@ class CSWHandler:
                     id=collection["id"],
                     description=collection["description"],
                     license=collection["license"],
-                    extent=collection["extent"],
+                    extent=Extent(
+                        spatial=SpatialExtent(bbox=bbox),
+                        temporal=TemporalExtent(interval=interval)),
                     links=collection["links"],
                 )
             )
