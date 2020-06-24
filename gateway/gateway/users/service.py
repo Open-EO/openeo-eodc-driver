@@ -90,7 +90,9 @@ class UsersService:
                 existing = rep.get_user_by_username(user_args['username'])
 
             else:
-                return ServiceException(400, 'None', 'User cannot be created! Please supply either username or email!').to_dict()
+                return ServiceException(400, 'None', 'User cannot be created! Please supply ensure you supplied all'
+                                                     ' required information! (email - identity_provider - profile or'
+                                                     'username - password - profile)').to_dict()
             if existing:
                 return ServiceException(400, 'None', f"User {out_user} exists already in the database. Could not be"
                                                      f" added").to_dict()
