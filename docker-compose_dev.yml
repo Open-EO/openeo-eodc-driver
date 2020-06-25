@@ -59,7 +59,7 @@ services:
     build:
       context: ./gateway
       args:
-        OPENEO_VERSION: $OPENEO_VERSION
+        OEO_OPENEO_VERSION: $OPENEO_VERSION
     container_name: oeo-gateway-$OPENEO_VERSION
     restart: on-failure
     depends_on:
@@ -76,7 +76,7 @@ services:
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
       - $LOG_DIR:/usr/src/logs
     environment:
-      OPENEO_VERSION: $OPENEO_VERSION
+      OEO_OPENEO_VERSION: $OPENEO_VERSION
     ports:
       - $GATEWAY_PORT:3000
 
@@ -84,7 +84,7 @@ services:
     build:
       context: ./services/capabilities
       args:
-        OPENEO_VERSION: $OPENEO_VERSION
+        OEO_OPENEO_VERSION: $OPENEO_VERSION
     image: oeo-capabilities-$OPENEO_VERSION
     container_name: oeo-capabilities-$OPENEO_VERSION
     restart: on-failure
@@ -98,13 +98,13 @@ services:
       - ./services/capabilities:/usr/src/app
       - $LOG_DIR:/usr/src/logs
     environment:
-      OPENEO_VERSION: $OPENEO_VERSION
+      OEO_OPENEO_VERSION: $OPENEO_VERSION
 
   openeo-data:
     build:
       context: ./services/data
       args:
-        OPENEO_VERSION: $OPENEO_VERSION
+        OEO_OPENEO_VERSION: $OPENEO_VERSION
     image: oeo-data-$OPENEO_VERSION
     container_name: oeo-data-$OPENEO_VERSION
     restart: on-failure
@@ -118,7 +118,7 @@ services:
       - ./envs/gateway.env
       - ./envs/data.env
     environment:
-      OPENEO_VERSION: $OPENEO_VERSION
+      OEO_OPENEO_VERSION: $OPENEO_VERSION
       LOG_DIR: /usr/src/logs
     volumes:
       - eo-discovery-cache:/usr/src/cache
@@ -129,7 +129,7 @@ services:
     build:
       context: ./services/processes
       args:
-        OPENEO_VERSION: $OPENEO_VERSION
+        OEO_OPENEO_VERSION: $OPENEO_VERSION
     image: oeo-processes-$OPENEO_VERSION
     container_name: oeo-processes-$OPENEO_VERSION
     restart: on-failure
@@ -142,7 +142,7 @@ services:
       - ./envs/rabbitmq.env
       - ./envs/processes.env
     environment:
-      OPENEO_VERSION: $OPENEO_VERSION
+      OEO_OPENEO_VERSION: $OPENEO_VERSION
       LOG_DIR: /usr/src/logs
       PROCESS_API_DIR: /usr/src/api
     volumes:
@@ -154,7 +154,7 @@ services:
     build: 
       context: ./services/jobs
       args:
-        OPENEO_VERSION: $OPENEO_VERSION
+        OEO_OPENEO_VERSION: $OPENEO_VERSION
     image: oeo-jobs-$OPENEO_VERSION
     container_name: oeo-jobs-$OPENEO_VERSION
     restart: on-failure
@@ -169,7 +169,7 @@ services:
       - ./envs/csw.env
       - ./envs/gateway.env
     environment:
-      OPENEO_VERSION: $OPENEO_VERSION
+      OEO_OPENEO_VERSION: $OPENEO_VERSION
       OEO_AIRFLOW_DAGS: /usr/src/dags/
       OEO_SYNC_RESULTS_FOLDER: /usr/src/sync-results
       AIRFLOW_LOG_DIR: /usr/src/logs/airflow
@@ -185,7 +185,7 @@ services:
     build:
       context: ./services/files
       args:
-        OPENEO_VERSION: $OPENEO_VERSION
+        OEO_OPENEO_VERSION: $OPENEO_VERSION
     image: oeo-files-$OPENEO_VERSION
     container_name: oeo-files-$OPENEO_VERSION
     restart: on-failure
@@ -197,7 +197,7 @@ services:
       - ./envs/rabbitmq.env
       - ./envs/files.env
     environment:
-      OPENEO_VERSION: $OPENEO_VERSION
+      OEO_OPENEO_VERSION: $OPENEO_VERSION
       OPENEO_FILES_DIR: /usr/src/files
       LOG_DIR: /usr/src/logs
     volumes:
