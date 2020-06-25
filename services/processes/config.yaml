@@ -2,7 +2,7 @@ DB_URIS:
     !env_var "processes:Base": postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
     !env_var "process_graphs:Base": postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
 
-AMQP_URI: !env_var "pyamqp://${RABBIT_USER}:${RABBIT_PASSWORD}@${RABBIT_HOST}:${RABBIT_PORT}"
+AMQP_URI: !env_var "pyamqp://${OEO_RABBIT_USER}:${OEO_RABBIT_PASSWORD}@${OEO_RABBIT_HOST}:${OEO_RABBIT_PORT}"
 
 LOGGING:
   version: 1
