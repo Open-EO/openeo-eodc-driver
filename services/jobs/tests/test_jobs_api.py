@@ -66,7 +66,7 @@ def test_get_job(db_session: Session, set_job_data: pytest.fixture, dag_folder: 
     assert result['status'] == 'success'
     # Datetime changes for each test -> cannot be compared to fixed value
     assert datetime.strptime(result['data'].pop('created'), '%Y-%m-%dT%H:%M:%S.%f')
-    assert result['data'].pop('process') == PG_OLD_REF['data']['process_graph']
+    assert result['data'].pop('process') == PG_OLD_REF['data']
     assert result == {'code': 200,
                       'data': {
                           'id': job_id,
@@ -131,7 +131,7 @@ def test_modify_job(db_session: Session, set_job_data: pytest.fixture, dag_folde
     assert result['status'] == 'success'
     assert datetime.strptime(result['data'].pop('created'), '%Y-%m-%dT%H:%M:%S.%f')
     assert result['data'].pop('id').startswith('jb-')
-    assert result['data'].pop('process') == PG_OLD_REF['data']['process_graph']
+    assert result['data'].pop('process') == PG_OLD_REF['data']
     assert result == {'code': 200,
                       'data': job_args,
                       'status': 'success'}
