@@ -81,7 +81,7 @@ class Collections(NamedTuple):
     """ Represents multiple collections """
 
     collections: List[Collection]
-    links: List[Link]
+    links: List[dict]
 
     def __repr__(self) -> str:
         return f"Collections({self.collections})"
