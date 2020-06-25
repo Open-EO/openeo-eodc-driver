@@ -2,8 +2,8 @@
 
 import logging
 import os
-import shutil
 import random
+import shutil
 import string
 import threading
 from collections import namedtuple
@@ -424,12 +424,10 @@ class JobService:
         """
 
         default_out = {
-            "costs": 0,
-            "duration": "null",
-            "download_included": True,
-            "expires": "null"
+            "costs": 0,  # for now no costs are calculated
         }
 
+        LOGGER.info("Costs estimated.")
         return {
             "status": "success",
             "code": 200,
