@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from marshmallow import Schema, fields, post_dump, post_load, pre_load
@@ -40,6 +40,35 @@ class MoneyConverter:
         return None
 
 
+class NestedDict(fields.Nested):
+    """
+    Allows nesting a schema inside a dictionary.
+    This is analogous to nesting schema inside lists but using a dictionary with a given key instead.
+    """
+
+    def __init__(self, nested: Any, key: str, *args: set, **kwargs: dict) -> None:
+        """
+        Initialize nested dictionary field.
+        """
+        super().__init__(nested, many=True, *args, **kwargs)
+        self.key = key
+
+    def _serialize(self, nested_obj: List[Any], attr: str, obj: Any, **kwargs: dict) \
+            -> Dict[str, Any]:
+        nested_list = super()._serialize(nested_obj, attr, obj)
+        nested_dict = {item.pop(self.key): item for item in nested_list}
+        return nested_dict
+
+    def _deserialize(self, value: Dict[str, Any], attr: str, data: Any, **kwargs: dict) \
+            -> List[Any]:
+        raw_list = []
+        for key, item in value.items():
+            item[self.key] = key
+            raw_list.append(item)
+        nested_list = super()._deserialize(raw_list, attr, data)
+        return nested_list
+
+
 class JobShortSchema(BaseSchema, MoneyConverter):
     id = fields.String(required=True)
     title = fields.String()
@@ -75,18 +104,44 @@ class JobCreateSchema(BaseSchema, MoneyConverter):
         return in_data
 
 
+class ProviderSchema(BaseSchema):
+    name = fields.String(required=True)
+    description = fields.String()
+    role = fields.String()  # enum
+    url = fields.Url()
+
+
 class PropertiesSchema(BaseSchema):
+    DEFINED_KEYS = ["datetime", "start_datetime", "end_datetime", "title", "description", "license", "providers",
+                    "created", "updated", "expires"]
+
     datetime = fields.DateTime(required=True)
     start_datetime = fields.DateTime()
     end_datetime = fields.DateTime()
     title = fields.String()
     description = fields.String()
     license = fields.String()  # Stac license
-    providers = fields.List(fields.String())
+    providers = fields.List(fields.Nested(ProviderSchema))
     created = fields.DateTime()
     updated = fields.DateTime()
     expires = fields.DateTime()
-    # TODO add support for anything!
+    additional = fields.Dict()
+
+    @pre_load
+    def separate_additional_keys(self, in_data: dict, **kwargs: dict) -> dict:
+        """
+        Add any additional (not defined in Schema ) keys
+        """
+        additional_keys = [key for key in in_data.keys() if key not in self.DEFINED_KEYS]
+        in_data['additional'] = {key: in_data.pop(key) for key in additional_keys}
+        return in_data
+
+    @post_dump
+    def add_additional_keys(self, data: dict, **kwargs: dict) -> dict:
+        data.update(data.pop('additional'))
+        if 'additional' in data.keys():
+            data.pop('additional')
+        return data
 
 
 class AssetSchema(BaseSchema):
@@ -95,6 +150,7 @@ class AssetSchema(BaseSchema):
     description = fields.String()
     type = fields.String()
     roles = fields.List(fields.String())
+    name = fields.String(required=True)  # Asset's dict key
 
 
 class LinkSchema(BaseSchema):
@@ -104,16 +160,25 @@ class LinkSchema(BaseSchema):
     title = fields.String()
 
 
-class JobResultsSchema(BaseSchema):
-    stac_version = fields.String(required=True)
-    stac_extension = fields.List(fields.String())  # string or url
+class GeometrySchema(BaseSchema):
+    type = fields.String(required=True)  # enum
+    coordinates = fields.Raw(required=True)
+    # we don't support GeoJson GeometryCollection
+
+
+class JobResultsBaseSchema(BaseSchema):
     id = fields.String(required=True)
-    type = fields.String(required=True)  # TODO what is this?
-    bbox = fields.List(fields.Float(), required=True)
     title = fields.String(required=False)
     description = fields.String(required=False)
     status = fields.String(required=True)
-    updated = fields.DateTime(attribute="updated_at", required=False)
+    assets = NestedDict(key="name", nested=AssetSchema)
+    stac_version = fields.String(required=True)
+    stac_extension = fields.List(fields.String())  # string or url
+    links = fields.List(fields.Nested(LinkSchema), required=True)
+
+
+class JobResultsMetadataSchema(BaseSchema):
+    type = fields.String(required=True)
+    bbox = fields.List(fields.Float(), required=True)
+    geometry = fields.Nested(GeometrySchema, required=True)
     properties = fields.Nested(PropertiesSchema, required=True)
-    # assets = fields.List(AssetSchema, required=True)  # TODO should be dict
-    # links = fields.List(LinkSchema, required=True)

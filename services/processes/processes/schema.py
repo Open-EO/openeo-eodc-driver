@@ -230,7 +230,7 @@ class ExceptionSchema(BaseSchema):
     description = fields.String(required=False)
     message = fields.String(required=True)
     http = fields.Integer(required=False, default=400)
-    error_code = fields.String(required=True)
+    error_code = fields.String(required=True)  # Exception's dict key
 
 
 class LinkSchema(BaseSchema):

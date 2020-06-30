@@ -1,5 +1,5 @@
 """ Job Management """
-
+import json
 import logging
 import os
 import random
@@ -19,7 +19,7 @@ from nameko_sqlalchemy import DatabaseSession
 from .dependencies.airflow_conn import AirflowRestConnectionProvider
 from .dependencies.settings import initialise_settings
 from .models import Base, Job, JobStatus
-from .schema import JobCreateSchema, JobFullSchema, JobResultsSchema, JobShortSchema
+from .schema import JobCreateSchema, JobFullSchema, JobResultsBaseSchema, JobShortSchema
 
 service_name = "jobs"
 LOGGER = logging.getLogger('standardlog')
@@ -476,26 +476,28 @@ class JobService:
                                     links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
 
     @rpc
-    def get_results(self, user_id: str, job_id: str) -> dict:
+    def get_results(self, user_id: str, job_id: str, api_spec: dict) -> dict:
         """The request will ask the back-end to get the location where the results of the given job can be retrieved.
         This only works if the job is in state finished.
 
         Arguments:
             user_id {str} -- The identifier of the user
             job_id {str} -- The id of the job
+            api_spec {dict} -- OpenAPI Specification (needed for STAC Version)
         """
         try:
-            self._update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
             response = self.authorize(user_id, job_id, job)
             if isinstance(response, ServiceException):
                 return response.to_dict()
+            self._update_job_status(job_id=job_id)
+            job = self.db.query(Job).filter_by(id=job_id).first()
 
             if job.status == JobStatus.error:
                 return ServiceException(424, user_id, job.error, internal=False).to_dict()  # TODO store error!
 
             if job.status == JobStatus.canceled:
-                return ServiceException(400, user_id, f"Job {job_id} was canceled.").to_dict()
+                return ServiceException(400, user_id, f"Job {job_id} was canceled.", internal=False).to_dict()
 
             if job.status in [JobStatus.created, JobStatus.queued, JobStatus.running]:
                 return JobNotFinished(400, user_id, job_id, internal=False).to_dict()
@@ -504,13 +506,27 @@ class JobService:
             output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
             if output["status"] == "error":
                 return output
+            file_list = output["data"]["file_list"]
+
+            # Add additional metadata from json
+            metadata_file_index = [i for i, f in enumerate(file_list) if f.endswith("results_metadata.json")]
+            if len(metadata_file_index) != 1:
+                return ServiceException(500, user_id, "The metadata of the result files does not exist").to_dict()
+            with open(file_list.pop(metadata_file_index[0])) as f:
+                metadata = json.load(f)
+
+            job.assets = [{
+                "href": self._get_download_url(f),
+                "name": os.path.basename(f)
+            } for f in file_list]
+
+            # TODO fix links
+            job.links = []
+            job.stac_version = api_spec["info"]["stac_version"]
 
             # file list could be retrieved
-            job_data = JobResultsSchema().dump(job)
-            job_data["link"] = [{
-                "href": self._get_download_url(f),
-                "type": "image/tiff",
-            } for f in output['data']['file_list']]
+            job_data = JobResultsBaseSchema().dump(job)
+            job_data.update(metadata)
 
             return {
                 "status": "success",
@@ -519,7 +535,7 @@ class JobService:
                     "Expires": "not given",
                     "OpenEO-Costs": 0
                 },
-                "data": job_data
+                "data": job_data,
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
