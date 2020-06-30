@@ -203,9 +203,9 @@ class JobService:
                 self._stop_airflow_job(user_id, job_id)
                 LOGGER.info(f"Stopped running job {job_id}.")
 
-            self.files_service.delete_complete_job(user_id, job_id)  # delete data on file system
+            self.files_service.delete_complete_job(user_id=user_id, job_id=job_id)  # delete data on file system
             os.remove(self.get_dag_path(job.dag_filename))  # delete dag file
-            self.airflow.delete_dag(job_id)  # delete from airflow database
+            self.airflow.delete_dag(job_id=job_id)  # delete from airflow database
             self.db.delete(job)  # delete from our job database
             self.db.commit()
             LOGGER.info(f"Job {job_id} completely deleted.")
@@ -321,7 +321,7 @@ class JobService:
                 return ServiceException(400, user_id, f"Job {job_id} is already {job.status}. Processing must be "
                                                       f"canceled before restart.", links=[]).to_dict()
 
-            trigger_worked = self.airflow.trigger_dag(job_id)
+            trigger_worked = self.airflow.trigger_dag(job_id=job_id)
             if not trigger_worked:
                 return ServiceException(500, user_id, f"Job {job_id} could not be started.", links=[]).to_dict()
 
@@ -566,7 +566,7 @@ class JobService:
 
         # TODO: Permission (e.g admin)
         if job.user_id != user_id:
-            return ServiceException(401, user_id, "You are not allowed to access this resource.",
+            return ServiceException(401, user_id, f"You are not allowed to access the job {job_id}.",
                                     internal=False, links=["#tag/Job-Management/paths/~1data/get"])
 
         LOGGER.info(f"User is authorized to access job {job_id}.")
@@ -591,7 +591,10 @@ class JobService:
         else:
             new_status, execution_time = self.airflow.check_dag_status(job_id)
             if new_status and (not job.status
-                               or job.status in [JobStatus.queued, JobStatus.running, JobStatus.error]
+                               or job.status in [JobStatus.created,
+                                                 JobStatus.queued,
+                                                 JobStatus.running,
+                                                 JobStatus.error]
                                # Job status created or canceled, when job is canceled:
                                # > state in airflow set to failed though locally is stored as created or canceled
                                # > the state should only be updated if there was a new dag run since the canceled one

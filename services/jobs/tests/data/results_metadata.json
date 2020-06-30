@@ -1,0 +1,11 @@
+{
+  "type": "Feature",
+  "bbox": [1, 2, 3, 4],
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[[12, 34], [24, 89]]]
+  },
+  "properties": {
+    "datetime": "2020-02-20T16:05:21Z"
+  }
+}
