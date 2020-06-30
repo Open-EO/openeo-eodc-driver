@@ -4,9 +4,12 @@ from os.path import getmtime, isfile
 import pytest
 from nameko_sqlalchemy.database_session import Session
 
+
+from jobs.models import JobStatus
 from tests.mocks import PG_OLD_REF
 from tests.utils import add_job, get_configured_job_service, get_dag_path, get_random_user_id
 from .base import BaseCase
+from .exceptions import get_job_locked_exception
 
 
 @pytest.mark.usefixtures("set_job_data", "dag_folder")
@@ -71,3 +74,16 @@ class TestModifyJob(BaseCase):
                                    'status': 'created',
                                    'title': 'evi_job_old'},
                           'status': 'success'}
+
+    @pytest.mark.parametrize("job_status", (JobStatus.running, JobStatus.queued))
+    def test_job_active_error(self, db_session: Session, job_status: JobStatus) -> None:
+        job_service = get_configured_job_service(db_session, airflow=False)
+        job_service.airflow.check_dag_status.return_value = (job_status, datetime.now())
+        user_id = get_random_user_id()
+        job_id = add_job(job_service, user_id=user_id)
+
+        job_args = {
+            'title': 'New title',
+        }
+        result = job_service.modify(user_id=user_id, job_id=job_id, **job_args)
+        assert result == get_job_locked_exception(user_id=user_id, job_id=job_id, job_status=str(job_status))
