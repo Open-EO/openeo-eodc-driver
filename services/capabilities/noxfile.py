@@ -9,7 +9,7 @@ nox.options.sessions = "lint", "mypy", "tests"
 @nox.session(python=["3.6"])
 def tests(session: Session) -> None:
     args = session.posargs or ["--cov"]
-    # no requirements needed for the package itself
+    session.install("-r", "requirements.txt")
     session.install(
         "pytest",
         "pytest-cov",

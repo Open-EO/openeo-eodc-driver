@@ -1,13 +1,15 @@
 """ Capabilities Discovery """
-import ast
 import logging
-from os import environ
 from typing import Optional
 
+from dynaconf import settings
 from nameko.rpc import rpc
+
+from capabilities.dependencies.settings import initialise_settings
 
 service_name = "capabilities"
 LOGGER = logging.getLogger('standardlog')
+initialise_settings()
 
 
 class ServiceException(Exception):
@@ -122,9 +124,9 @@ class CapabilitiesService:
             for ver in api_spec["servers"]["versions"]:
                 this_ver = api_spec["servers"]["versions"][ver]
                 this_ver["production"] = api_spec["info"]["production"]
-                if ast.literal_eval(environ['DEVELOPMENT']):
+                if settings.ENV_FOR_DYNACONF == "development":
                     # change https url to localhost
-                    this_ver['url'] = environ['GATEWAY_URL'] + this_ver['url'].split(".eu")[1]
+                    this_ver['url'] = settings.GATEWAY_URL + this_ver['url'].split(".eu")[1]
                 api_versions.append(this_ver)
 
             return {

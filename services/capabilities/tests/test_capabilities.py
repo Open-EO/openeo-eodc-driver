@@ -1,4 +1,3 @@
-import pytest
 from nameko.testing.services import worker_factory
 
 from capabilities.service import CapabilitiesService
@@ -154,7 +153,7 @@ def test_get_index() -> None:
         }}
 
 
-def test_get_versions(get_envs: pytest.fixture) -> None:
+def test_get_versions() -> None:
     service = worker_factory(CapabilitiesService)
     result = service.get_versions(MOCKED_API_SPEC)
     assert result == {'status': 'success',
