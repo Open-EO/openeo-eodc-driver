@@ -1,7 +1,8 @@
 """ CSW Session """
 
+import ast
 import logging
-from json import dumps, loads
+from json import dumps
 from os import makedirs, path
 from typing import Tuple
 
@@ -13,7 +14,7 @@ from requests import post
 from .cache import cache_json, get_cache_path, get_json_cache
 from .links import LinkHandler
 from .xml_templates import xml_and, xml_base, xml_bbox, xml_begin, xml_end, xml_product, xml_series
-from ..models import Collection, Collections
+from ..models import Collection, Collections, Extent, SpatialExtent, TemporalExtent
 
 LOGGER = logging.getLogger("standardlog")
 
@@ -58,19 +59,25 @@ class CSWHandler:
 
         collection_list = []
         for collection in data:
+            bbox = ast.literal_eval(collection["extent"]["spatial"]["bbox"])
+            interval = ast.literal_eval(collection["extent"]["temporal"]["interval"])
+
+            # TODO find way to write to JSON with correct format
             collection_list.append(
                 Collection(
                     # TODO change back to collection["stac_version"]
                     stac_version="0.9.0",
-                    b_id=collection["id"],
+                    id=collection["id"],
                     description=collection["description"],
-                    b_license=collection["license"],
-                    extent=collection["extent"],
+                    license=collection["license"],
+                    extent=Extent(
+                        spatial=SpatialExtent(bbox=bbox),
+                        temporal=TemporalExtent(interval=interval)),
                     links=collection["links"],
                 )
             )
         links = self.link_handler.get_links(collection=True)
-        collections = Collections(collection_list, links)
+        collections = Collections(collections=collection_list, links=links)
 
         return collections
 
@@ -85,12 +92,15 @@ class CSWHandler:
         """
 
         data = self._get_records(data_id, series=True)[0]
+        # TODO find way to write to JSON with correct format
+        data['extent']['spatial']['bbox'] = ast.literal_eval(data['extent']['spatial']['bbox'])
+        data['extent']['temporal']['interval'] = ast.literal_eval(data['extent']['temporal']['interval'])
 
         collection = Collection(
             stac_version=data["stac_version"],
-            b_id=data["id"],
+            id=data["id"],
             description=data["description"],
-            b_license=data["license"],
+            license=data["license"],
             extent=data["extent"],
             links=data["links"],
             title=data["title"],
@@ -113,13 +123,13 @@ class CSWHandler:
                 collection["id"], series=True, use_cache=use_cache)[0]
 
     def _get_records(
-        self,
-        product: str = None,
-        bbox: list = None,
-        start: str = None,
-        end: str = None,
-        series: bool = False,
-        use_cache: bool = True,
+            self,
+            product: str = None,
+            bbox: list = None,
+            start: str = None,
+            end: str = None,
+            series: bool = False,
+            use_cache: bool = True,
     ) -> list:
         """Parses the XML request for the CSW server and collects the response by the
         batch triggered _get_single_records function.
@@ -176,12 +186,12 @@ class CSWHandler:
         return all_records
 
     def _get_csw_filter(
-        self,
-        product: str = None,
-        bbox: list = None,
-        start: str = None,
-        end: str = None,
-        series: bool = False,
+            self,
+            product: str = None,
+            bbox: list = None,
+            start: str = None,
+            end: str = None,
+            series: bool = False,
     ) -> str:
         """
         Create a CSW filter based on the given parameters.
@@ -241,7 +251,7 @@ class CSWHandler:
         return filter_parsed
 
     def _get_single_records(
-        self, start_position: int, filter_parsed: str, output_schema: str
+            self, start_position: int, filter_parsed: str, output_schema: str
     ) -> Tuple[int, list]:
         """Sends a single request to the CSW server, requesting data about records or products.
 
@@ -277,7 +287,7 @@ class CSWHandler:
             LOGGER.error("%s", xml.toprettyxml())
             raise CSWError("Error while communicating with CSW server.")
 
-        response_json = loads(response.text)
+        response_json = response.json()
 
         if "ows:ExceptionReport" in response_json:
             LOGGER.error("%s", dumps(response_json, indent=4, sort_keys=True))

@@ -16,11 +16,23 @@ class BaseSchema(Schema):
         }
 
 
+class SpatialExtentSchema(BaseSchema):
+    """ Schema for spatial Extent """
+
+    bbox = fields.List(fields.List(fields.Float()), required=True)
+
+
+class TemporalExtentSchema(BaseSchema):
+    """ Schema for temporal Extent """
+
+    interval = fields.List(fields.List(fields.String()), required=True)
+
+
 class ExtentSchema(BaseSchema):
     """ Schema for Extent """
 
-    spatial = fields.List(fields.Float(), required=True)
-    temporal = fields.List(fields.String(), required=True)
+    spatial = fields.Nested(SpatialExtentSchema, required=True)
+    temporal = fields.Nested(TemporalExtentSchema, required=True)
 
 
 class ProvidersSchema(BaseSchema):

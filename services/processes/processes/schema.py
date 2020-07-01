@@ -1,7 +1,8 @@
+import re
 from typing import Any, Dict, List, Union
 from uuid import uuid4
 
-from marshmallow import Schema, fields, post_dump, post_load, pre_load
+from marshmallow import Schema, fields, post_dump, post_load, pre_load, validate
 
 from .models import Base, Category, Example, ExceptionCode, Link, Parameter, ProcessGraph, Return, Schema as DbSchema, \
     SchemaEnum, SchemaType
@@ -58,6 +59,7 @@ class SingleMultiplePluckField(fields.Pluck, SingleMultipleField):
     """
     Handles simple fields which can be either a string or a list of strings.
     """
+
     def _serialize(self, nested_obj: List[str], attr: str, obj: Any, **kwargs: dict) -> Union[List, Any]:
         """
         Serializes one value list fields to the value itself and returns complete list otherwise.
@@ -228,7 +230,7 @@ class ExceptionSchema(BaseSchema):
     description = fields.String(required=False)
     message = fields.String(required=True)
     http = fields.Integer(required=False, default=400)
-    error_code = fields.String(required=True)
+    error_code = fields.String(required=True)  # Exception's dict key
 
 
 class LinkSchema(BaseSchema):
@@ -269,7 +271,7 @@ class ExampleSchema(BaseSchema):
 
 class ProcessGraphShortSchema(BaseSchema):
     id_internal = fields.String(attribute='id', load_only=True)
-    id = fields.String(required=True, attribute='id_openeo')
+    id = fields.String(required=True, attribute='id_openeo', validate=validate.Regexp(regex='^\\w+$'))
     summary = fields.String()
     description = fields.String()
     categories = fields.Pluck(CategorySchema, 'name', many=True)
@@ -282,9 +284,22 @@ class ProcessGraphShortSchema(BaseSchema):
 
     @pre_load
     def add_process_graph_id(self, in_data: dict, **kwargs: dict) -> dict:
+        """ Generate an internal process_graph_id. """
         if not ('id_internal' in in_data and in_data['id_internal']):
             in_data['id_internal'] = 'pg-' + str(uuid4())
         return in_data
+
+    @post_dump
+    def fix_old_process_graph_ids(self, data: dict, **kwargs: dict) -> dict:
+        """ Reformat id_openeo to match required regex.
+        Due to backward compatibility some process_graph ids may contain '-' which are not allowed.
+        '-' are replaced by '_' and the ids are prefixed with 'regex_'
+        """
+        id_pattern = re.compile('^\\w+$')
+        if id_pattern.match(data['id']) is None:
+            regex_id = data['id'].replace('-', '_')
+            data['id'] = 'regex_' + regex_id
+        return data
 
 
 class ProcessGraphFullSchema(ProcessGraphShortSchema):
@@ -297,6 +312,7 @@ class ProcessGraphFullSchema(ProcessGraphShortSchema):
 
 
 class ProcessGraphPredefinedSchema(ProcessGraphShortSchema):
+    __return_anyway__ = ['parameters']
     __model__ = ProcessGraph
 
     exceptions = NestedDict(key='error_code', nested=ExceptionSchema)

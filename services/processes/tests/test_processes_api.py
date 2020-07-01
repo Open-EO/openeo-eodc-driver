@@ -72,8 +72,8 @@ def test_get_all_user_defined(db_session: Session) -> None:
     processes_service.data_service.get_all_products.return_value = load_json("collections.json")
 
     pg = load_json("process_graph.json")
-    processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg-1", **pg)
-    processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg-2", **pg)
+    processes_service.put_user_defined(user_id="test-user", process_graph_id="test_pg_1", **pg)
+    processes_service.put_user_defined(user_id="test-user", process_graph_id="test_pg_2", **pg)
     assert db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user").count() == 2
 
     result = processes_service.get_all_user_defined(user_id="test-user")
@@ -86,30 +86,30 @@ def test_put_get_user_defined(db_session: Session) -> None:
 
     processes_service.data_service.get_all_products.return_value = load_json("collections.json")
     pg = load_json("process_graph.json")
-    processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
+    processes_service.put_user_defined(user_id="test-user", process_graph_id="test_pg", **pg)
     query = db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
-        .filter(ProcessGraph.id_openeo == "test-pg")
+        .filter(ProcessGraph.id_openeo == "test_pg")
     id_orig = query.first().id
     assert query.count() == 1
 
-    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
+    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test_pg")
     ref_output = load_json("r_put_get_user_defined.json")
     assert result == ref_output
 
     # Insert same pg again - nothing should change
-    processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
+    processes_service.put_user_defined(user_id="test-user", process_graph_id="test_pg", **pg)
     assert query.count() == 1
     assert query.first().id == id_orig
-    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
+    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test_pg")
     assert result == ref_output
 
     # Make a small change (update summary) - only the summary should change
     pg['summary'] = 'A new summary'
     ref_output['data']['summary'] = 'A new summary'
-    processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
+    processes_service.put_user_defined(user_id="test-user", process_graph_id="test_pg", **pg)
     assert query.count() == 1
     assert query.first().id == id_orig
-    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
+    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test_pg")
     assert result == ref_output
 
 
@@ -127,9 +127,9 @@ def test_put_user_defined_predefined(db_session: Session) -> None:
 
 def test_get_user_defined_non_existing(db_session: Session) -> None:
     processes_service = mock_processes_service(db_session)
-    assert db_session.query(ProcessGraph).filter(ProcessGraph.id_openeo == "test-pg").count() == 0
+    assert db_session.query(ProcessGraph).filter(ProcessGraph.id_openeo == "test_pg").count() == 0
 
-    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test-pg")
+    result = processes_service.get_user_defined(user_id="test-user", process_graph_id="test_pg")
     ref_output = load_json("r_get_user_defined_non_existing.json")
     assert result == ref_output
 
@@ -140,20 +140,20 @@ def test_delete(db_session: Session) -> None:
     processes_service.data_service.get_all_products.return_value = load_json("collections.json")
 
     pg = load_json("process_graph.json")
-    processes_service.put_user_defined(user_id="test-user", process_graph_id="test-pg", **pg)
+    processes_service.put_user_defined(user_id="test-user", process_graph_id="test_pg", **pg)
     assert db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
-        .filter(ProcessGraph.id_openeo == "test-pg").count() == 1
+        .filter(ProcessGraph.id_openeo == "test_pg").count() == 1
 
-    result = processes_service.delete(user_id="test-user", process_graph_id="test-pg")
+    result = processes_service.delete(user_id="test-user", process_graph_id="test_pg")
     assert result == {"status": "success", "code": 204}
     assert db_session.query(ProcessGraph).filter(ProcessGraph.user_id == "test-user") \
-        .filter(ProcessGraph.id_openeo == "test-pg").count() == 0
+        .filter(ProcessGraph.id_openeo == "test_pg").count() == 0
 
 
 def test_delete_non_existing(db_session: Session) -> None:
     processes_service = mock_processes_service(db_session)
-    assert db_session.query(ProcessGraph).filter(ProcessGraph.id_openeo == "test-pg").count() == 0
+    assert db_session.query(ProcessGraph).filter(ProcessGraph.id_openeo == "test_pg").count() == 0
 
-    result = processes_service.delete(user_id="test-user", process_graph_id="test-pg")
+    result = processes_service.delete(user_id="test-user", process_graph_id="test_pg")
     ref_output = load_json("r_delete_non_existing.json")
     assert result == ref_output

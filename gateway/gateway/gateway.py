@@ -4,20 +4,23 @@ from sys import exit
 from typing import Union, Callable, Tuple
 
 from dynaconf import FlaskDynaconf, settings
-from flask import Flask
+from flask import Flask, redirect
 from flask.ctx import AppContext
 from flask.wrappers import Response
 from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
 from flask_sqlalchemy import SQLAlchemy
 
-from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException
+from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException, \
+    GatewayUtils
 
 
 class Gateway:
     """Gateway is the central class to instantiate a RPC based API gateway object based on
     an OpenAPI v3 specification.
     """
+
+    utils = GatewayUtils()
 
     def __init__(self):
         self._service = self._init_service()
@@ -137,7 +140,8 @@ class Gateway:
         """
 
         service = Flask(__name__)
-        FlaskDynaconf(service)  # configure - set ENV_FOR_DYNACONF to select dev / prod (default: dev)
+        service.before_request(self.utils.fix_transfer_encoding)
+        FlaskDynaconf(service)  # configure - set ENV_FOR_DYNACONF to select dev / prod / test (default: dev)
 
         return service
 
@@ -230,6 +234,10 @@ class Gateway:
         def local_decorator(**arguments):
             try:
                 local_response = f(**arguments, **kwargs)
+                if not isinstance(local_response, dict) and local_response.status_code == 302:
+                    # This is a redirect, pass repsonse as it is
+                    # currently used only to redirect "/" to ".well-known/openeo" 
+                    return local_response
 
                 if local_response["status"] == "error":
                     return self._res.error(local_response)
@@ -278,6 +286,19 @@ class Gateway:
             "status": "success",
             "html": "redoc.html",
         }
+    
+    
+    def main_page(self) -> dict:
+        """
+        Redirect main page "/" to openeo well known dodument "/.well-known/openeo".
+        """
+        
+        if environ['DEVELOPMENT']:
+            base_url = environ['GATEWAY_URL']
+        else:
+            base_url = environ['DNS_URL']
+        return redirect(base_url + "/.well-known/openeo")
+        
 
     def _parse_error_to_json(self, exc):
         return self._res.error(

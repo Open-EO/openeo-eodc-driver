@@ -4,6 +4,7 @@
   "plan": "plan",
   "budget": 1624.78,
   "process": {
+    "id": "pg_id",
     "summary": "Enhanced Vegetation Index",
     "description": "Computes the Enhanced Vegetation Index (EVI). It is computed with the following formula: `2.5 * (NIR - RED) / (1 + NIR + 6*RED + -7.5*BLUE)`.",
     "parameters": [

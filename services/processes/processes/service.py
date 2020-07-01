@@ -73,6 +73,7 @@ class ProcessesService:
             process_graph_id {str} -- The id of the process graph
         """
         try:
+            process_graph_id = self._back_convert_old_process_graph_ids(process_graph_id)
             process_graph = self.db.query(ProcessGraph) \
                 .filter_by(id_openeo=process_graph_id) \
                 .filter_by(process_definition=ProcessDefinitionEnum.user_defined) \
@@ -99,6 +100,7 @@ class ProcessesService:
             process_graph_id {str} -- The id of the process graph
         """
         try:
+            process_graph_id = self._back_convert_old_process_graph_ids(process_graph_id)
             # Check process graph exists and user is allowed to access / delete it
             process_graph = self.db.query(ProcessGraph).filter_by(id_openeo=process_graph_id).first()
             response = self._exist_and_authorize(user_id, process_graph_id, process_graph)
@@ -275,25 +277,26 @@ class ProcessesService:
                 return data_response
             collections = data_response["data"]["collections"]
 
-            valid = validate_process_graph(process, processes_src=processes,
-                                           collections_src=collections)
-            if valid:
-                output_errors = []
-            else:
-                # TODO clarify errors -> use again json schemas for validation
+            try:
+                _ = validate_process_graph(process, processes_src=processes, collections_src=collections)
+                output_errors: list = []
+            except ValidationError as exp:
                 output_errors = [
                     {
-                        "message": "error."
+                        'code': 400,
+                        'message': str(exp)
                     }
                 ]
 
             return {
                 "status": "success",
                 "code": 200,
-                "data": output_errors
+                "data": {
+                    'errors': output_errors
+                }
             }
         except ValidationError as exp:
-            return ServiceException(ProcessesService.name, 400, user_id, exp.message, internal=False,
+            return ServiceException(ProcessesService.name, 400, user_id, str(exp), internal=False,
                                     links=["#tag/EO-Data-Discovery/paths/~1process_graph/post"]).to_dict()
         except Exception as exp:
             return ServiceException(ProcessesService.name, 500, user_id, str(exp)).to_dict()
@@ -367,3 +370,15 @@ class ProcessesService:
                                     f"user_{process_graph_id}", internal=False, links=[])
         LOGGER.debug(f"ProcessGraphId {process_graph_id} is not a predefined process")
         return None
+
+    def _back_convert_old_process_graph_ids(self, process_graph_id: str) -> str:
+        """
+        Back-Translate reformated process_graph_ids.
+        Due to backward compatibility some process_graph_ids (id_openeo) do not match the required regex (in the
+        database) -> they are converted to match and need to be back converted when using again internally.
+        """
+
+        if process_graph_id.startswith("regex_"):
+            new = process_graph_id.replace("_", "-")
+            return new[6:]
+        return process_graph_id

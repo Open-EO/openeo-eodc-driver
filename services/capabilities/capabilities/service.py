@@ -1,5 +1,7 @@
 """ Capabilities Discovery """
+import ast
 import logging
+from os import environ
 from typing import Optional
 
 from nameko.rpc import rpc
@@ -67,6 +69,9 @@ class CapabilitiesService:
 
         try:
             endpoints = []
+            # Remove /.well-known/openeo endpoint, must not be listed under versioned URLs
+            if './well-known/openeo' in api_spec['paths']:
+                _ = api_spec['paths'].pop('/.well-known/openeo')
             for path_name, methods in api_spec["paths"].items():
                 path_to_replace = path_name[path_name.find(':'):path_name.find('}')]
                 path_name = path_name.replace(path_to_replace, '')
@@ -117,6 +122,9 @@ class CapabilitiesService:
             for ver in api_spec["servers"]["versions"]:
                 this_ver = api_spec["servers"]["versions"][ver]
                 this_ver["production"] = api_spec["info"]["production"]
+                if ast.literal_eval(environ['DEVELOPMENT']):
+                    # change https url to localhost
+                    this_ver['url'] = environ['GATEWAY_URL'] + this_ver['url'].split(".eu")[1]
                 api_versions.append(this_ver)
 
             return {

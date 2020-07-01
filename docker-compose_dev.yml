@@ -94,6 +94,7 @@ services:
       - openeo-base
     env_file:
       - ./envs/rabbitmq.env
+      - ./envs/gateway.env
     volumes:
       - ./services/capabilities:/usr/src/app
       - $LOG_DIR:/usr/src/logs

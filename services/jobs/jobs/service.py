@@ -1,14 +1,15 @@
 """ Job Management """
-
+import json
 import logging
 import os
+import random
 import shutil
+import string
 import threading
 from collections import namedtuple
 from datetime import datetime
 from time import sleep
 from typing import Any, Optional
-from uuid import uuid4
 
 from dynaconf import settings
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
@@ -17,63 +18,13 @@ from nameko_sqlalchemy import DatabaseSession
 
 from .dependencies.airflow_conn import AirflowRestConnectionProvider
 from .dependencies.settings import initialise_settings
+from .exceptions import JobLocked, JobNotFinished, ServiceException
 from .models import Base, Job, JobStatus
-from .schema import JobCreateSchema, JobFullSchema, JobResultsSchema, JobShortSchema
+from .schema import JobCreateSchema, JobFullSchema, JobResultsBaseSchema, JobShortSchema
 
 service_name = "jobs"
 LOGGER = logging.getLogger('standardlog')
 initialise_settings()
-
-
-class ServiceException(Exception):
-    """ServiceException raises if an exception occured while processing the
-    request. The ServiceException is mapping any exception to a serializable
-    format for the API gateway.
-    """
-
-    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None) -> None:
-        if not links:
-            links = []
-
-        self._service = service_name
-        self._code = code
-        self._user_id = user_id
-        self._msg = msg
-        self._internal = internal
-        self._links = links
-        LOGGER.exception(msg, exc_info=True)
-
-    def to_dict(self) -> dict:
-        """Serializes the object to a dict.
-
-        Returns:
-            dict -- The serialized exception
-        """
-
-        return {
-            "status": "error",
-            "service": self._service,
-            "code": self._code,
-            "user_id": self._user_id,
-            "msg": self._msg,
-            "internal": self._internal,
-            "links": self._links
-        }
-
-
-class JobLocked(ServiceException):
-    """ JobLocked raised if job is queued / running when trying to modify it. """
-    def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None) -> None:
-        super(JobLocked, self).__init__(code, user_id, msg, internal, links)
-
-
-class JobNotFinished(ServiceException):
-    """ JobNotFinished raised if job is not finished but results are requested . """
-    def __init__(self, code: int, user_id: str, job_id: str, msg: str = None, internal: bool = True,
-                 links: list = None) -> None:
-        if not msg:
-            msg = f"Job {job_id} is not yet finished. Results cannot be accessed."
-        super().__init__(code, user_id, msg, internal, links)
 
 
 class JobService:
@@ -106,7 +57,7 @@ class JobService:
             process_response = self.processes_service.get_user_defined(user_id, job.process_graph_id)
             if process_response["status"] == "error":
                 return process_response
-            job.process = process_response["data"]["process_graph"]
+            job.process = process_response["data"]
 
             return {
                 "status": "success",
@@ -140,7 +91,8 @@ class JobService:
 
                 # handle processes db
                 process_graph_args = job_args.pop('process')
-                process_graph_id = process_graph_args["id"] if "id" in process_graph_args else str(uuid4())
+                process_graph_id = process_graph_args["id"] if "id" in process_graph_args \
+                    else self.generate_alphanumeric_id()
                 process_response = self.processes_service.put_user_defined(
                     user_id=user_id, process_graph_id=process_graph_id, **process_graph_args)
                 if process_response["status"] == "error":
@@ -156,7 +108,7 @@ class JobService:
                 # handle dag file (remove and recreate it) - only needs to be updated if process graph changes
                 os.remove(self.get_dag_path(job.dag_filename))
                 self.dag_writer.write_and_move_job(job_id=job_id, user_name=user_id,
-                                                   process_graph_json=process_graph_args['process_graph'],
+                                                   process_graph_json=process_graph_args,
                                                    job_data=self.get_job_folder(user_id, job_id),
                                                    vrt_only=True, add_delete_sensor=True,
                                                    process_defs=backend_processes)
@@ -201,9 +153,9 @@ class JobService:
                 self._stop_airflow_job(user_id, job_id)
                 LOGGER.info(f"Stopped running job {job_id}.")
 
-            self.files_service.delete_complete_job(user_id, job_id)  # delete data on file system
+            self.files_service.delete_complete_job(user_id=user_id, job_id=job_id)  # delete data on file system
             os.remove(self.get_dag_path(job.dag_filename))  # delete dag file
-            self.airflow.delete_dag(job_id)  # delete from airflow database
+            self.airflow.delete_dag(job_id=job_id)  # delete from airflow database
             self.db.delete(job)  # delete from our job database
             self.db.commit()
             LOGGER.info(f"Job {job_id} completely deleted.")
@@ -255,7 +207,7 @@ class JobService:
             if 'vrt_flag' in job_args.keys():
                 vrt_flag = job_args.pop("vrt_flag")
             process = job_args.pop("process")
-            process_graph_id = process["id"] if "id" in process else str(uuid4())
+            process_graph_id = process["id"] if "id" in process else self.generate_alphanumeric_id()
             process_response = self.processes_service.put_user_defined(
                 user_id=user_id, process_graph_id=process_graph_id, **process)
             if process_response["status"] == "error":
@@ -319,7 +271,7 @@ class JobService:
                 return ServiceException(400, user_id, f"Job {job_id} is already {job.status}. Processing must be "
                                                       f"canceled before restart.", links=[]).to_dict()
 
-            trigger_worked = self.airflow.trigger_dag(job_id)
+            trigger_worked = self.airflow.trigger_dag(job_id=job_id)
             if not trigger_worked:
                 return ServiceException(500, user_id, f"Job {job_id} could not be started.", links=[]).to_dict()
 
@@ -422,12 +374,10 @@ class JobService:
         """
 
         default_out = {
-            "costs": 0,
-            "duration": "null",
-            "download_included": True,
-            "expires": "null"
+            "costs": 0,  # for now no costs are calculated
         }
 
+        LOGGER.info("Costs estimated.")
         return {
             "status": "success",
             "code": 200,
@@ -476,26 +426,28 @@ class JobService:
                                     links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
 
     @rpc
-    def get_results(self, user_id: str, job_id: str) -> dict:
+    def get_results(self, user_id: str, job_id: str, api_spec: dict) -> dict:
         """The request will ask the back-end to get the location where the results of the given job can be retrieved.
         This only works if the job is in state finished.
 
         Arguments:
             user_id {str} -- The identifier of the user
             job_id {str} -- The id of the job
+            api_spec {dict} -- OpenAPI Specification (needed for STAC Version)
         """
         try:
-            self._update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
             response = self.authorize(user_id, job_id, job)
             if isinstance(response, ServiceException):
                 return response.to_dict()
+            self._update_job_status(job_id=job_id)
+            job = self.db.query(Job).filter_by(id=job_id).first()
 
             if job.status == JobStatus.error:
                 return ServiceException(424, user_id, job.error, internal=False).to_dict()  # TODO store error!
 
             if job.status == JobStatus.canceled:
-                return ServiceException(400, user_id, f"Job {job_id} was canceled.").to_dict()
+                return ServiceException(400, user_id, f"Job {job_id} was canceled.", internal=False).to_dict()
 
             if job.status in [JobStatus.created, JobStatus.queued, JobStatus.running]:
                 return JobNotFinished(400, user_id, job_id, internal=False).to_dict()
@@ -504,13 +456,27 @@ class JobService:
             output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
             if output["status"] == "error":
                 return output
+            file_list = output["data"]["file_list"]
+
+            # Add additional metadata from json
+            metadata_file_index = [i for i, f in enumerate(file_list) if f.endswith("results_metadata.json")]
+            if len(metadata_file_index) != 1:
+                return ServiceException(500, user_id, "The metadata of the result files does not exist").to_dict()
+            with open(file_list.pop(metadata_file_index[0])) as f:
+                metadata = json.load(f)
+
+            job.assets = [{
+                "href": self._get_download_url(f),
+                "name": os.path.basename(f)
+            } for f in file_list]
+
+            # TODO fix links
+            job.links = []
+            job.stac_version = api_spec["info"]["stac_version"]
 
             # file list could be retrieved
-            job_data = JobResultsSchema().dump(job)
-            job_data["link"] = [{
-                "href": self._get_download_url(f),
-                "type": "image/tiff",
-            } for f in output['data']['file_list']]
+            job_data = JobResultsBaseSchema().dump(job)
+            job_data.update(metadata)
 
             return {
                 "status": "success",
@@ -519,7 +485,7 @@ class JobService:
                     "Expires": "not given",
                     "OpenEO-Costs": 0
                 },
-                "data": job_data
+                "data": job_data,
             }
         except Exception as exp:
             return ServiceException(500, user_id, str(exp), links=[]).to_dict()
@@ -550,7 +516,7 @@ class JobService:
 
         # TODO: Permission (e.g admin)
         if job.user_id != user_id:
-            return ServiceException(401, user_id, "You are not allowed to access this resource.",
+            return ServiceException(401, user_id, f"You are not allowed to access the job {job_id}.",
                                     internal=False, links=["#tag/Job-Management/paths/~1data/get"])
 
         LOGGER.info(f"User is authorized to access job {job_id}.")
@@ -575,7 +541,10 @@ class JobService:
         else:
             new_status, execution_time = self.airflow.check_dag_status(job_id)
             if new_status and (not job.status
-                               or job.status in [JobStatus.queued, JobStatus.running, JobStatus.error]
+                               or job.status in [JobStatus.created,
+                                                 JobStatus.queued,
+                                                 JobStatus.running,
+                                                 JobStatus.error]
                                # Job status created or canceled, when job is canceled:
                                # > state in airflow set to failed though locally is stored as created or canceled
                                # > the state should only be updated if there was a new dag run since the canceled one
@@ -646,3 +615,9 @@ class JobService:
         sleep(settings.SYNC_DEL_DELAY)
         # Remove tmp folder
         shutil.rmtree(folder_path)
+
+    def generate_alphanumeric_id(self, k: int = 16) -> str:
+        """
+        Generates a random alpha numeric value.
+        """
+        return ''.join(random.choices(string.ascii_letters + string.digits, k=16))

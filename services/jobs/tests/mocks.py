@@ -173,22 +173,13 @@ PG_OLD_REF: dict = {
 }
 
 
-class MockedAirflowConnection:
-
-    def __init__(self) -> None:
-        pass
+class MockedAirflowConnection(MagicMock):
 
     def unpause_dag(self, job_id: str, unpause: bool = True) -> bool:
         return True
 
-    def trigger_dag(self, job_id: str) -> bool:
-        return True
-
     def check_dag_status(self, job_id: str) -> Tuple[Optional[JobStatus], Optional[datetime]]:
         return JobStatus.created, None
-
-    def delete_dag(self, job_id: str) -> bool:
-        return True
 
 
 class MockedDagDomain(NamedTuple):
@@ -221,7 +212,10 @@ class MockedFilesService(MagicMock):
         return {
             "status": "success",
             "code": 200,
-            "data": {"file_list": [os.path.join(job_folder, "result", "sample-output.tif")]}
+            "data": {"file_list": [
+                os.path.join(job_folder, "result", "sample-output.tif"),
+                os.path.join(job_folder, "result", "results_metadata.json"),
+            ]}
         }
 
     def setup_jobs_result_folder(self, user_id: str, job_id: str) -> str:

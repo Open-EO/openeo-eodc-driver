@@ -45,7 +45,7 @@ def initialise_settings() -> None:
         Validator("SYNC_DEL_DELAY", must_exist=True, is_type_of=int, condition=utils.check_positive_int),
         Validator("SYNC_RESULTS_FOLDER", must_exist=True, condition=utils.check_create_folder),
         Validator("CSW_SERVER", must_exist=True, condition=utils.check_url_is_reachable,
-                  when=Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"]))
+                  when=Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"])),
     )
     settings.validators.validate()
     # needed for eodc-openeo-bindings - should be removed once this is handled in a better way

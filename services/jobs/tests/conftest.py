@@ -59,10 +59,15 @@ def set_job_data(request: FixtureRequest) -> None:
     if not os.path.isdir(settings.SYNC_RESULTS_FOLDER):
         os.makedirs(settings.SYNC_RESULTS_FOLDER)
     # this env var is used in the mocked files service
-    if not os.path.isdir(settings.JOB_FOLDER):
-        os.makedirs(settings.JOB_FOLDER)
+    job_results = os.path.join(settings.JOB_FOLDER, "result")
+    if not os.path.isdir(job_results):
+        os.makedirs(job_results)
         # Create empty file (mock job output)
-        open(os.path.join(settings.JOB_FOLDER, "sample-output.tif"), 'w').close()
+        open(os.path.join(job_results, "sample-output.tif"), 'w').close()
+        shutil.copyfile(
+            os.path.join(get_test_data_folder(), "results_metadata.json"),
+            os.path.join(job_results, "results_metadata.json")
+        )
 
     def fin() -> None:
         shutil.rmtree(settings.JOB_FOLDER)
