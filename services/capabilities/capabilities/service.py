@@ -1,6 +1,6 @@
 """ Capabilities Discovery """
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from dynaconf import settings
 from nameko.rpc import rpc
@@ -54,7 +54,7 @@ class CapabilitiesService:
     name = service_name
 
     @rpc
-    def send_index(self, api_spec: dict, user_id: str = None) -> dict:
+    def send_index(self, api_spec: dict, user: Dict[str, Any] = None) -> dict:
         """The function returns a JSON object containing the available routes and
         HTTP methods as defined in the OpenAPI specification.
 
@@ -62,7 +62,7 @@ class CapabilitiesService:
             api_spec {dict} -- OpenAPI Specification
 
         Keyword Arguments:
-            user_id {str} -- User Id (not needed, exists for compatibility reasons)
+            user {Dict[str, Any]} -- User Id (not needed, exists for compatibility reasons)
 
         Returns:
             Dict -- JSON object contains the API capabilities
@@ -102,17 +102,17 @@ class CapabilitiesService:
             }
 
         except Exception as exp:
-            return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
+            return ServiceException(CapabilitiesService.name, 500, self.get_user_id(user), str(exp)).to_dict()
 
     @rpc
-    def get_versions(self, api_spec: dict, user_id: str = None) -> dict:
+    def get_versions(self, api_spec: dict, user: Dict[str, Any] = None) -> dict:
         """Lists OpenEO API versions available at the back-end.
 
         Arguments:
             api_spec {dict} -- OpenAPI Specification
 
         Keyword Arguments:
-            user_id {str} -- User Id (not needed, exists for compatibility reasons)
+            user {Dict[str, Any]} -- User (not needed, exists for compatibility reasons)
 
         Returns:
             Dict -- Contains the supported OpenEO API versions
@@ -138,17 +138,17 @@ class CapabilitiesService:
             }
 
         except Exception as exp:
-            return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
+            return ServiceException(CapabilitiesService.name, 500, self.get_user_id(user), str(exp)).to_dict()
 
     @rpc
-    def get_file_formats(self, api_spec: dict, user_id: str = None) -> dict:
+    def get_file_formats(self, api_spec: dict, user: Dict[str, Any] = None) -> dict:
         """Lists input / output formats available at the back-end.
 
         Arguments:
             api_spec {dict} -- OpenAPI Specification
 
         Keyword Arguments:
-            user_id {str} -- User Id (not needed, exists for compatibility reasons)
+            user {Dict[str, Any]} -- User (not needed, exists for compatibility reasons)
 
         Returns:
             Dict -- Describes all supported input / output formats
@@ -175,17 +175,17 @@ class CapabilitiesService:
                 },
             }
         except Exception as exp:
-            return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
+            return ServiceException(CapabilitiesService.name, 500, self.get_user_id(user), str(exp)).to_dict()
 
     @rpc
-    def get_udfs(self, api_spec: dict, user_id: str = None) -> dict:
+    def get_udfs(self, api_spec: dict, user: Dict[str, Any] = None) -> dict:
         """Lists UDFs available at the back-end.
 
         Arguments:
             api_spec {dict} -- OpenAPI Specification
 
         Keyword Arguments:
-            user_id {str} -- User Id (not needed, exists for compatibility reasons)
+            user {Dict[str, Any]} -- User Id (not needed, exists for compatibility reasons)
 
         Returns:
             Dict -- Contains detailed description about the supported UDF runtimes
@@ -199,17 +199,17 @@ class CapabilitiesService:
                 "data": udf_all,
             }
         except Exception as exp:
-            return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
+            return ServiceException(CapabilitiesService.name, 500, self.get_user_id(user), str(exp)).to_dict()
 
     @rpc
-    def get_service_types(self, api_spec: dict, user_id: str = None) -> dict:
+    def get_service_types(self, api_spec: dict, user: Dict[str, Any] = None) -> dict:
         """Lists service types available at the back-end.
 
         Arguments:
             api_spec {dict} -- OpenAPI Specification
 
         Keyword Arguments:
-            user_id {str} -- User Id (not needed, exists for compatibility reasons)
+            user {Dict[str, Any]} -- User (not needed, exists for compatibility reasons)
 
         Returns:
             Dict -- Contains supported secondary services
@@ -222,4 +222,7 @@ class CapabilitiesService:
                 "data": {'Secondary services': 'None implemented.'},
             }
         except Exception as exp:
-            return ServiceException(CapabilitiesService.name, 500, user_id, str(exp)).to_dict()
+            return ServiceException(CapabilitiesService.name, 500, self.get_user_id(user), str(exp)).to_dict()
+
+    def get_user_id(self, user: Optional[Dict[str, Any]]) -> Optional[str]:
+        return user["id"] if user and "id" in user else None

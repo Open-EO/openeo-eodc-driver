@@ -5,7 +5,7 @@ import pytest
 from nameko_sqlalchemy.database_session import Session
 
 from jobs.models import JobStatus
-from tests.utils import add_job, get_configured_job_service, get_random_user_id
+from tests.utils import add_job, get_configured_job_service, get_random_user
 from .base import BaseCase
 from .exceptions import get_job_canceled_service_exception, get_job_error_service_exception, \
     get_job_not_finished_exception
@@ -33,20 +33,20 @@ class TestJobResults(BaseCase):
     ))
     def test_result_excpetions(self, db_session: Session, job_status: JobStatus, exception_func: Callable) -> None:
         job_service = get_configured_job_service(db_session, airflow=False)
-        user_id = get_random_user_id()
-        job_id = add_job(job_service, user_id=user_id)
+        user = get_random_user()
+        job_id = add_job(job_service, user=user)
         job_service.airflow.check_dag_status.return_value = (job_status, datetime.now())
 
-        result = job_service.get_results(user_id=user_id, job_id=job_id, api_spec=self.api_spec)
-        assert result == exception_func(user_id=user_id, job_id=job_id)
+        result = job_service.get_results(user=user, job_id=job_id, api_spec=self.api_spec)
+        assert result == exception_func(user_id=user["id"], job_id=job_id)
 
     def test_get_results(self, db_session: Session) -> None:
         job_service = get_configured_job_service(db_session, airflow=False)
         job_service.airflow.check_dag_status.return_value = (JobStatus.finished, datetime.now())
-        user_id = get_random_user_id()
-        job_id = add_job(job_service, user_id=user_id)
+        user = get_random_user()
+        job_id = add_job(job_service, user=user)
 
-        result = job_service.get_results(user_id=user_id, job_id=job_id, api_spec=self.api_spec)
+        result = job_service.get_results(user=user, job_id=job_id, api_spec=self.api_spec)
         assert result["status"] == "success"
         assets = result["data"].pop("assets")
         assert assets["sample-output.tif"]["href"].endswith("result/sample-output.tif")

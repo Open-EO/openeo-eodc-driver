@@ -216,15 +216,15 @@ class OpenAPISpecParser:
             request.data = None
             return {"tmp_path": temp_file}
 
-        def decorator(user_id=None, **kwargs):
+        def decorator(user=None, **kwargs):
             try:
                 has_params, specs, required = get_parameter_specs()
                 if not has_params:
-                    return f(user_id=user_id)
+                    return f(user=user)
 
                 parameters = get_parameters()
                 # TODO validation
-                return f(user_id=user_id, **parameters)
+                return f(user=user, **parameters)
             except Exception as exc:
                 return self._res.error(exc)
 

@@ -1,6 +1,6 @@
 """ AuthenticationHandler """
 
-from typing import Union, Optional, Callable, Tuple
+from typing import Union, Optional, Callable, Tuple, Any, Dict
 
 import requests
 from dynaconf import settings
@@ -32,8 +32,8 @@ class AuthenticationHandler:
         def decorator(*args, **kwargs):
             try:
                 token = self._parse_auth_header(request)
-                user_id = self._verify_token(token, role)
-                return func(user_id=user_id)
+                user = self._verify_token(token, role)
+                return func(user=user)
             except Exception as exc:
                 return self._res.error(exc)
         return decorator
@@ -67,7 +67,7 @@ class AuthenticationHandler:
 
         return token_split[1]
 
-    def _verify_token(self, token: str, role: str) -> str:
+    def _verify_token(self, token: str, role: str) -> Dict[str, Any]:
         """
         Verify the supplied token either as basic or OIDC token.
 
@@ -80,7 +80,7 @@ class AuthenticationHandler:
                 structured correctly.
 
         Returns:
-            str -- The user_id corresponding to the token
+            BaseUser -- The user object corresponding to the token
         """
 
         try:
@@ -93,9 +93,9 @@ class AuthenticationHandler:
                 internal=False)
 
         if method == "basic":
-            user_id = self._verify_basic_token(token)
+            user_entity = self._verify_basic_token(token)
         elif method == "oidc":
-            user_id = self._verify_oidc_token(token, provider)
+            user_entity = self._verify_oidc_token(token, provider)
         else:
             raise APIException(
                 msg="The authentication method must be either 'basic' or 'oidc'",
@@ -105,17 +105,17 @@ class AuthenticationHandler:
 
         if not role == "user":
             # If "admin" role is required and the user only has the "user" role this will through an exception
-            self._check_user_role(user_id, role=role)
+            self._check_user_role(user_entity.id, role=role)
 
-        if not user_id:
+        if not user_entity:
             raise APIException(
                 msg="Invalid token. User could not be authenticated.",
                 code=401,
                 service="gateway",
                 internal=False)
-        return user_id
+        return user_entity
 
-    def _verify_basic_token(self, token: str) -> Optional[str]:
+    def _verify_basic_token(self, token: str) -> Optional[Dict[str, Any]]:
         """
         Verifies a basic token.
 
@@ -123,12 +123,12 @@ class AuthenticationHandler:
             token {str} -- The basic authentication token
 
         Returns:
-            str -- The user_id corresponding to the token
+            Dict[str, Any] -- The user object corresponding to the token
         """
         from gateway.users.service import BasicAuthService
         return BasicAuthService(settings.SECRET_KEY).verify_auth_token(token)
 
-    def _verify_oidc_token(self, token: str, provider: str) -> Optional[str]:
+    def _verify_oidc_token(self, token: str, provider: str) -> Optional[Dict[str, Any]]:
         """
         Verifies OIDC token.
 
@@ -137,11 +137,12 @@ class AuthenticationHandler:
             provider {str} -- The used OIDC provider ID (must be supported by backend)
 
         Returns:
-            str -- The user_id corresponding to the token
+            Dict[str, Any] -- The user object corresponding to the token
         """
+        from gateway.users.repository import get_user_entity_from_email
 
-        # Get user_id from OIDC /userinfo endpoint
-        user_id = None
+        # Get user from OIDC /userinfo endpoint
+        user_entity = None
         id_flag, provider_wellknown = self._check_oidc_issuer_exists(provider)
         if id_flag:
             id_oidc_config = requests.get(provider_wellknown)
@@ -154,37 +155,16 @@ class AuthenticationHandler:
                     service="gateway",
                     internal=False,
                 )
-            user_id = self._get_user_id_from_email(userinfo.json()["email"])
+            user_entity = get_user_entity_from_email(userinfo.json()["email"])
 
-        return user_id
+        return user_entity
 
-    def _get_user_id_from_email(self, user_email: str) -> str:
-        """
-        Checks the email exists in the database and gets the corresponding user_id.
-
-        Arguments:
-            user_email {str} -- The user's email address
-
-        Returns:
-            str -- The user_id corresponding to the email
-        """
-        from gateway.users.models import db, Users
-
-        user = db.session.query(Users).filter(Users.email == user_email).first()
-        if not user:
-            raise APIException(
-                msg=f"The email address {user_email} does not exist in the database.",
-                code=401,
-                service="gateway",
-                internal=False)
-        return user.id
-
-    def _check_user_role(self, user_id: str, role: str) -> bool:
+    def _check_user_role(self, user_entity: Dict[str, Any], role: str) -> bool:
         """
         Check user has the given role.
 
         Arguments:
-            user_id {str} -- The user's id
+            user_entity {Dict[str, Any]} -- The user object
             role {str} -- The required to role
 
         Raises:
@@ -194,11 +174,9 @@ class AuthenticationHandler:
             bool -- Whether the user has the required role
         """
 
-        from gateway.users.models import db, Users
-
-        if not role == db.session.query(Users.role).filter(Users.id == user_id).scalar():
+        if not role == user_entity["role"]:
             raise APIException(
-                msg=f"The user {user_id} is not authorized to perform this operation.",
+                msg=f"The user {user_entity} is not authorized to perform this operation.",
                 code=403,
                 service="gateway",
                 internal=False)

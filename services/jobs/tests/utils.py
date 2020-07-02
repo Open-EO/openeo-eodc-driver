@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any, Dict
 from uuid import uuid4
 
 from dynaconf import settings
@@ -38,10 +39,10 @@ def get_dag_path(dag_id: str) -> str:
     return os.path.join(settings.AIRFLOW_DAGS, f'dag_{dag_id}.py')
 
 
-def add_job(job_service: JobService, user_id: str, json_name: str = 'pg') -> str:
+def add_job(job_service: JobService, user: Dict[str, Any], json_name: str = 'pg') -> str:
     """Gets a Job from a json and creates a Job in the JobService"""
     job_data = load_json(json_name)
-    result = job_service.create(user_id=user_id, **job_data)
+    result = job_service.create(user=user, **job_data)
     assert result['status'] == 'success'
     assert os.path.isfile(get_dag_path(result["headers"]["OpenEO-Identifier"]))
     return result['headers']['OpenEO-Identifier']
@@ -57,6 +58,12 @@ def get_random_user_id() -> str:
 
 def get_random_job_id() -> str:
     return get_uuid_str()
+
+
+def get_random_user() -> Dict[str, Any]:
+    return {
+        "id": get_random_user_id(),
+    }
 
 
 def get_pg_id_from_job_id(db_session: Session, job_id: str) -> str:

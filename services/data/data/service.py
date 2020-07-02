@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from pprint import pformat
-from typing import Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from nameko.rpc import rpc
 
@@ -68,19 +68,19 @@ class DataService:
         return f"DataService('{self.name}')"
 
     @rpc
-    def get_all_products(self, user_id: str = None) -> Union[list, dict]:
+    def get_all_products(self, user: Dict[str, Any] = None) -> Union[list, dict]:
         """Requests will ask the back-end for available data and will return an array of
         available datasets with very basic information such as their unique identifiers.
 
         Keyword Arguments:
-            user_id {str} -- The user id (default: {None})
+            user {Dict[str, Any]} -- The user (default: {None})
 
         Returns:
              Union[list, dict] -- The products or a serialized exception
         """
 
         LOGGER.info("All products requested")
-        LOGGER.debug("user_id requesting %s", user_id)
+        LOGGER.debug("user_id requesting %s", self.get_user_id(user))
         try:
             product_records = self.csw_session.get_all_products()
             response = CollectionsSchema().dump(product_records)
@@ -90,19 +90,19 @@ class DataService:
         except Exception as exp:
             return ServiceException(
                 500,
-                user_id,
+                self.get_user_id(user),
                 str(exp),
                 links=["#tag/EO-Data-Discovery/paths/~1data/get"],
             ).to_dict()
 
     @rpc
     def get_product_detail(
-            self, user_id: str = None, collection_id: str = None
+            self, user: Dict[str, Any] = None, collection_id: str = None
     ) -> dict:
         """The request will ask the back-end for further details about a dataset.
 
         Keyword Arguments:
-            user_id {str} -- The user id (default: {None})
+            user {Dict[str, Any]} -- The user (default: {None})
             name {str} -- The product identifier (default: {None})
 
         Returns:
@@ -134,21 +134,21 @@ class DataService:
         except ValidationError as exp:
             return ServiceException(
                 exp.code,
-                user_id,
+                self.get_user_id(user),
                 str(exp),
                 internal=False,
                 links=[
                     "#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"],
             ).to_dict()
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp)).to_dict()
+            return ServiceException(500, self.get_user_id(user), str(exp)).to_dict()
 
     @rpc
-    def refresh_cache(self, user_id: str = None, use_cache: bool = False) -> dict:
+    def refresh_cache(self, user: Dict[str, Any] = None, use_cache: bool = False) -> dict:
         """The request will refresh the cache
 
         Keyword Arguments:
-            user_id {str} -- The user id (default: {None})
+            user {Dict[str, Any]} -- The user (default: {None})
             use_cache {bool} -- Trigger to refresh the cache
 
         Returns:
@@ -167,11 +167,14 @@ class DataService:
         except ValidationError as exp:
             return ServiceException(
                 400,
-                user_id,
+                self.get_user_id(user),
                 str(exp),
                 internal=False,
                 links=[
                     "#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"],
             ).to_dict()
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp)).to_dict()
+            return ServiceException(500, self.get_user_id(user), str(exp)).to_dict()
+
+    def get_user_id(self, user: Optional[Dict[str, Any]]) -> Optional[str]:
+        return user["id"] if user and "id" in user else None

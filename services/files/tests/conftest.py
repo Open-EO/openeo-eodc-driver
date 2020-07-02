@@ -5,6 +5,8 @@ import shutil
 import sys
 from os.path import abspath
 from os.path import dirname
+from typing import Any, Dict, Tuple
+from uuid import uuid4
 
 import pytest
 from _pytest.fixtures import FixtureRequest
@@ -58,24 +60,53 @@ def input_folder() -> str:
     return get_input_folder()
 
 
+def generate_random_id() -> str:
+    return str(uuid4())
+
+
+def random_user_id() -> str:
+    return generate_random_id()
+
+
 @pytest.fixture()
-def user_folder(request: FixtureRequest) -> str:
-    folder = os.path.join(get_filesystem_folder(), 'test-user')
+def random_user() -> Dict[str, Any]:
+    return {
+        "id": generate_random_id()
+    }
+
+
+def create_user_folder(user_id: str) -> str:
+    folder = os.path.join(get_filesystem_folder(), user_id)
     dirs_to_create = [os.path.join(folder, dir_name) for dir_name in ["files", "jobs"]]
 
     for d in dirs_to_create:
         if not os.path.exists(d):
             os.makedirs(d)
-
-    def fin() -> None:
-        shutil.rmtree(folder)
-    request.addfinalizer(fin)
     return folder
 
 
 @pytest.fixture()
-def user_id() -> str:
-    return 'test-user'
+def user_id_folder(request: FixtureRequest) -> Tuple[str, str]:
+    user_id = "test-user"
+    folder = create_user_folder(user_id)
+
+    def fin() -> None:
+        shutil.rmtree(folder)
+    request.addfinalizer(fin)
+
+    return folder, user_id
+
+
+@pytest.fixture()
+def user_folder(request: FixtureRequest) -> str:
+    user_id = "test-user"
+    folder = create_user_folder(user_id)
+
+    def fin() -> None:
+        shutil.rmtree(folder)
+    request.addfinalizer(fin)
+
+    return folder
 
 
 @pytest.fixture()

@@ -9,7 +9,7 @@ import threading
 from collections import namedtuple
 from datetime import datetime
 from time import sleep
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from dynaconf import settings
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
@@ -40,21 +40,21 @@ class JobService:
     check_stop_interval = 5  # should be similar or smaller than Airflow sensor's poke interval
 
     @rpc
-    def get(self, user_id: str, job_id: str) -> dict:
+    def get(self, user: Dict[str, Any], job_id: str) -> dict:
         """The request will ask the back-end to get the job using the job_id.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user_id {Dict[str, Any]} -- The user object
             job_id {str} -- The id of the job
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
-            response = self.authorize(user_id, job_id, job)
+            response = self.authorize(user["id"], job_id, job)
             if isinstance(response, ServiceException):
                 return response.to_dict()
 
             self._update_job_status(job_id=job_id)
-            process_response = self.processes_service.get_user_defined(user_id, job.process_graph_id)
+            process_response = self.processes_service.get_user_defined(user, job.process_graph_id)
             if process_response["status"] == "error":
                 return process_response
             job.process = process_response["data"]
@@ -65,26 +65,26 @@ class JobService:
                 "data": JobFullSchema().dump(job)
             }
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
+            return ServiceException(500, user["id"], str(exp), links=[]).to_dict()
 
     @rpc
-    def modify(self, user_id: str, job_id: str, **job_args: Any) -> dict:
+    def modify(self, user: Dict[str, Any], job_id: str, **job_args: Any) -> dict:
         """The request will ask the back-end to modify the job with the given job_id.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
             job_id {str} -- The id of the job
             job_args {Dict[str, Any]} -- The job arguments to be moified
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
-            response = self.authorize(user_id, job_id, job)
+            response = self.authorize(user["id"], job_id, job)
             if isinstance(response, ServiceException):
                 return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.queued, JobStatus.running]:
-                return JobLocked(400, user_id, f"Job {job_id} is currently {job.status} and cannot be modified",
+                return JobLocked(400, user["id"], f"Job {job_id} is currently {job.status} and cannot be modified",
                                  links=[]).to_dict()
 
             if job_args.get("process", None):
@@ -94,7 +94,7 @@ class JobService:
                 process_graph_id = process_graph_args["id"] if "id" in process_graph_args \
                     else self.generate_alphanumeric_id()
                 process_response = self.processes_service.put_user_defined(
-                    user_id=user_id, process_graph_id=process_graph_id, **process_graph_args)
+                    user=user, process_graph_id=process_graph_id, **process_graph_args)
                 if process_response["status"] == "error":
                     return process_response
                 job.process_graph_id = process_graph_id
@@ -107,9 +107,9 @@ class JobService:
 
                 # handle dag file (remove and recreate it) - only needs to be updated if process graph changes
                 os.remove(self.get_dag_path(job.dag_filename))
-                self.dag_writer.write_and_move_job(job_id=job_id, user_name=user_id,
+                self.dag_writer.write_and_move_job(job_id=job_id, user_name=user["id"],
                                                    process_graph_json=process_graph_args,
-                                                   job_data=self.get_job_folder(user_id, job_id),
+                                                   job_data=self.get_job_folder(user["id"], job_id),
                                                    vrt_only=True, add_delete_sensor=True,
                                                    process_defs=backend_processes)
 
@@ -127,33 +127,33 @@ class JobService:
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp),
+            return ServiceException(500, user["id"], str(exp),
                                     links=[]).to_dict()
 
     @rpc
-    def delete(self, user_id: str, job_id: str) -> dict:
+    def delete(self, user: Dict[str, Any], job_id: str) -> dict:
         """The request will ask the back-end to completely delete the job with the given job_id.
         This will stop the job if it is currently queued or running, remove the job itself and all results.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
             job_id {str} -- The id of the process graph
         """
         # TODO handle costs (stop it)
         try:
             LOGGER.debug(f"Start deleting job {job_id}")
             job = self.db.query(Job).filter_by(id=job_id).first()
-            response = self.authorize(user_id, job_id, job)
+            response = self.authorize(user["id"], job_id, job)
             if isinstance(response, ServiceException):
                 return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.running, JobStatus.queued]:
                 LOGGER.debug(f"Stopping running job {job_id}")
-                self._stop_airflow_job(user_id, job_id)
+                self._stop_airflow_job(user["id"], job_id)
                 LOGGER.info(f"Stopped running job {job_id}.")
 
-            self.files_service.delete_complete_job(user_id=user_id, job_id=job_id)  # delete data on file system
+            self.files_service.delete_complete_job(user_id=user["id"], job_id=job_id)  # delete data on file system
             os.remove(self.get_dag_path(job.dag_filename))  # delete dag file
             self.airflow.delete_dag(job_id=job_id)  # delete from airflow database
             self.db.delete(job)  # delete from our job database
@@ -166,21 +166,21 @@ class JobService:
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
+            return ServiceException(500, user["id"], str(exp), links=[]).to_dict()
 
     @rpc
-    def get_all(self, user_id: str) -> dict:
+    def get_all(self, user: Dict[str, Any]) -> dict:
         """The request will ask the back-end to get all available jobs for the given user.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
         """
         try:
-            jobs = self.db.query(Job.id).filter_by(user_id=user_id).order_by(Job.created_at).all()
+            jobs = self.db.query(Job.id).filter_by(user_id=user["id"]).order_by(Job.created_at).all()
             for job in jobs:
                 self._update_job_status(job.id)
 
-            jobs = self.db.query(Job).filter_by(user_id=user_id).order_by(Job.created_at).all()
+            jobs = self.db.query(Job).filter_by(user_id=user["id"]).order_by(Job.created_at).all()
             return {
                 "status": "success",
                 "code": 200,
@@ -190,15 +190,15 @@ class JobService:
                 }
             }
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp),
+            return ServiceException(500, user["id"], str(exp),
                                     links=["#tag/Job-Management/paths/~1jobs/get"]).to_dict()
 
     @rpc
-    def create(self, user_id: str, **job_args: Any) -> dict:
+    def create(self, user: Dict[str, Any], **job_args: Any) -> dict:
         """The request will ask the back-end to create a new job using the description send in the request body.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
             job_args {Dict[str, Any]} -- The information needed to create a job
         """
         try:
@@ -209,28 +209,28 @@ class JobService:
             process = job_args.pop("process")
             process_graph_id = process["id"] if "id" in process else self.generate_alphanumeric_id()
             process_response = self.processes_service.put_user_defined(
-                user_id=user_id, process_graph_id=process_graph_id, **process)
+                user=user, process_graph_id=process_graph_id, **process)
             if process_response["status"] == "error":
                 return process_response
             LOGGER.info(f"ProcessGraph {process_graph_id} created")
 
             job_args["process_graph_id"] = process_graph_id
-            job_args["user_id"] = user_id
+            job_args["user_id"] = user["id"]
             job = JobCreateSchema().load(job_args)
             self.db.add(job)
             self.db.commit()
             job_id = str(job.id)
 
-            _ = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)
+            _ = self.files_service.setup_jobs_result_folder(user_id=user["id"], job_id=job_id)
 
             # Get all processes
             process_response = self.processes_service.get_all_predefined()
             if process_response["status"] == "error":
                 return process_response
             backend_processes = process_response["data"]["processes"]
-            self.dag_writer.write_and_move_job(job_id=job_id, user_name=user_id,
+            self.dag_writer.write_and_move_job(job_id=job_id, user_name=user["id"],
                                                process_graph_json=process,
-                                               job_data=self.get_job_folder(user_id, job_id),
+                                               job_data=self.get_job_folder(user["id"], job_id),
                                                vrt_only=vrt_flag, add_delete_sensor=True,
                                                process_defs=backend_processes)
             job.dag_filename = f"dag_{job_id}.py"
@@ -248,32 +248,32 @@ class JobService:
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp),
+            return ServiceException(500, user["id"], str(exp),
                                     links=["#tag/Job-Management/paths/~1jobs/post"]).to_dict()
 
     @rpc
-    def process(self, user_id: str, job_id: str) -> dict:
+    def process(self, user: Dict[str, Any], job_id: str) -> dict:
         """The request will ask the back-end to start the processing of the given job.
         The job needs to exist on the back-end and must not already be queued or running.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
             job_id {str} -- The id of the job
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
-            response = self.authorize(user_id, job_id, job)
+            response = self.authorize(user["id"], job_id, job)
             if isinstance(response, ServiceException):
                 return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.queued, JobStatus.running]:
-                return ServiceException(400, user_id, f"Job {job_id} is already {job.status}. Processing must be "
-                                                      f"canceled before restart.", links=[]).to_dict()
+                return ServiceException(400, user["id"], f"Job {job_id} is already {job.status}. Processing must be "
+                                                         f"canceled before restart.", links=[]).to_dict()
 
             trigger_worked = self.airflow.trigger_dag(job_id=job_id)
             if not trigger_worked:
-                return ServiceException(500, user_id, f"Job {job_id} could not be started.", links=[]).to_dict()
+                return ServiceException(500, user["id"], f"Job {job_id} could not be started.", links=[]).to_dict()
 
             self._update_job_status(job_id=job_id)
             LOGGER.info(f"Processing successfully started for job {job_id}")
@@ -282,15 +282,15 @@ class JobService:
                 "code": 202,
             }
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
+            return ServiceException(500, user["id"], str(exp), links=[]).to_dict()
 
     @rpc
-    def process_sync(self, user_id: str, **job_args: Any) -> dict:
+    def process_sync(self, user: Dict[str, Any], **job_args: Any) -> dict:
         """The request will ask the back-end to start the processing of the given job.
         The job needs to exist on the back-end and must not already be queued or running.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
             job_args {dict} -- The information needed to create a job
         """
 
@@ -308,16 +308,16 @@ class JobService:
             # Create Job
             LOGGER.info("Creating job for sync processing.")
             job_args['vrt_flag'] = False
-            response_create = self.create(user_id=user_id, **job_args)
+            response_create = self.create(user=user, **job_args)
             if response_create['status'] == 'error':
-                return ServiceException(500, user_id, str(response_create['msg']), links=[]).to_dict()
+                return response_create
 
             # Start processing
             job_id = response_create["headers"]["Location"].split('/')[-1]
             job = self.db.query(Job).filter_by(id=job_id).first()
-            response_process = self.process(user_id=user_id, job_id=job_id)
+            response_process = self.process(user=user, job_id=job_id)
             if response_process['status'] == 'error':
-                return ServiceException(500, user_id, str(response_process['msg']), links=[]).to_dict()
+                return response_process
 
             LOGGER.info(f"Job {job_id} is running.")
             self._update_job_status(job_id=job_id)
@@ -326,30 +326,30 @@ class JobService:
                 self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.error, JobStatus.canceled]:
                 msg = f"Job {job_id} has status: {job.status}."
-                return ServiceException(500, user_id, msg, links=[]).to_dict()
+                return ServiceException(400, user["id"], msg, links=[]).to_dict()
 
             LOGGER.info(f"Job {job_id} has been processed.")
             self.airflow.unpause_dag(job_id=job_id, unpause=False)  # just to hide from view on default Airflow web view
-            response_files = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
+            response_files = self.files_service.get_job_output(user_id=user["id"], job_id=job_id)
             if response_files["status"] == "error":
                 LOGGER.info(f"Could not retrieve output of Job {job_id}.")
-                return ServiceException(500, user_id, str(response_files['msg']), links=[]).to_dict()
+                return response_files
 
             filepath = response_files['data']['file_list'][0]
             fmt = self.map_output_format(filepath.split('.')[-1])
 
             # Copy directory to tmp location
-            job_folder = self.files_service.setup_jobs_result_folder(user_id=user_id, job_id=job_id)\
+            job_folder = self.files_service.setup_jobs_result_folder(user_id=user["id"], job_id=job_id) \
                 .replace('/result', '')
             job_tmp_folder = os.path.join(settings.SYNC_RESULTS_FOLDER, job_id)
             shutil.copytree(job_folder, job_tmp_folder)
             filepath = filepath.replace(job_folder, job_tmp_folder)
 
             # Remove job data (sync jobs must not be stored)
-            response_delete = self.delete(user_id=user_id, job_id=job_id)
+            response_delete = self.delete(user=user, job_id=job_id)
             if response_delete["status"] == "error":
                 LOGGER.info(f"Could not delete Job {job_id}.")
-                return ServiceException(500, user_id, str(response_delete['msg']), links=[]).to_dict()
+                return response_delete
 
             # Schedule async deletion of tmp folder
             threading.Thread(target=self._delayed_delete, args=(job_tmp_folder, )).start()
@@ -365,12 +365,16 @@ class JobService:
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
+            return ServiceException(500, user["id"], str(exp), links=[]).to_dict()
 
     @rpc
-    def estimate(self, user_id: str, job_id: str) -> dict:
+    def estimate(self, user: Dict[str, Any], job_id: str) -> dict:
         """
         Basic function to return default information about processing costs on back-end.
+
+        Arguments:
+            user_id {Dict[str, Any]} -- The user object
+            job_id {str} -- The id of the job
         """
 
         default_out = {
@@ -385,30 +389,30 @@ class JobService:
         }
 
     @rpc
-    def cancel_processing(self, user_id: str, job_id: str) -> dict:
+    def cancel_processing(self, user: Dict[str, Any], job_id: str) -> dict:
         """The request will ask the back-end to cancel the processing of the given job.
         This will stop the processing if the job is currently queued or running and remove all not persistent result.
         The job itself and results are kept.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user_id {Dict[str, Any]} -- The user object
             job_id {str} -- The id of the job
         """
         try:
             # TODO handle costs (stop it)
             LOGGER.debug(f"Start canceling job {job_id}")
             job = self.db.query(Job).filter_by(id=job_id).first()
-            response = self.authorize(user_id, job_id, job)
+            response = self.authorize(user["id"], job_id, job)
             if isinstance(response, ServiceException):
                 return response.to_dict()
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.running, JobStatus.queued]:
                 LOGGER.debug(f"Stopping running job {job_id}...")
-                self._stop_airflow_job(user_id, job_id)
+                self._stop_airflow_job(user["id"], job_id)
                 LOGGER.info(f"Stopped running job {job_id}.")
 
-                results_exists = self.files_service.delete_job_without_results(user_id, job_id)
+                results_exists = self.files_service.delete_job_without_results(user["id"], job_id)
                 if job.status == JobStatus.running and results_exists:
                     self._update_job_status(job_id, JobStatus.canceled)
                 else:
@@ -422,38 +426,38 @@ class JobService:
                 "code": 204
             }
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp),
+            return ServiceException(500, user["id"], str(exp),
                                     links=["#tag/Job-Management/paths/~1jobs~1{job_id}~1results/delete"]).to_dict()
 
     @rpc
-    def get_results(self, user_id: str, job_id: str, api_spec: dict) -> dict:
+    def get_results(self, user: Dict[str, Any], job_id: str, api_spec: dict) -> dict:
         """The request will ask the back-end to get the location where the results of the given job can be retrieved.
         This only works if the job is in state finished.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
             job_id {str} -- The id of the job
             api_spec {dict} -- OpenAPI Specification (needed for STAC Version)
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
-            response = self.authorize(user_id, job_id, job)
+            response = self.authorize(user["id"], job_id, job)
             if isinstance(response, ServiceException):
                 return response.to_dict()
             self._update_job_status(job_id=job_id)
             job = self.db.query(Job).filter_by(id=job_id).first()
 
             if job.status == JobStatus.error:
-                return ServiceException(424, user_id, job.error, internal=False).to_dict()  # TODO store error!
+                return ServiceException(424, user["id"], job.error, internal=False).to_dict()  # TODO store error!
 
             if job.status == JobStatus.canceled:
-                return ServiceException(400, user_id, f"Job {job_id} was canceled.", internal=False).to_dict()
+                return ServiceException(400, user["id"], f"Job {job_id} was canceled.", internal=False).to_dict()
 
             if job.status in [JobStatus.created, JobStatus.queued, JobStatus.running]:
-                return JobNotFinished(400, user_id, job_id, internal=False).to_dict()
+                return JobNotFinished(400, user["id"], job_id, internal=False).to_dict()
 
             # Job status is "finished"
-            output = self.files_service.get_job_output(user_id=user_id, job_id=job_id)
+            output = self.files_service.get_job_output(user_id=user["id"], job_id=job_id)
             if output["status"] == "error":
                 return output
             file_list = output["data"]["file_list"]
@@ -461,7 +465,7 @@ class JobService:
             # Add additional metadata from json
             metadata_file_index = [i for i, f in enumerate(file_list) if f.endswith("results_metadata.json")]
             if len(metadata_file_index) != 1:
-                return ServiceException(500, user_id, "The metadata of the result files does not exist").to_dict()
+                return ServiceException(500, user["id"], "The metadata of the result files does not exist").to_dict()
             with open(file_list.pop(metadata_file_index[0])) as f:
                 metadata = json.load(f)
 
@@ -488,7 +492,7 @@ class JobService:
                 "data": job_data,
             }
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
+            return ServiceException(500, user["id"], str(exp), links=[]).to_dict()
 
     def _get_download_url(self, public_path: str) -> str:
         """ This will create the public url where result data can be downloaded
