@@ -1,3 +1,4 @@
+import logging
 from os import makedirs
 from os.path import isdir
 from urllib.error import URLError
@@ -5,6 +6,8 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 from dynaconf import Validator, settings
+
+LOGGER = logging.getLogger('standardlog')
 
 
 class SettingValidationUtils:
@@ -40,3 +43,5 @@ def initialise_settings() -> None:
         Validator("DNS_URL", must_exist=True, condition=utils.check_parse_url)
     )
     settings.validators.validate()
+
+    LOGGER.info("Settings validated")

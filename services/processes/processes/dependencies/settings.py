@@ -1,6 +1,9 @@
+import logging
 from urllib.parse import urlparse
 
 from dynaconf import Validator, settings
+
+LOGGER = logging.getLogger('standardlog')
 
 
 class SettingValidationUtils:
@@ -23,3 +26,5 @@ def initialise_settings() -> None:
         Validator("PROCESSES_GITHUB_URL", must_exist=True, condition=utils.check_processes_github_url),
     )
     settings.validators.validate()
+
+    LOGGER.info("Settings validated")

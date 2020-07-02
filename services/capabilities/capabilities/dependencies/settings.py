@@ -1,6 +1,9 @@
+import logging
 from urllib.parse import urlparse
 
 from dynaconf import Validator, settings
+
+LOGGER = logging.getLogger('standardlog')
 
 
 class SettingValidationUtils:
@@ -17,3 +20,5 @@ def initialise_settings() -> None:
         Validator("GATEWAY_URL", must_exist=True, condition=utils.check_parse_url),
     )
     settings.validators.validate()
+
+    LOGGER.info("Settings validated")
