@@ -286,19 +286,17 @@ class Gateway:
             "status": "success",
             "html": "redoc.html",
         }
-    
-    
+
     def main_page(self) -> dict:
         """
         Redirect main page "/" to openeo well known dodument "/.well-known/openeo".
         """
-        
-        if environ['DEVELOPMENT']:
-            base_url = environ['GATEWAY_URL']
+
+        if settings.ENV_FOR_DYNACONF == "development":
+            base_url = settings.GATEWAY_URL
         else:
-            base_url = environ['DNS_URL']
+            base_url = settings.DNS_URL
         return redirect(base_url + "/.well-known/openeo")
-        
 
     def _parse_error_to_json(self, exc):
         return self._res.error(
