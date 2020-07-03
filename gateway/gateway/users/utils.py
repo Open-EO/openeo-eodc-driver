@@ -4,7 +4,7 @@ from .models import Profiles, Users
 
 
 def db_to_dict_user(db_user: Users, db_profile: Profiles) -> Dict[str, Any]:
-    return {
+    user = {
         "id": db_user.id,
         "role": db_user.role,
         "auth_type": str(db_user.auth_type),
@@ -18,3 +18,9 @@ def db_to_dict_user(db_user: Users, db_profile: Profiles) -> Dict[str, Any]:
         "created_at": db_user.created_at,
         "updated_at": db_user.updated_at,
     }
+    if db_user.storage:
+        user["storage"] = {
+            "free": db_user.storage.free,
+            "quota": db_user.storage.quota,
+        }
+    return user
