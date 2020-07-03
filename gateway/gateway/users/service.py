@@ -53,13 +53,13 @@ class UsersService:
     User Management.
     """
 
-    def get_user_info(self, user_id: str) -> dict:
+    def get_user_info(self, user: Dict[str, Any]) -> dict:
         """Returns info about the (logged in) user.
 
         Returns:
             Dict -- 200 HTTP code
         """
-        user = db.session.query(Users).filter_by(id=user_id).one()
+        user = db.session.query(Users).filter_by(id=user["id"]).one()
         return {
             "status": "success",
             "code": 200,
