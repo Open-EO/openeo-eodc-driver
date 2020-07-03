@@ -30,7 +30,7 @@ Next a step-by-step explanation how to set it up. (All following steps assume th
     configurations set in the docker-compose.
 
 1. **Input Metadata (XML)**: Create a folder ``csw/xml`` and a file ``csw/file_list.json`` with content as in ``sample_file_list.json``.
-    The run ``python create_xmls.py`` from within the csw folder. This will create one .xml file per file specififed in
+    Then run ``python create_xmls.py`` from within the csw folder. This will create one ``<filename>.xml`` file per file specified in
     file_list.json (for an example see the ``sample-xml`` folder). Make sure to also insert records for your parentidentifers
     otherwise no collections can be created. You can find an example in the ``sample_file_list.json`` (last record). In
     this case no parentidentifier has be be specified.
@@ -71,3 +71,13 @@ The `docker-compose_dev.yml` file is identical to `docker-compose.yml`, but addi
 pycsw should be running on port 8000 serving all inserted files.
 
 To later add files to the DB just copy them into the container and repeat the last step.
+
+To test the api setup using two csw instances we provide a second docker-compose files - ``docker-compose-dc.yml``.
+Repeat all aforementioned steps but exchange
+* ``pycsw.env`` with ``pycsw_dc.env``
+* ``csw/pycsw.cfg`` with ``csw/pycsw_dc.cfg``
+* ``csw/xml`` with ``csw/xml_dc``
+* ``csw/file_list.json`` with ``csw/file_list_dc.json``
+* ``docker-compose.yml`` with ``docker-compose-dc.yml``
+
+This will create a second completely separate csw instance ``pycsw-dc`` (running on port 8001) with a database in ``pycsw-db-dc``

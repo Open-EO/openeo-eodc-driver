@@ -14,9 +14,9 @@ airflow/dags/*
 !airflow/dags/test_job.py
 .gateway/
 .idea/*
-csw/xml/*
-csw/pycsw.cfg
-csw/file_list.json
+csw/xml*/*
+csw/pycsw*.cfg
+csw/file_list*.json
 udf/openeo-python-udf/
 auth
 udf/openeo-r-udf/
