@@ -84,7 +84,7 @@ class DataService:
         LOGGER.debug("user_id requesting %s", self.get_user_id(user))
         try:
             product_records = self.csw_session.get_all_products()
-            if user and user["profile"]["data_access"] == self.csw_session_dc.data_access:
+            if user and self.csw_session_dc.data_access in user["profile"]["data_access"]:
                 product_records.append(self.csw_session_dc.get_all_products())
 
             response = CollectionsSchema().dump(product_records)
