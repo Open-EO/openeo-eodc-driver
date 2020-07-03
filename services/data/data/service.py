@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional, Union
 from nameko.rpc import rpc
 
 from .dependencies.arg_parser import ArgParserProvider, ValidationError
-from .dependencies.csw import CSWSession
+from .dependencies.csw import CSWSession, CSWSessionDC
 from .dependencies.settings import initialise_settings
 from .schemas import CollectionSchema, CollectionsSchema
 
@@ -60,6 +60,7 @@ class DataService:
     name = service_name
     arg_parser = ArgParserProvider()
     csw_session = CSWSession()
+    csw_session_dc = CSWSessionDC()
 
     def __init__(self) -> None:
         LOGGER.info(f"Initialized {self}")
@@ -83,6 +84,9 @@ class DataService:
         LOGGER.debug("user_id requesting %s", self.get_user_id(user))
         try:
             product_records = self.csw_session.get_all_products()
+            if user and user["profile"]["data_access"] == self.csw_session_dc.data_access:
+                product_records.append(self.csw_session_dc.get_all_products())
+
             response = CollectionsSchema().dump(product_records)
 
             LOGGER.debug("response:\n%s", pformat(response))
