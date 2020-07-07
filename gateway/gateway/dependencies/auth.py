@@ -105,7 +105,7 @@ class AuthenticationHandler:
 
         if not role == "user":
             # If "admin" role is required and the user only has the "user" role this will through an exception
-            self._check_user_role(user_entity.id, role=role)
+            self._check_user_role(user_entity, role=role)
 
         if not user_entity:
             raise APIException(
