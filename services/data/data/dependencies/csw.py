@@ -306,7 +306,10 @@ class CSWHandler:
         elif "csw:Record" in search_result:
             records = search_result["csw:Record"]
         elif "collection" in search_result:
-            records = self.check_collections_id(search_result["collection"])
+            if isinstance(search_result["collection"], list):
+                records = self.check_collections_id(search_result["collection"])
+            else:
+                records = search_result["collection"]
         else:
             records = []
 
