@@ -4,7 +4,7 @@ import ast
 import logging
 from json import dumps
 from os import makedirs, path
-from typing import Tuple, List
+from typing import List, Tuple
 
 from defusedxml.minidom import parseString
 from dynaconf import settings
@@ -306,7 +306,7 @@ class CSWHandler:
         elif "csw:Record" in search_result:
             records = search_result["csw:Record"]
         elif "collection" in search_result:
-            records = search_result["collection"]
+            records = self.check_collections_id(search_result["collection"])
         else:
             records = []
 
@@ -315,10 +315,24 @@ class CSWHandler:
 
         return record_next, records
 
+    def check_collections_id(self, collections: List) -> List:
+        """Returns list of collections from a CSW query, only if whitelisted.
+        Arguments:
+            collections {list} -- list of dicts (output of csw query with Series=True)
+        Returns:
+            list -- Whitelisted collections
+        """
+
+        out_collections = []
+        for collection in collections:
+            if collection['id'] in settings.WHITELIST:
+                out_collections.append(collection)
+
+        return out_collections
+
 
 class CSWSession(DependencyProvider):
     """ The CSWSession is the DependencyProvider of the CSWHandler. """
-
     def get_dependency(self, worker_ctx: object) -> CSWHandler:
         """Return the instantiated object that is injected to a
         service worker

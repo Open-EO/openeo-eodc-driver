@@ -85,7 +85,7 @@ class DataService:
         try:
             product_records = self.csw_session.get_all_products()
             if user and self.csw_session_dc.data_access in user["profile"]["data_access"]:
-                product_records.append(self.csw_session_dc.get_all_products())
+                product_records[0].append(self.csw_session_dc.get_all_products())
 
             response = CollectionsSchema().dump(product_records)
 
