@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 from dynaconf import settings
 from nameko.rpc import rpc
 
-from capabilities.dependencies.settings import initialise_settings
+from services.capabilities.capabilities.dependencies.settings import initialise_settings
 
 service_name = "capabilities"
 LOGGER = logging.getLogger('standardlog')
@@ -72,7 +72,7 @@ class CapabilitiesService:
         try:
             endpoints = []
             # Remove /.well-known/openeo endpoint, must not be listed under versioned URLs
-            if './well-known/openeo' in api_spec['paths']:
+            if '/.well-known/openeo' in api_spec['paths']:
                 _ = api_spec['paths'].pop('/.well-known/openeo')
             for path_name, methods in api_spec["paths"].items():
                 path_to_replace = path_name[path_name.find(':'):path_name.find('}')]
@@ -124,7 +124,7 @@ class CapabilitiesService:
             for ver in api_spec["servers"]["versions"]:
                 this_ver = api_spec["servers"]["versions"][ver]
                 this_ver["production"] = api_spec["info"]["production"]
-                if settings.ENV_FOR_DYNACONF == "development":
+                if settings.ENV_FOR_DYNACONF == "DEVELOPMENT":
                     # change https url to localhost
                     this_ver['url'] = settings.GATEWAY_URL + this_ver['url'].split(".eu")[1]
                 api_versions.append(this_ver)
