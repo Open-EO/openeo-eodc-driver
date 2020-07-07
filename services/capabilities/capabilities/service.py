@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 from dynaconf import settings
 from nameko.rpc import rpc
 
-from services.capabilities.capabilities.dependencies.settings import initialise_settings
+from capabilities.dependencies.settings import initialise_settings
 
 service_name = "capabilities"
 LOGGER = logging.getLogger('standardlog')
