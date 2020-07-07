@@ -8,4 +8,4 @@ from os.path import abspath, dirname
 root_dir = dirname(dirname(abspath(__file__)))
 sys.path.append(root_dir)
 
-environ["OEO_GATEWAY_URL"] = "https://openeo.eodc.eu/"
+environ["OEO_GATEWAY_URL"] = "https://openeo.eodc.eu"

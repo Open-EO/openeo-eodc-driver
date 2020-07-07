@@ -156,19 +156,24 @@ def test_get_index() -> None:
 def test_get_versions() -> None:
     service = worker_factory(CapabilitiesService)
     result = service.get_versions(MOCKED_API_SPEC)
-    assert result == {'status': 'success',
-                      'code': 200,
-                      'data': {
-                          'versions': [
-                              {
-                                  'api_version': '1.0.0-rc.2',
-                                  'production': True,
-                                  'url': 'https://openeo.eodc.eu/v1.0'
-                              }, {
-                                  'api_version': '0.4.2',
-                                  'production': True,
-                                  'url': 'https://openeo.eodc.eu/v0.4'
-                              }]}}
+    assert result == {
+        'status': 'success',
+        'code': 200,
+        'data': {
+            'versions': [
+                {
+                    'api_version': '1.0.0-rc.2',
+                    'production': True,
+                    'url': 'https://openeo.eodc.eu/v1.0'
+                },
+                {
+                    'api_version': '0.4.2',
+                    'production': True,
+                    'url': 'https://openeo.eodc.eu/v0.4'
+                }
+            ]
+        }
+    }
 
 
 def test_get_file_formats() -> None:
