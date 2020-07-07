@@ -112,7 +112,9 @@ class Gateway:
             func = self._validate(func)
         elif validate_custom:
             func = self._validate_custom(func)
-        if auth:
+        if auth == 'optional':
+            func = self._authenticate(func, role, optional=True)
+        elif auth:
             func = self._authenticate(func, role)
 
         self._service.add_url_rule(

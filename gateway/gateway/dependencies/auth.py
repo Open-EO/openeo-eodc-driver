@@ -18,43 +18,51 @@ class AuthenticationHandler:
     def __init__(self, response_handler: ResponseParser):
         self._res = response_handler
 
-    def validate_token(self, func: Callable, role: str) -> Union[Callable, Response]:
+    def validate_token(self, func: Callable, role: str, optional: bool = False) -> Union[Callable, Response]:
         """
         Decorator authenticate a user.
 
         Arguments:
             func {Callable} -- The wrapped function
             role {str} -- The required role to execute the function (user / admin)
+            optional {bool} -- Flag for endpoints which may (not mast) accept a token
 
         Returns:
             Union[Callable, Response] -- Returns the decorator function or a HTTP error
         """
         def decorator(*args, **kwargs):
             try:
-                token = self._parse_auth_header(request)
-                user = self._verify_token(token, role)
-                return func(user=user)
+                token = self._parse_auth_header(request, optional=optional)
+                if not token and optional:
+                    return func()
+                else:
+                    user = self._verify_token(token, role)
+                    return func(user=user)
             except Exception as exc:
                 return self._res.error(exc)
         return decorator
 
-    def _parse_auth_header(self, req: Request) -> Union[str, Exception]:
+    def _parse_auth_header(self, req: Request, optional: bool = False) -> Union[str, Exception]:
         """Parses and returns the bearer token. Raises an AuthenticationException if the Authorization
         header in the request is not correct.
 
         Arguments:
             req {Request} -- The Request object
+            optional {bool} -- Flag for endpoints which may (not mast) accept a token
 
         Returns:
             Union[str, Exception] -- Returns the bearer token as string or raises an exception
         """
 
         if "Authorization" not in req.headers or not req.headers["Authorization"]:
-            raise APIException(
-                msg="Missing 'Authorization' header.",
-                code=401,
-                service="gateway",
-                internal=False)
+            if optional:
+                return
+            else:
+                raise APIException(
+                    msg="Missing 'Authorization' header.",
+                    code=401,
+                    service="gateway",
+                    internal=False)
 
         token_split = req.headers["Authorization"].split(" ")
 
