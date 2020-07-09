@@ -3,7 +3,7 @@ from uuid import uuid4
 from marshmallow import Schema, fields, post_dump, post_load, pre_load
 from passlib.apps import custom_app_context as pwd_context
 
-from gateway.users.models import Links, IdentityProviders, Users, db, Profiles, Storage
+from gateway.users.models import Links, IdentityProviders, Users, Profiles, Storage
 
 
 class BaseSchema(Schema):

@@ -188,10 +188,12 @@ class Gateway:
         return AuthenticationHandler(self._res)
 
     def _init_users_db(self) -> SQLAlchemy:
-        self._service.config.update({
-            "SQLALCHEMY_DATABASE_URI": f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}"
-                                       f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}",
-        })
+        if settings.TESTING:
+            db_url = f"{settings.DB_TYPE}://"
+        else:
+            db_url = f"{settings.DB_TYPE}://{settings.DB_USER}:{settings.DB_PASSWORD}" \
+                     f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+        self._service.config.update({"SQLALCHEMY_DATABASE_URI": db_url})
         return SQLAlchemy(self._service)
 
     def _rpc_wrapper(self, f: Callable, is_async, **kwargs) -> Union[Callable, Response]:

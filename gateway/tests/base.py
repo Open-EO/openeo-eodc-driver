@@ -1,35 +1,34 @@
-''' Base Unit Tests '''
-
+""" Base Unit Tests """
+import base64
 import json
-from flask_testing import TestCase
-from service import create_app, db
-from service.tests.utils import add_user, id_generator, add_random_user
 
-app = create_app()
+from flask_testing import TestCase
+
+from gateway import gateway
+from gateway.users.models import db
+from tests.utils import add_random_basic_user, add_random_profile
+
 
 class BaseTestCase(TestCase):
-    ''' Base class for unit tests. '''
+    """ Base class for unit tests. """
 
     def create_app(self):
-        ''' Create an app instance with the testing config. '''
-
-        app.config.from_object('service.config.TestingConfig')
+        """ Create an app instance with the testing config. """
+        app = gateway.get_service()
         return app
 
     def setUp(self):
-        ''' Setup the database. '''
-
+        """ Create database tables """
         db.create_all()
-        db.session.commit()
 
     def tearDown(self):
-        ''' Tear down the database. '''
-
+        """ Empty and drop database """
         db.session.remove()
         db.drop_all()
 
-    def send_get(self, path, headers=dict()):
-        ''' Helper for sending GET requests '''
+    def send_get(self, path: str, headers: dict = None):
+        """ Helper for sending GET requests """
+        headers = headers if headers else {}
 
         with self.client:
             response = self.client.get(path, headers=headers)
@@ -37,22 +36,24 @@ class BaseTestCase(TestCase):
 
         return response, data
 
-    def send_post(self, path, user, headers=dict()):
-        ''' Helper for sending POST requests '''
+    def send_post(self, path, user, headers: dict = None):
+        """ Helper for sending POST requests """
+        headers = headers if headers else {}
 
         with self.client:
             response = self.client.post(
-                            path,
-                            data=json.dumps(user),
-                            headers=headers,
-                            content_type="application/json")
+                path,
+                data=json.dumps(user),
+                headers=headers,
+                content_type="application/json")
 
             data = json.loads(response.data.decode())
 
         return response, data
 
-    def send_delete(self, path, headers=dict()):
-        ''' Helper for sending DELETE requests '''
+    def send_delete(self, path, headers: dict = None):
+        """ Helper for sending DELETE requests """
+        headers = headers if headers else {}
 
         with self.client:
             response = self.client.delete(path, headers=headers)
@@ -60,15 +61,17 @@ class BaseTestCase(TestCase):
 
         return response, data
 
-    def get_user_and_auth(self, permission="user"):
-        ''' Helper for getting the header with auth token '''
+    def get_basic_user_and_auth(self, permission="user", profile: bool = True):
+        """ Helper for getting the header with auth token """
 
+        profile = add_random_profile()
         if permission == "admin":
-            user = add_random_user(admin=True)
+            user = add_random_basic_user(role="admin", profile_id=profile.id)
         else:
-            user = add_random_user()
+            user = add_random_basic_user(profile_id=profile.id)
 
-        credentials = dict(username=user.username, password="test")
-        _, login_data = self.send_post("/auth/login", credentials)
-
-        return user, dict(Authorization="Bearer " + login_data["data"]["auth_token"])
+        # create binary literals for base64 encoding and afterwards decode it again to string
+        credentials = base64.b64encode(f"{user.username}:test".encode("utf-8")).decode("utf-8")
+        header = {"Authorization": f"Basic {credentials}"}
+        _, login_data = self.send_get("/v1.0/credentials/basic", headers=header)
+        return user, {"Authorization": f"Bearer basic//{login_data['access_token']}"}

@@ -2,10 +2,30 @@
 # formatting only creates lazy loading strings - how to change?
 sqlalchemy_track_modification = false
 oidc_id_token_cookie_secure = true
+nameko_initial_connections = 2
+db_type = "postgresql"
+
+[testing]
+debug = true
+testing = true
+
+openeo_version = "v1.0"
+
+rabbit_user = "rabbit_user"
+rabbit_password = "rabbit_password"
+rabbit_host = " rabbit_host"
+rabbit_port = 5672
+nameko_initial_connections = 0
+
+secret_key = "a-super-secret-key"
+
+db_type = "sqlite"
+
+upload_tmp_dir = "/path/to/dir"
 
 [development]
 debug = true
-testing = true
+testing = false
 
 [production]
 debug = false

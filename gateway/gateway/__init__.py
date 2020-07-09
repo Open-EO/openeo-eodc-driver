@@ -1,4 +1,5 @@
 """ Initialize the Gateway """
+from unittest.mock import MagicMock
 
 from dynaconf import settings
 
@@ -21,6 +22,10 @@ users_service = UsersService()
 # Get application context and map RPCs to endpoints
 ctx, rpc = gateway.get_rpc_context()
 with ctx:
+
+    # TODO should be moved to tests!
+    if settings.ENV_FOR_DYNACONF == "testing":
+        rpc = MagicMock()
 
     # System endpoints
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/health", func=gateway.send_health_check, rpc=False)  # NB extension of openEO API

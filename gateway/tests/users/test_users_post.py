@@ -1,43 +1,36 @@
-import json
-import datetime
-
-from service import db
-from service.model.user import User
-from service.tests.base import BaseTestCase
-from service.tests.utils import get_random_user_dict
+from tests.base import BaseTestCase
+from tests.utils import get_random_user_dict
 
 
 class TestUserServicePOST(BaseTestCase):
-    ''' Tests for POST on users service. '''
+    """ Tests for POST on users service. """
 
     def test_admin_add_user(self):
-        ''' Ensure that admin has permissions to add user '''
+        """ Ensure that admin has permissions to add user """
 
-        _, auth = self.get_user_and_auth(permission="admin")
+        admin, auth = self.get_basic_user_and_auth(permission="admin")
         new_user = get_random_user_dict()
 
-        response, data = self.send_post("/users", new_user, headers=auth)
+        response, data = self.send_post("/v1.0/users_mng/users", new_user, headers=auth)
 
         self.assertEqual(response.status_code, 201)
-        self.assertIn(new_user["username"] + " successfully registered.", data['message'])
-        self.assertIn('created', data['status'])
+        self.assertIn(f"User {new_user['username']} successfully registered.", data['message'])
 
     def test_admin_add_user_no_admin(self):
-        ''' Ensure that user has permissions to add user '''
+        """ Ensure that user has permissions to add user """
 
-        _, auth = self.get_user_and_auth(permission="user")
+        _, auth = self.get_basic_user_and_auth(permission="user")
         new_user = get_random_user_dict()
 
-        response, data = self.send_post("/users", new_user, headers=auth)
+        response, data = self.send_post("/v1.0/users_mng/users", new_user, headers=auth)
 
-        self.assertTrue(data["status"] == "error")
+        self.assertEqual(response.status_code, 403)
         self.assertTrue(data["message"] == "You don't have the necessary permissions.")
-        self.assertEqual(response.status_code, 401)
 
     def test_post_user_empty_json(self):
-        ''' Ensure error is thrown if the JSON object is empty. '''
+        """ Ensure error is thrown if the JSON object is empty. """
 
-        _, auth = self.get_user_and_auth(permission="admin")
+        _, auth = self.get_basic_user_and_auth(permission="admin")
 
         response, data = self.send_post("/users", dict(), headers=auth)
 
@@ -46,9 +39,9 @@ class TestUserServicePOST(BaseTestCase):
         self.assertIn('error', data['status'])
 
     def test_post_user_no_username(self):
-        ''' Ensure error is thrown if the JSON object does not have a username. '''
+        """ Ensure error is thrown if the JSON object does not have a username. """
 
-        _, auth = self.get_user_and_auth(permission="admin")
+        _, auth = self.get_basic_user_and_auth(permission="admin")
 
         user = get_random_user_dict(username=False)
         response, data = self.send_post("/users", user, headers=auth)
@@ -58,9 +51,9 @@ class TestUserServicePOST(BaseTestCase):
         self.assertIn('error', data['status'])
 
     def test_post_user_no_email(self):
-        ''' Ensure error is thrown if the JSON object does not have a email. '''
+        """ Ensure error is thrown if the JSON object does not have a email. """
 
-        _, auth = self.get_user_and_auth(permission="admin")
+        _, auth = self.get_basic_user_and_auth(permission="admin")
 
         user = get_random_user_dict(email=False)
         response, data = self.send_post("/users", user, headers=auth)
@@ -70,9 +63,9 @@ class TestUserServicePOST(BaseTestCase):
         self.assertIn('error', data['status'])
 
     def test_post_user_no_password(self):
-        ''' Ensure error is thrown if the JSON object does not have a password. '''
+        """ Ensure error is thrown if the JSON object does not have a password. """
 
-        _, auth = self.get_user_and_auth(permission="admin")
+        _, auth = self.get_basic_user_and_auth(permission="admin")
 
         user = get_random_user_dict(password=False)
         response, data = self.send_post("/users", user, headers=auth)
@@ -82,9 +75,9 @@ class TestUserServicePOST(BaseTestCase):
         self.assertIn('error', data['status'])
 
     def test_post_user_duplicate_username(self):
-        ''' Ensure error is thrown if the username already exists. '''
+        """ Ensure error is thrown if the username already exists. """
 
-        _, auth = self.get_user_and_auth(permission="admin")
+        _, auth = self.get_basic_user_and_auth(permission="admin")
 
         user_1 = get_random_user_dict()
         user_2 = get_random_user_dict()
@@ -99,9 +92,9 @@ class TestUserServicePOST(BaseTestCase):
         self.assertIn('error', data['status'])
 
     def test_post_user_duplicate_email(self):
-        ''' Ensure error is thrown if the email already exists. '''
+        """ Ensure error is thrown if the email already exists. """
 
-        _, auth = self.get_user_and_auth(permission="admin")
+        _, auth = self.get_basic_user_and_auth(permission="admin")
 
         user_1 = get_random_user_dict()
         user_2 = get_random_user_dict()

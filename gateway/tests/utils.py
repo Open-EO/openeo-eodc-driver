@@ -1,58 +1,84 @@
-''' Utils for user service test '''
+""" Utils for user service test """
 
-import datetime
+from datetime import datetime
 import random
 import string
-from service import db
-from service.model.user import User
+from typing import Dict
+from uuid import uuid4
+
+from passlib.apps import custom_app_context as pwd_context
+
+from gateway.users.models import AuthType, db, Profiles, Users
 
 
-def add_user(username, email, password, created_at=datetime.datetime.utcnow(), admin=False):
-    ''' Add a user to the database '''
-
-    user = User(username=username,
-                email=email,
-                password=password,
-                created_at=created_at,
-                admin=admin)
-
-    db.session.add(user)
-    db.session.commit()
-
-    return user
-
-def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    ''' Creates a random user name '''
+def id_generator(size: int = 6, chars=string.ascii_uppercase + string.digits):
+    """ Creates a random user name """
 
     return ''.join(random.choice(chars) for _ in range(size))
 
-def add_random_user(created_at=datetime.datetime.utcnow(), admin=False):
-    ''' Adds a random generated user to the database '''
 
-    name_gen = id_generator()
+def add_profile(name: str, data_access: str) -> Profiles:
+    """ Add a profile to the database """
+    profile = Profiles(
+        id=id_generator(10),
+        name=name,
+        data_access=data_access,
+    )
 
-    user = User(username=name_gen,
-                email=name_gen + "@eodc.eu",
-                password="test",
-                created_at=created_at,
-                admin=admin)
+    db.session.add(profile)
+    db.session.commit()
+
+    return profile
+
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.encrypt(password)
+
+
+def add_basic_user(username, password, profile_id: str, role: str = 'user', created_at: datetime = datetime.utcnow()) \
+        -> Users:
+    """ Add a user to the database """
+
+    user = Users(
+        id=f"us-{uuid4()}",
+        username=username,
+        password_hash=get_password_hash(password),
+        auth_type=AuthType.basic,
+        role=role,
+        profile_id=profile_id,
+        created_at=created_at,
+    )
 
     db.session.add(user)
     db.session.commit()
-
     return user
 
-def get_random_user_dict(username=True, email=True, password=True):
-    ''' Returns a dict object of a rondom generated user '''
+
+def add_random_profile(name: str = "public", data_access: str = "public") -> Profiles:
+    profile_name_gen = name if name else id_generator()
+    return add_profile(name=profile_name_gen, data_access=data_access)
+
+
+def add_random_basic_user(profile_id: str, created_at: datetime = datetime.utcnow(), role: str = "user") -> Users:
+    """ Adds a random generated user to the database """
+
+    user_name_gen = id_generator()
+    user = add_basic_user(username=user_name_gen, password="test", role=role, profile_id=profile_id,
+                          created_at=created_at)
+    return user
+
+
+def get_random_user_dict(username: bool = True, password: bool = True, profile: bool = True) -> Dict[str, str]:
+    """ Returns a dict object of a random generated user """
 
     name_gen = id_generator()
 
-    user = dict()
+    user = {}
     if username:
         user["username"] = name_gen
-    if email:
-        user["email"] = name_gen + "@eodc.eu"
     if password:
         user["password"] = "test"
+    if profile:
+        user["profile"] = "public"
 
     return user
