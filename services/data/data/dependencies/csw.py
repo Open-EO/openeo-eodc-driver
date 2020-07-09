@@ -66,7 +66,7 @@ class CSWHandler:
             try:
                 bbox = ast.literal_eval(collection["extent"]["spatial"]["bbox"])
                 interval = ast.literal_eval(collection["extent"]["temporal"]["interval"])
-            except:
+            except TypeError:
                 # TODO this "workaround" is needed for SIG0 data, remove when corresponding CSW server has been updated
                 bbox = [[-180.0, -90.0, 180.0, 90.0]]
                 interval = [None, None]
@@ -105,10 +105,10 @@ class CSWHandler:
             # TODO find way to write to JSON with correct format
             data['extent']['spatial']['bbox'] = ast.literal_eval(data['extent']['spatial']['bbox'])
             data['extent']['temporal']['interval'] = ast.literal_eval(data['extent']['temporal']['interval'])
-        except:
+        except TypeError:
             # TODO this "workaround" is needed for SIG0 data, remove when corresponding CSW server has been updated
-            bbox = [[-180.0, -90.0, 180.0, 90.0]]
-            interval = [None, None]
+            data['extent']['spatial']['bbox'] = [[-180.0, -90.0, 180.0, 90.0]]
+            data['extent']['temporal']['interval'] = [None, None]
 
         collection = Collection(
             stac_version=data["stac_version"],

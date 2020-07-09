@@ -87,7 +87,7 @@ class DataService:
                 acube_collections = self.csw_session_dc.get_all_products()
                 for col in acube_collections[0]:
                     product_records[0].append(col)
-            
+
             response = CollectionsSchema().dump(product_records)
 
             LOGGER.debug("response:\n%s", pformat(response))
@@ -102,7 +102,7 @@ class DataService:
 
     @rpc
     def get_product_detail(
-            self, user: Dict[str, Any] = None, collection_id: str = None
+            self, collection_id: str, user: Dict[str, Any] = None
     ) -> dict:
         """The request will ask the back-end for further details about a dataset.
 
@@ -117,15 +117,15 @@ class DataService:
         try:
             LOGGER.info("%s product requested", collection_id)
             product_record = self.csw_session.get_product(collection_id)
-            
+
             if collection_id in ('TUW_SIG0_S1'):
                 # Check user permission
                 error_code = None
                 if not user:
-                    error_code = 401 # Unauthorized
+                    error_code = 401  # Unauthorized
                     error_msg = "This collection is not publicly accessible."
-                if user and not self.csw_session_dc.data_access in user["profile"]["data_access"]:
-                    error_code = 403 # Forbidden (dpes not have permissions)
+                if user and self.csw_session_dc.data_access not in user["profile"]["data_access"]:
+                    error_code = 403  # Forbidden (dpes not have permissions)
                     error_msg = "User is not authorized to access this collection."
                 if error_code:
                     return ServiceException(
@@ -135,7 +135,7 @@ class DataService:
                         internal=False,
                         links=[],
                     ).to_dict()
-            
+
             response = CollectionSchema().dump(product_record)
 
             # Add cube:dimensions and summaries
@@ -151,7 +151,6 @@ class DataService:
                     json_data = json.load(file_json)
                     for key in json_data.keys():
                         response[key] = json_data[key]
-            
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
@@ -168,7 +167,7 @@ class DataService:
             return ServiceException(500, self.get_user_id(user), str(exp)).to_dict()
 
     @rpc
-    def refresh_cache(self, use_cache: bool = False) -> dict:
+    def refresh_cache(self, user: Dict[str, Any] = None, use_cache: bool = False) -> dict:
         """The request will refresh the cache
 
         Keyword Arguments:

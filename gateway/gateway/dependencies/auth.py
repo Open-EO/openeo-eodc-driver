@@ -88,7 +88,7 @@ class AuthenticationHandler:
                 structured correctly.
 
         Returns:
-            BaseUser -- The user object corresponding to the token
+            Dict[str, Any] -- The user dict corresponding to the token
         """
 
         try:
