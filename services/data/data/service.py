@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional, Union
 
 from nameko.rpc import rpc
 
-from .dependencies.arg_parser import ArgParserProvider, ValidationError
+from .dependencies.arg_parser import ValidationError
 from .dependencies.csw import CSWSession, CSWSessionDC
 from .dependencies.settings import initialise_settings
 from .schemas import CollectionSchema, CollectionsSchema
@@ -58,7 +58,6 @@ class DataService:
     """
 
     name = service_name
-    arg_parser = ArgParserProvider()
     csw_session = CSWSession()
     csw_session_dc = CSWSessionDC()
 
