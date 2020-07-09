@@ -293,11 +293,11 @@ class Gateway:
         """
         Redirect main page "/" to openeo well known dodument "/.well-known/openeo".
         """
-
-        if settings.ENV_FOR_DYNACONF == "development":
+        if settings.ENV_FOR_DYNACONF == "DEVELOPMENT":
             base_url = settings.GATEWAY_URL
         else:
-            base_url = settings.DNS_URL
+            # Get DNS_URL without versioning
+            base_url = settings.DNS_URL.replace('/' + settings.OPENEO_VERSION, '')
         return redirect(base_url + "/.well-known/openeo")
 
     def _parse_error_to_json(self, exc):
