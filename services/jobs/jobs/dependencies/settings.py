@@ -1,3 +1,4 @@
+import logging
 from os import environ, makedirs
 from os.path import isdir
 from urllib.error import URLError
@@ -5,6 +6,8 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 from dynaconf import Validator, settings
+
+LOGGER = logging.getLogger('standardlog')
 
 
 class SettingValidationUtils:
@@ -48,6 +51,8 @@ def initialise_settings() -> None:
                   when=Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"])),
     )
     settings.validators.validate()
+    LOGGER.info("Settings validated")
+
     # needed for eodc-openeo-bindings - should be removed once this is handled in a better way
     environ["CSW_SERVER"] = settings.CSW_SERVER
     environ["AIRFLOW_DAGS"] = settings.AIRFLOW_DAGS

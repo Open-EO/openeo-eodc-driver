@@ -43,7 +43,7 @@ def get_json_cache(path_to_cache: str) -> list:
 
 
 def get_cache_path(
-    cache_path_dir: str, product: str = None, series: bool = False
+    cache_path_dir: str, product: str = None, series: bool = False, data_access: str = None
 ) -> str:
     """Get the path of the cache depending on whether series or
     product were passed
@@ -59,7 +59,10 @@ def get_cache_path(
     """
 
     if series and not product:
-        path_to_cache = path.join(cache_path_dir, "collections.json")
+        if data_access == 'acube':
+            path_to_cache = path.join(cache_path_dir, "collections_dc.json")
+        else:
+            path_to_cache = path.join(cache_path_dir, "collections.json")
     elif product:
         path_to_cache = path.join(cache_path_dir, product + ".json")
     else:

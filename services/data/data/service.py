@@ -4,12 +4,12 @@ import json
 import logging
 import os
 from pprint import pformat
-from typing import Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from nameko.rpc import rpc
 
-from .dependencies.arg_parser import ArgParserProvider, ValidationError
-from .dependencies.csw import CSWSession
+from .dependencies.arg_parser import ValidationError
+from .dependencies.csw import CSWSession, CSWSessionDC
 from .dependencies.settings import initialise_settings
 from .schemas import CollectionSchema, CollectionsSchema
 
@@ -58,8 +58,8 @@ class DataService:
     """
 
     name = service_name
-    arg_parser = ArgParserProvider()
     csw_session = CSWSession()
+    csw_session_dc = CSWSessionDC()
 
     def __init__(self) -> None:
         LOGGER.info(f"Initialized {self}")
@@ -68,21 +68,26 @@ class DataService:
         return f"DataService('{self.name}')"
 
     @rpc
-    def get_all_products(self, user_id: str = None) -> Union[list, dict]:
+    def get_all_products(self, user: Dict[str, Any] = None) -> Union[list, dict]:
         """Requests will ask the back-end for available data and will return an array of
         available datasets with very basic information such as their unique identifiers.
 
         Keyword Arguments:
-            user_id {str} -- The user id (default: {None})
+            user {Dict[str, Any]} -- The user (default: {None})
 
         Returns:
              Union[list, dict] -- The products or a serialized exception
         """
 
         LOGGER.info("All products requested")
-        LOGGER.debug("user_id requesting %s", user_id)
+        LOGGER.debug("user_id requesting %s", self.get_user_id(user))
         try:
             product_records = self.csw_session.get_all_products()
+            if user and self.csw_session_dc.data_access in user["profile"]["data_access"]:
+                acube_collections = self.csw_session_dc.get_all_products()
+                for col in acube_collections[0]:
+                    product_records[0].append(col)
+
             response = CollectionsSchema().dump(product_records)
 
             LOGGER.debug("response:\n%s", pformat(response))
@@ -90,19 +95,19 @@ class DataService:
         except Exception as exp:
             return ServiceException(
                 500,
-                user_id,
+                self.get_user_id(user),
                 str(exp),
                 links=["#tag/EO-Data-Discovery/paths/~1data/get"],
             ).to_dict()
 
     @rpc
     def get_product_detail(
-            self, user_id: str = None, collection_id: str = None
+            self, collection_id: str, user: Dict[str, Any] = None
     ) -> dict:
         """The request will ask the back-end for further details about a dataset.
 
         Keyword Arguments:
-            user_id {str} -- The user id (default: {None})
+            user {Dict[str, Any]} -- The user (default: {None})
             name {str} -- The product identifier (default: {None})
 
         Returns:
@@ -111,44 +116,62 @@ class DataService:
 
         try:
             LOGGER.info("%s product requested", collection_id)
-            product_id = self.arg_parser.parse_product(collection_id)
-            product_record = self.csw_session.get_product(product_id)
+            product_record = self.csw_session.get_product(collection_id)
+
+            if collection_id in ('TUW_SIG0_S1'):
+                # Check user permission
+                error_code = None
+                if not user:
+                    error_code = 401  # Unauthorized
+                    error_msg = "This collection is not publicly accessible."
+                if user and self.csw_session_dc.data_access not in user["profile"]["data_access"]:
+                    error_code = 403  # Forbidden (dpes not have permissions)
+                    error_msg = "User is not authorized to access this collection."
+                if error_code:
+                    return ServiceException(
+                        error_code,
+                        self.get_user_id(user),
+                        error_msg,
+                        internal=False,
+                        links=[],
+                    ).to_dict()
+
             response = CollectionSchema().dump(product_record)
 
             # Add cube:dimensions and summaries
+            # TODO these fields should be added to the cached JSONs when writing them to disk
             json_file = os.path.join(
                 os.path.dirname(__file__),
                 "dependencies",
                 "jsons",
-                product_id + ".json",
+                collection_id + ".json",
             )
-            if json_file:
+            if os.path.isfile(json_file):
                 with open(json_file) as file_json:
                     json_data = json.load(file_json)
                     for key in json_data.keys():
                         response[key] = json_data[key]
-            # TODO: what if json_file does not exist?
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
         except ValidationError as exp:
             return ServiceException(
                 exp.code,
-                user_id,
+                self.get_user_id(user),
                 str(exp),
                 internal=False,
                 links=[
                     "#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"],
             ).to_dict()
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp)).to_dict()
+            return ServiceException(500, self.get_user_id(user), str(exp)).to_dict()
 
     @rpc
-    def refresh_cache(self, user_id: str = None, use_cache: bool = False) -> dict:
+    def refresh_cache(self, user: Dict[str, Any] = None, use_cache: bool = False) -> dict:
         """The request will refresh the cache
 
         Keyword Arguments:
-            user_id {str} -- The user id (default: {None})
+            user {Dict[str, Any]} -- The user (default: {None})
             use_cache {bool} -- Trigger to refresh the cache
 
         Returns:
@@ -158,6 +181,7 @@ class DataService:
         try:
             LOGGER.info("Refresh cache requested")
             self.csw_session.refresh_cache(use_cache)
+            self.csw_session_dc.refresh_cache(use_cache)
 
             return {
                 "status": "success",
@@ -167,11 +191,14 @@ class DataService:
         except ValidationError as exp:
             return ServiceException(
                 400,
-                user_id,
+                self.get_user_id(user),
                 str(exp),
                 internal=False,
                 links=[
                     "#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"],
             ).to_dict()
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp)).to_dict()
+            return ServiceException(500, self.get_user_id(user), str(exp)).to_dict()
+
+    def get_user_id(self, user: Optional[Dict[str, Any]]) -> Optional[str]:
+        return user["id"] if user and "id" in user else None

@@ -1,0 +1,26 @@
+{
+    "cube:dimensions": {
+        "x": {
+            "type": "spatial",
+            "axis": "x",
+            "extent": [9, 18]
+        },
+        "y": {
+            "type": "spatial",
+            "axis": "y",
+            "extent": [46, 49]
+        },
+        "bands": {
+            "type": "bands",
+            "values": ["HH", "HV"]
+        },
+        "t": {
+            "type": "temporal",
+            "extent": [
+                "2014-04-03T00:00:00Z",
+                null
+            ]
+        }
+    },
+    "summaries": {}
+}

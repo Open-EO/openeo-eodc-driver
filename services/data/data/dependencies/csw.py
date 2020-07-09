@@ -4,7 +4,7 @@ import ast
 import logging
 from json import dumps
 from os import makedirs, path
-from typing import Tuple
+from typing import List, Tuple
 
 from defusedxml.minidom import parseString
 from dynaconf import settings
@@ -32,8 +32,12 @@ class CSWHandler:
     required output format.
     """
 
-    def __init__(self, csw_server_uri: str, cache_path: str, service_uri: str) -> None:
+    def __init__(self, csw_server_uri: str, data_access: str, group_property: str, white_list: List[str],
+                 cache_path: str, service_uri: str) -> None:
         self.csw_server_uri = csw_server_uri
+        self.data_access = data_access
+        self.group_property = group_property
+        self.white_list = white_list
         self.cache_path = cache_path
         self.service_uri = service_uri
         self.link_handler = LinkHandler(service_uri)
@@ -59,8 +63,13 @@ class CSWHandler:
 
         collection_list = []
         for collection in data:
-            bbox = ast.literal_eval(collection["extent"]["spatial"]["bbox"])
-            interval = ast.literal_eval(collection["extent"]["temporal"]["interval"])
+            try:
+                bbox = ast.literal_eval(collection["extent"]["spatial"]["bbox"])
+                interval = ast.literal_eval(collection["extent"]["temporal"]["interval"])
+            except TypeError:
+                # TODO this "workaround" is needed for SIG0 data, remove when corresponding CSW server has been updated
+                bbox = [[-180.0, -90.0, 180.0, 90.0]]
+                interval = [None, None]
 
             # TODO find way to write to JSON with correct format
             collection_list.append(
@@ -92,9 +101,14 @@ class CSWHandler:
         """
 
         data = self._get_records(data_id, series=True)[0]
-        # TODO find way to write to JSON with correct format
-        data['extent']['spatial']['bbox'] = ast.literal_eval(data['extent']['spatial']['bbox'])
-        data['extent']['temporal']['interval'] = ast.literal_eval(data['extent']['temporal']['interval'])
+        try:
+            # TODO find way to write to JSON with correct format
+            data['extent']['spatial']['bbox'] = ast.literal_eval(data['extent']['spatial']['bbox'])
+            data['extent']['temporal']['interval'] = ast.literal_eval(data['extent']['temporal']['interval'])
+        except TypeError:
+            # TODO this "workaround" is needed for SIG0 data, remove when corresponding CSW server has been updated
+            data['extent']['spatial']['bbox'] = [[-180.0, -90.0, 180.0, 90.0]]
+            data['extent']['temporal']['interval'] = [None, None]
 
         collection = Collection(
             stac_version=data["stac_version"],
@@ -159,8 +173,7 @@ class CSWHandler:
             use_cache,
         )
         all_records = []
-        path_to_cache = get_cache_path(self.cache_path, product, series)
-
+        path_to_cache = get_cache_path(self.cache_path, product, series, self.data_access)
         # Caching to increase speed
         # Create a request and cache the data for a day
         if not use_cache:
@@ -224,7 +237,7 @@ class CSWHandler:
             else:
                 xml_filters.append(
                     xml_product.format(
-                        property="apiso:ParentIdentifier", product=product
+                        property=self.group_property, product=product
                     )
                 )
 
@@ -302,7 +315,10 @@ class CSWHandler:
         elif "csw:Record" in search_result:
             records = search_result["csw:Record"]
         elif "collection" in search_result:
-            records = search_result["collection"]
+            if isinstance(search_result["collection"], list):
+                records = self.check_collections_id(search_result["collection"])
+            else:
+                records = search_result["collection"]
         else:
             records = []
 
@@ -311,8 +327,46 @@ class CSWHandler:
 
         return record_next, records
 
+    def check_collections_id(self, collections: List) -> List:
+        """Returns list of collections from a CSW query, only if whitelisted.
+        Arguments:
+            collections {list} -- list of dicts (output of csw query with Series=True)
+        Returns:
+            list -- Whitelisted collections
+        """
+
+        out_collections = []
+        for collection in collections:
+            if (collection['id'] in settings.WHITELIST) or (collection['id'] in settings.WHITELIST_DC):
+                out_collections.append(collection)
+
+        return out_collections
+
 
 class CSWSession(DependencyProvider):
+    """ The CSWSession is the DependencyProvider of the CSWHandler. """
+    def get_dependency(self, worker_ctx: object) -> CSWHandler:
+        """Return the instantiated object that is injected to a
+        service worker
+
+        Arguments:
+            worker_ctx {object} -- The service worker
+
+        Returns:
+            CSWHandler -- The instantiated CSWHandler object
+        """
+
+        return CSWHandler(
+            csw_server_uri=settings.CSW_SERVER,
+            data_access=settings.DATA_ACCESS,
+            group_property=settings.GROUP_PROPERTY,
+            white_list=settings.WHITELIST,
+            cache_path=settings.CACHE_PATH,
+            service_uri=settings.DNS_URL,
+        )
+
+
+class CSWSessionDC(DependencyProvider):
     """ The CSWSession is the DependencyProvider of the CSWHandler. """
 
     def get_dependency(self, worker_ctx: object) -> CSWHandler:
@@ -327,7 +381,10 @@ class CSWSession(DependencyProvider):
         """
 
         return CSWHandler(
-            settings.CSW_SERVER,
-            settings.CACHE_PATH,
-            settings.DNS_URL,
+            csw_server_uri=settings.CSW_SERVER_DC,
+            data_access=settings.DATA_ACCESS_DC,
+            group_property=settings.GROUP_PROPERTY_DC,
+            white_list=settings.WHITELIST_DC,
+            cache_path=settings.CACHE_PATH,
+            service_uri=settings.DNS_URL,
         )

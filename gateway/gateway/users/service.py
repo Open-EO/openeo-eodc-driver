@@ -1,3 +1,5 @@
+from typing import Optional, Any, Dict
+
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
 from passlib.apps import custom_app_context as pwd_context
 
@@ -5,6 +7,7 @@ import gateway.users.repository as rep
 from gateway.dependencies.response import APIException
 from .models import db, IdentityProviders, AuthType, Users, Profiles
 from .schema import IdentityProviderSchema, UserSchema, ProfileSchema
+from .repository import get_user_entity_from_id
 
 service_name = "gateway-users"
 
@@ -50,13 +53,13 @@ class UsersService:
     User Management.
     """
 
-    def get_user_info(self, user_id: str) -> dict:
+    def get_user_info(self, user: Dict[str, Any]) -> dict:
         """Returns info about the (logged in) user.
 
         Returns:
             Dict -- 200 HTTP code
         """
-        user = db.session.query(Users).filter_by(id=user_id).one()
+        user = db.session.query(Users).filter_by(id=user["id"]).one()
         return {
             "status": "success",
             "code": 200,
@@ -305,7 +308,7 @@ class BasicAuthService:
         serialized = Serializer(self.secret_key, expires_in=expiration)
         return serialized.dumps({'id': user.id}).decode('utf-8')
 
-    def verify_auth_token(self, token):
+    def verify_auth_token(self, token) -> Optional[Dict[str, Any]]:
         # Verify token
         s = Serializer(self.secret_key)
         try:
@@ -316,5 +319,4 @@ class BasicAuthService:
             return  # invalid token
 
         # Verify user exists
-        user = db.session.query(Users).filter(Users.id == data['id']).scalar()
-        return user.id if user else None
+        return get_user_entity_from_id(data["id"])

@@ -37,8 +37,8 @@ with ctx:
     #gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/service_types", func=rpc.capabilities.get_service_types, auth=False, validate=True, parse_spec=True)
 
     # EO Data Discovery
-    gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/collections", func=rpc.data.get_all_products, auth=False, validate=True)
-    gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/collections/<collection_id>", func=rpc.data.get_product_detail, auth=False, validate=True)
+    gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/collections", func=rpc.data.get_all_products, auth='optional', validate=True)
+    gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/collections/<collection_id>", func=rpc.data.get_product_detail, auth='optional', validate=True)
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/collections", func=rpc.data.refresh_cache, auth=True, validate=True, methods=["POST"], role="admin") # NB extension of openEO API
 
     # Account Management
@@ -75,7 +75,7 @@ with ctx:
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/jobs/<job_id>", func=rpc.jobs.modify, auth=True, validate=True, methods=["PATCH"])
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/jobs/<job_id>/estimate", func=rpc.jobs.estimate, auth=True, validate=True)
     # gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/jobs/<job_id>/logs", func=rpc.jobs.estimate, auth=True, validate=True)
-    gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/jobs/<job_id>/results", func=rpc.jobs.get_results, auth=True, validate=True)
+    gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/jobs/<job_id>/results", func=rpc.jobs.get_results, auth=True, validate=True, parse_spec=True)
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/jobs/<job_id>/results", func=rpc.jobs.process, auth=True, validate=True, methods=["POST"], is_async=True)
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/jobs/<job_id>/results", func=rpc.jobs.cancel_processing, auth=True, validate=True, methods=["DELETE"])
 

@@ -16,7 +16,7 @@ def csw_query(identifier):
 '''
 
 
-def write_xmls(csw_url: str, to_import: str):
+def write_xmls(csw_url: str, to_import: str, output_folder: str):
     """
     Queries a CSW server for the given identifiers, changes the url and returns it in gmd:MD_Metadata format.
     """
@@ -43,11 +43,12 @@ def write_xmls(csw_url: str, to_import: str):
 
         xml = ET.tostring(md_metadata).decode()
 
-        with open(f"xml/{item['identifier']}.xml", "w") as f:
+        with open(f"{output_folder}/{item['identifier']}.xml", "w") as f:
             f.write(xml)
 
 
 if __name__ == '__main__':
     cur_csw_url = 'https://csw.eodc.eu'
     filename = 'file_list.json'
-    write_xmls(cur_csw_url, filename)
+    cur_output_folder = "xml"
+    write_xmls(csw_url=cur_csw_url, to_import=filename, output_folder=cur_output_folder)

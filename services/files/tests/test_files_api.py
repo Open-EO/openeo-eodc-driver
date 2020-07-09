@@ -1,11 +1,13 @@
 import os
 import shutil
 from datetime import datetime
+from typing import Tuple
 
 import pytest
 from nameko.testing.services import worker_factory
 
 from files.service import FilesService
+from .utils import create_user
 
 file_service = worker_factory(FilesService)
 
@@ -14,13 +16,15 @@ file_service = worker_factory(FilesService)
     'ref_path',
     ['final.txt', 'folder1/folder2/final.txt']
 )
-def test_upload_path(user_folder: str, user_id: str, tmp_folder: str, upload_file: str,
+def test_upload_path(user_id_folder: Tuple[str, str], tmp_folder: str, upload_file: str,
                      ref_path: str) -> None:
+    user_folder, user_id = user_id_folder
+    user = create_user(user_id)
     tmp_path = os.path.join(tmp_folder, 'upload.txt')
     shutil.copyfile(upload_file, tmp_path)
     assert os.path.isfile(tmp_path)
 
-    result = file_service.upload(user_id=user_id, tmp_path=tmp_path, path=ref_path)
+    result = file_service.upload(user=user, tmp_path=tmp_path, path=ref_path)
     assert datetime.strptime(result['data'].pop('modified'), '%Y-%m-%dT%H:%M:%SZ')
     assert result == {
         'code': 200,
@@ -35,8 +39,10 @@ def test_upload_path(user_folder: str, user_id: str, tmp_folder: str, upload_fil
 @pytest.mark.parametrize(
     'folders_only',
     ['', 'folder1/folder2'])
-def test_delete(user_folder: str, user_id: str, upload_file: str, folders_only: str) \
+def test_delete(user_id_folder: Tuple[str, str], upload_file: str, folders_only: str) \
         -> None:
+    user_folder, user_id = user_id_folder
+    user = create_user(user_id)
     folders_path = os.path.join(user_folder, 'files', folders_only)
     filepath = os.path.join(folders_path, 'delete.txt')
     if folders_only:
@@ -44,12 +50,15 @@ def test_delete(user_folder: str, user_id: str, upload_file: str, folders_only: 
     shutil.copyfile(upload_file, filepath)
     assert os.path.isfile(filepath)
 
-    result = file_service.delete(user_id=user_id, path=os.path.join(folders_only, 'delete.txt'))
+    result = file_service.delete(user=user, path=os.path.join(folders_only, 'delete.txt'))
     assert result == {'status': 'success', 'code': 204}
     assert not os.path.isfile(filepath)
 
 
-def test_get_all(user_folder: str, user_id: str, upload_file: str) -> None:
+def test_get_all(user_id_folder: Tuple[str, str], upload_file: str) -> None:
+    user_folder, user_id = user_id_folder
+    user = create_user(user_id)
+
     shutil.copyfile(upload_file, os.path.join(user_folder, 'files', '1.txt'))
     folders2 = os.path.join(user_folder, 'files', 'folder1', 'folder2')
     os.makedirs(folders2)
@@ -59,7 +68,7 @@ def test_get_all(user_folder: str, user_id: str, upload_file: str) -> None:
     shutil.copyfile(upload_file, os.path.join(folders3, '3.txt'))
     shutil.copyfile(upload_file, os.path.join(folders3, '4.txt'))
 
-    result = file_service.get_all(user_id=user_id)
+    result = file_service.get_all(user=user)
     for i in range(len(result['data']['files'])):
         datetime.strptime(result['data']['files'][i].pop('modified'), '%Y-%m-%dT%H:%M:%SZ')
     assert result == {
@@ -75,12 +84,15 @@ def test_get_all(user_folder: str, user_id: str, upload_file: str) -> None:
             'links': []}}
 
 
-def test_download(user_folder: str, user_id: str, upload_file: str) -> None:
+def test_download(user_id_folder: Tuple[str, str], upload_file: str) -> None:
+    user_folder, user_id = user_id_folder
+    user = create_user(user_id)
+
     filepath = os.path.join(user_folder, 'files', 'download.txt')
     shutil.copyfile(upload_file, filepath)
     assert os.path.isfile(filepath)
 
-    result = file_service.download(user_id=user_id, path='download.txt')
+    result = file_service.download(user=user, path='download.txt')
     assert result == {
         'status': 'success',
         'code': 200,

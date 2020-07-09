@@ -77,16 +77,16 @@ class FilesService:
     result_folder = "result"
 
     @rpc
-    def download(self, user_id: str, path: str, source_dir: str = 'files') -> dict:
+    def download(self, user: Dict[str, Any], path: str, source_dir: str = 'files') -> dict:
         """
         The request will ask the back-end to get the get the file stored at the given path.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
             path {str} -- The file path to the requested file
         """
         try:
-            response = self.authorize_existing_file(user_id, path, source_dir=source_dir)
+            response = self.authorize_existing_file(user["id"], path, source_dir=source_dir)
             if isinstance(response, ServiceException):
                 return response.to_dict()
 
@@ -99,18 +99,18 @@ class FilesService:
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
+            return ServiceException(500, user["id"], str(exp), links=[]).to_dict()
 
     @rpc
-    def delete(self, user_id: str, path: str) -> dict:
+    def delete(self, user: Dict[str, Any], path: str) -> dict:
         """The request will ask the back-end to delete the file at the given path.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
             path {str} -- The location of the file
         """
         try:
-            response = self.authorize_existing_file(user_id, path)
+            response = self.authorize_existing_file(user["id"], path)
             if isinstance(response, ServiceException):
                 return response.to_dict()
 
@@ -121,17 +121,17 @@ class FilesService:
                 "code": 204
             }
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
+            return ServiceException(500, user["id"], str(exp), links=[]).to_dict()
 
     @rpc
-    def get_all(self, user_id: str) -> dict:
+    def get_all(self, user: Dict[str, Any]) -> dict:
         """The request will ask the back-end to get all available files for the given user.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
         """
         try:
-            prefix, _ = self.setup_user_folder(user_id)
+            prefix, _ = self.setup_user_folder(user["id"])
             file_list = []
 
             for root, _, files in os.walk(prefix):
@@ -146,7 +146,7 @@ class FilesService:
                             "modified": self.get_file_modification_time(internal_filepath)
                         }
                     )
-            LOGGER.info(f"Found {len(file_list)} files in workspace of User {user_id}.")
+            LOGGER.info(f"Found {len(file_list)} files in workspace of User {user['id']}.")
             return {
                 "status": "success",
                 "code": 200,
@@ -157,19 +157,19 @@ class FilesService:
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
+            return ServiceException(500, user["id"], str(exp), links=[]).to_dict()
 
     @rpc
-    def upload(self, user_id: str, path: str, tmp_path: str) -> dict:
+    def upload(self, user: Dict[str, Any], path: str, tmp_path: str) -> dict:
         """The request will ask the back-end to create a new job using the description send in the request body.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
             path {str} -- The file path to the requested file
             tmp_path {str} -- The path where the file was temporary stored
         """
         try:
-            response = self.authorize_file(user_id, path)
+            response = self.authorize_file(user["id"], path)
             if isinstance(response, ServiceException):
                 os.remove(tmp_path)
                 return response.to_dict()
@@ -180,19 +180,19 @@ class FilesService:
                 os.makedirs(dirs, mode=0o700)
 
             os.rename(tmp_path, complete_path)
-            LOGGER.info(f"File {path} successfully uploaded to User {user_id} workspace.")
+            LOGGER.info(f"File {path} successfully uploaded to User {user['id']} workspace.")
             return {
                 "status": "success",
                 "code": 200,
                 "data": {
-                    "path": self.complete_to_public_path(user_id, complete_path),
+                    "path": self.complete_to_public_path(user["id"], complete_path),
                     "size": int(os.path.getsize(complete_path)),
                     "modified": self.get_file_modification_time(complete_path)
                 }
             }
 
         except Exception as exp:
-            return ServiceException(500, user_id, str(exp), links=[]).to_dict()
+            return ServiceException(500, user["id"], str(exp), links=[]).to_dict()
 
     @rpc
     def setup_user_folder(self, user_id: str) -> List[str]:
@@ -353,15 +353,15 @@ class FilesService:
             return ServiceException(500, user_id, str(exp)).to_dict()
 
     @rpc
-    def download_result(self, user_id: str, path: str) -> dict:
+    def download_result(self, user: Dict[str, Any], path: str) -> dict:
         """
         The request will ask the back-end to get the get the job result stored at the given path.
 
         Arguments:
-            user_id {str} -- The identifier of the user
+            user {Dict[str, Any]} -- The user object
             path {str} -- The file path to the requested file
         """
-        return self.download(user_id, path, source_dir='jobs')
+        return self.download(user, path, source_dir='jobs')
 
     @rpc
     def upload_stop_job_file(self, user_id: str, job_id: str) -> None:

@@ -1,7 +1,10 @@
+import logging
 from os import makedirs
 from os.path import isdir
 
 from dynaconf import Validator, settings
+
+LOGGER = logging.getLogger('standardlog')
 
 
 class SettingValidationUtils:
@@ -19,3 +22,5 @@ def initialise_settings() -> None:
         Validator("UPLOAD_TMP_DIR", must_exist=True, condition=utils.check_create_folder),
     )
     settings.validators.validate()
+
+    LOGGER.info("Settings validated")

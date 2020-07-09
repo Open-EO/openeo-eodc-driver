@@ -3,15 +3,9 @@
 
 import sys
 from os import environ
-from os.path import abspath
-from os.path import dirname
-
-import pytest
+from os.path import abspath, dirname
 
 root_dir = dirname(dirname(abspath(__file__)))
 sys.path.append(root_dir)
 
-
-@pytest.fixture()
-def get_envs() -> None:
-    environ['DEVELOPMENT'] = 'False'
+environ["OEO_GATEWAY_URL"] = "https://openeo.eodc.eu"

@@ -8,8 +8,8 @@ from data.service import DataService
 
 collection_dict = {
     "stac_version": "0.9.0",
-    "id": "s2a",
-    "title": "Sentinet-2A",
+    "id": "s2a_prd_msil1c",
+    "title": "Sentinel-2A",
     "description": "Sentinel-2A description",
     "keywords": ["keyword1", "keyword2", "keyword3"],
     "license": "Some license",
@@ -32,8 +32,8 @@ collection_dict = {
 
 collection_model = Collection(
     stac_version="0.9.0",
-    id="s2a",
-    title="Sentinet-2A",
+    id="s2a_prd_msil1c",
+    title="Sentinel-2A",
     description="Sentinel-2A description",
     keywords=["keyword1", "keyword2", "keyword3"],
     license="Some license",
@@ -73,9 +73,8 @@ def test_get_product_detail() -> None:
     json_data.update(collection_dict)
 
     data_service = worker_factory(DataService)
-    data_service.arg_parser.parse_product.return_value = collection_id
-    data_service.csw_session.get_product.return_value = collection_model
-    result = data_service.get_product_detail()
+    data_service.csw_session.get_product.return_value = collection_dict
+    result = data_service.get_product_detail(collection_id=collection_id)
     assert result == {
         "status": "success",
         "code": 200,

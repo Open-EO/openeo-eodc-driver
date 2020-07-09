@@ -22,7 +22,8 @@ function oeo-gateway() {
   source envs/gateway.env
   source envs/users.env
   source envs/files.env
-  flask run -p $GATEWAY_PORT -h $HOST
+  cd gateway
+  gunicorn -c gunicorncfg.py wsgi:app
 }
 
 # Capabilities service
@@ -31,8 +32,8 @@ function oeo-capabilities-service() {
   source activate $ENV_CAPABILITIES
   source .env
   source envs/rabbitmq.env
-  source envs/gateway.env
-  nameko run --config services/capabilities/config.yaml services.capabilities.capabilities.service
+  source envs/gateway.envcd services/capabilities
+  nameko run --config config.yaml capabilities.service
 }
 
 # Data service
@@ -44,7 +45,8 @@ function oeo-capabilities-service() {
   source envs/csw.env
   source ./envs/gateway.env
   source envs/data.env
-  nameko run --config services/data/config.yaml services.data.data.service
+  cd services/data
+  nameko run --config config.yaml data.service
 }
 
 # Processes service
@@ -54,7 +56,8 @@ function oeo-processes-service() {
   source .env
   source envs/rabbitmq.env
   source envs/processes.env
-  nameko run --config services/processes/config.yaml services.processes.processes.service
+  cd services/processes
+  nameko run --config config.yaml processes.service
 }
 
 # Jobs service
@@ -66,7 +69,8 @@ function oeo-jobs-service() {
   source envs/gateway.env
   source envs/csw.env
   source envs/jobs.env
-  nameko run --config services/jobs/config.yaml services.jobs.jobs.service
+  cd services/jobs
+  nameko run --config config.yaml jobs.service
 }
 
 # Files service
@@ -75,6 +79,6 @@ function oeo-files-service() {
   source activate $ENV_FILES
   source .env
   source envs/rabbitmq.env
-  source envs/files.env
-  nameko run --config services/files/config.yaml services.files.files.service
+  cd services/files
+  nameko run --config config.yaml files.service
 }
