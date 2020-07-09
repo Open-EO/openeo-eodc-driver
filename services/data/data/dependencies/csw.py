@@ -63,8 +63,13 @@ class CSWHandler:
 
         collection_list = []
         for collection in data:
-            bbox = ast.literal_eval(collection["extent"]["spatial"]["bbox"])
-            interval = ast.literal_eval(collection["extent"]["temporal"]["interval"])
+            try:
+                bbox = ast.literal_eval(collection["extent"]["spatial"]["bbox"])
+                interval = ast.literal_eval(collection["extent"]["temporal"]["interval"])
+            except:
+                # TODO this "workaround" is needed for SIG0 data, remove when corresponding CSW server has been updated
+                bbox = [[-180.0, -90.0, 180.0, 90.0]]
+                interval = [None, None]
 
             # TODO find way to write to JSON with correct format
             collection_list.append(
@@ -96,9 +101,14 @@ class CSWHandler:
         """
 
         data = self._get_records(data_id, series=True)[0]
-        # TODO find way to write to JSON with correct format
-        data['extent']['spatial']['bbox'] = ast.literal_eval(data['extent']['spatial']['bbox'])
-        data['extent']['temporal']['interval'] = ast.literal_eval(data['extent']['temporal']['interval'])
+        try:
+            # TODO find way to write to JSON with correct format
+            data['extent']['spatial']['bbox'] = ast.literal_eval(data['extent']['spatial']['bbox'])
+            data['extent']['temporal']['interval'] = ast.literal_eval(data['extent']['temporal']['interval'])
+        except:
+            # TODO this "workaround" is needed for SIG0 data, remove when corresponding CSW server has been updated
+            bbox = [[-180.0, -90.0, 180.0, 90.0]]
+            interval = [None, None]
 
         collection = Collection(
             stac_version=data["stac_version"],
@@ -163,8 +173,7 @@ class CSWHandler:
             use_cache,
         )
         all_records = []
-        path_to_cache = get_cache_path(self.cache_path, product, series)
-
+        path_to_cache = get_cache_path(self.cache_path, product, series, self.data_access)
         # Caching to increase speed
         # Create a request and cache the data for a day
         if not use_cache:
@@ -328,7 +337,7 @@ class CSWHandler:
 
         out_collections = []
         for collection in collections:
-            if collection['id'] in settings.WHITELIST:
+            if (collection['id'] in settings.WHITELIST) or (collection['id'] in settings.WHITELIST_DC):
                 out_collections.append(collection)
 
         return out_collections
