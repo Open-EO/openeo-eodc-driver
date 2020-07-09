@@ -85,8 +85,10 @@ class DataService:
         try:
             product_records = self.csw_session.get_all_products()
             if user and self.csw_session_dc.data_access in user["profile"]["data_access"]:
-                product_records[0].append(self.csw_session_dc.get_all_products())
-
+                acube_collections = self.csw_session_dc.get_all_products()
+                for col in acube_collections[0]:
+                    product_records[0].append(col)
+            
             response = CollectionsSchema().dump(product_records)
 
             LOGGER.debug("response:\n%s", pformat(response))
@@ -115,23 +117,42 @@ class DataService:
 
         try:
             LOGGER.info("%s product requested", collection_id)
-            product_id = self.arg_parser.parse_product(collection_id)
-            product_record = self.csw_session.get_product(product_id)
+            product_record = self.csw_session.get_product(collection_id)
+            
+            if collection_id in ('TUW_SIG0_S1'):
+                # Check user permission
+                error_code = None
+                if not user:
+                    error_code = 401 # Unauthorized
+                    error_msg = "This collection is not publicly accessible."
+                if user and not self.csw_session_dc.data_access in user["profile"]["data_access"]:
+                    error_code = 403 # Forbidden (dpes not have permissions)
+                    error_msg = "User is not authorized to access this collection."
+                if error_code:
+                    return ServiceException(
+                        error_code,
+                        self.get_user_id(user),
+                        error_msg,
+                        internal=False,
+                        links=[],
+                    ).to_dict()
+            
             response = CollectionSchema().dump(product_record)
 
             # Add cube:dimensions and summaries
+            # TODO these fields should be added to the cached JSONs when writing them to disk
             json_file = os.path.join(
                 os.path.dirname(__file__),
                 "dependencies",
                 "jsons",
-                product_id + ".json",
+                collection_id + ".json",
             )
-            if json_file:
+            if os.path.isfile(json_file):
                 with open(json_file) as file_json:
                     json_data = json.load(file_json)
                     for key in json_data.keys():
                         response[key] = json_data[key]
-            # TODO: what if json_file does not exist?
+            
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
@@ -148,7 +169,7 @@ class DataService:
             return ServiceException(500, self.get_user_id(user), str(exp)).to_dict()
 
     @rpc
-    def refresh_cache(self, user: Dict[str, Any] = None, use_cache: bool = False) -> dict:
+    def refresh_cache(self, use_cache: bool = False) -> dict:
         """The request will refresh the cache
 
         Keyword Arguments:
@@ -162,6 +183,7 @@ class DataService:
         try:
             LOGGER.info("Refresh cache requested")
             self.csw_session.refresh_cache(use_cache)
+            self.csw_session_dc.refresh_cache(use_cache)
 
             return {
                 "status": "success",
