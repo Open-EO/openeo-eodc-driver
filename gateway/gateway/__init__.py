@@ -38,7 +38,7 @@ with ctx:
 
     # EO Data Discovery
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/collections", func=rpc.data.get_all_products, auth='optional', validate=True)
-    gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/collections/<collection_id>", func=rpc.data.get_product_detail, auth=False, validate=True)
+    gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/collections/<collection_id>", func=rpc.data.get_product_detail, auth='optional', validate=True)
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/collections", func=rpc.data.refresh_cache, auth=True, validate=True, methods=["POST"], role="admin") # NB extension of openEO API
 
     # Account Management
