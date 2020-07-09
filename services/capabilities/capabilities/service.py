@@ -74,6 +74,8 @@ class CapabilitiesService:
             # Remove /.well-known/openeo endpoint, must not be listed under versioned URLs
             if '/.well-known/openeo' in api_spec['paths']:
                 _ = api_spec['paths'].pop('/.well-known/openeo')
+            if '/base' in api_spec['paths']:
+                _ = api_spec['paths'].pop('/base')
             for path_name, methods in api_spec["paths"].items():
                 path_to_replace = path_name[path_name.find(':'):path_name.find('}')]
                 path_name = path_name.replace(path_to_replace, '')
