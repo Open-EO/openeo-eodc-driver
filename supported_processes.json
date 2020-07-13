@@ -2,6 +2,7 @@
   "processes": 
   [
     "absolute", 
+    "add_dimension", 
     "apply", 
     "arccos", 
     "arcosh", 
@@ -39,6 +40,7 @@
     "product",
     "quantiles", 
     "reduce_dimension", 
+    "rename_labels", 
     "round", 
     "run_udf", 
     "save_result", 
