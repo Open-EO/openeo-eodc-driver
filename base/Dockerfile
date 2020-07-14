@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.6.11
 # Add use rwith gid 1000 (important), gid also 1000 to be sure
 ENV USER=www-openeo
 ENV UID=1000
@@ -11,7 +11,7 @@ RUN addgroup --gid "$GID" "$GROUP" \
     --ingroup "$GROUP" \
     --uid "$UID" \
     "$USER"
-RUN pip3 install --upgrade pip
+RUN apt-get update && apt-get install netcat -y && pip3 install --upgrade pip
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 COPY requirements.txt .
