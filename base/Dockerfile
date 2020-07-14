@@ -11,7 +11,10 @@ RUN addgroup --gid "$GID" "$GROUP" \
     --ingroup "$GROUP" \
     --uid "$UID" \
     "$USER"
-RUN apt-get update && apt-get install netcat -y && pip3 install --upgrade pip
+RUN apt-get update && \
+    apt-get install --no-install-recommends netcat -y && \
+    apt-get clean && \
+    apt-get autoclean
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 COPY requirements.txt .
