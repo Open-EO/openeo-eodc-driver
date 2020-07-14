@@ -59,7 +59,7 @@ services:
     build:
       context: ./gateway
       args:
-        OEO_OPENEO_VERSION: $OPENEO_VERSION
+        OPENEO_VERSION: $OPENEO_VERSION
     container_name: oeo-gateway-$OPENEO_VERSION
     restart: on-failure
     depends_on:
@@ -84,7 +84,7 @@ services:
     build:
       context: ./services/capabilities
       args:
-        OEO_OPENEO_VERSION: $OPENEO_VERSION
+        OPENEO_VERSION: $OPENEO_VERSION
     image: oeo-capabilities-$OPENEO_VERSION
     container_name: oeo-capabilities-$OPENEO_VERSION
     restart: on-failure
@@ -105,7 +105,7 @@ services:
     build:
       context: ./services/data
       args:
-        OEO_OPENEO_VERSION: $OPENEO_VERSION
+        OPENEO_VERSION: $OPENEO_VERSION
     image: oeo-data-$OPENEO_VERSION
     container_name: oeo-data-$OPENEO_VERSION
     restart: on-failure
@@ -130,7 +130,7 @@ services:
     build:
       context: ./services/processes
       args:
-        OEO_OPENEO_VERSION: $OPENEO_VERSION
+        OPENEO_VERSION: $OPENEO_VERSION
     image: oeo-processes-$OPENEO_VERSION
     container_name: oeo-processes-$OPENEO_VERSION
     restart: on-failure
@@ -155,7 +155,7 @@ services:
     build: 
       context: ./services/jobs
       args:
-        OEO_OPENEO_VERSION: $OPENEO_VERSION
+        OPENEO_VERSION: $OPENEO_VERSION
     image: oeo-jobs-$OPENEO_VERSION
     container_name: oeo-jobs-$OPENEO_VERSION
     restart: on-failure
@@ -186,7 +186,7 @@ services:
     build:
       context: ./services/files
       args:
-        OEO_OPENEO_VERSION: $OPENEO_VERSION
+        OPENEO_VERSION: $OPENEO_VERSION
     image: oeo-files-$OPENEO_VERSION
     container_name: oeo-files-$OPENEO_VERSION
     restart: on-failure

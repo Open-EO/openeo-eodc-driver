@@ -1,4 +1,4 @@
-FROM python:3.6-alpine
+FROM python:3.6.11
 # Add use rwith gid 1000 (important), gid also 1000 to be sure
 ENV USER=www-openeo
 ENV UID=1000
@@ -11,9 +11,10 @@ RUN addgroup --gid "$GID" "$GROUP" \
     --ingroup "$GROUP" \
     --uid "$UID" \
     "$USER"
-RUN apk update && \
-    apk add build-base libressl-dev libffi-dev gcc python3-dev musl-dev postgresql-dev git && \
-    pip3 install --upgrade pip
+RUN apt-get update && \
+    apt-get install --no-install-recommends netcat -y && \
+    apt-get clean && \
+    apt-get autoclean
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 COPY requirements.txt .
