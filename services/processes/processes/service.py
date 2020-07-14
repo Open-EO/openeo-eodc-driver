@@ -9,7 +9,7 @@ from dynaconf import settings
 from jsonschema import ValidationError
 from nameko.rpc import RpcProxy, rpc
 from nameko_sqlalchemy import DatabaseSession
-from openeo_pg_parser_python.validate import validate_process_graph
+from openeo_pg_parser.validate import validate_process_graph
 
 from .dependencies.settings import initialise_settings
 from .models import Base, ProcessDefinitionEnum, ProcessGraph
