@@ -126,7 +126,7 @@ class CapabilitiesService:
             for ver in api_spec["servers"]["versions"]:
                 this_ver = api_spec["servers"]["versions"][ver]
                 this_ver["production"] = api_spec["info"]["production"]
-                if settings.ENV_FOR_DYNACONF == "DEVELOPMENT":
+                if settings.ENV_FOR_DYNACONF.lower() == "development":
                     # change https url to localhost
                     this_ver['url'] = settings.GATEWAY_URL + this_ver['url'].split(".eu")[1]
                 api_versions.append(this_ver)

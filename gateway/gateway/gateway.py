@@ -293,7 +293,7 @@ class Gateway:
         """
         Redirect main page "/" to openeo well known dodument "/.well-known/openeo".
         """
-        if settings.ENV_FOR_DYNACONF == "DEVELOPMENT":
+        if settings.ENV_FOR_DYNACONF.lower() == "development":
             base_url = settings.GATEWAY_URL
         else:
             # Get DNS_URL without versioning
