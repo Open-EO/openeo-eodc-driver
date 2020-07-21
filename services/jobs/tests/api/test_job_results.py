@@ -67,6 +67,7 @@ class TestJobResults(BaseCase):
                 'status': 'finished',
                 'title': 'evi_job_old',
                 'type': 'Feature',
+                'links': [{'rel': 'self', 'href': 'https://openeo.eodc.eu/v1.0/collections'}]
             }
         }
 

@@ -475,12 +475,15 @@ class JobService:
             } for f in file_list]
 
             # TODO fix links
-            job.links = []
+            job.links = [{"href": "https://openeo.eodc.eu/v1.0/collections", "rel": "self"}]
             job.stac_version = api_spec["info"]["stac_version"]
 
             # file list could be retrieved
             job_data = JobResultsBaseSchema().dump(job)
             job_data.update(metadata)
+            # Fix 'type' field, must always be 'Feature'
+            if job_data['type'] != "Feature":
+                job_data['type'] = "Feature"
 
             return {
                 "status": "success",

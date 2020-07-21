@@ -6,7 +6,6 @@ USER root
 RUN echo "deb http://http.us.debian.org/debian bullseye main non-free contrib" >> /etc/apt/sources.list && \
     echo "deb-src http://http.us.debian.org/debian bullseye main non-free contrib" >> /etc/apt/sources.list
 RUN apt-get update -y
-RUN apt install gcc-8-base -y
 RUN apt-get install -y gdal-bin libgdal-dev git ssh && apt-get install -f
 RUN pip install --upgrade pip # uncomment when this issue is fixed: https://github.com/pypa/pip/issues/7217
 RUN pip install GDAL==$(gdal-config --version) --global-option=build_ext --global-option="-I/usr/include/gdal"
@@ -21,7 +20,7 @@ RUN ssh-keyscan git.eodc.eu >> /root/.ssh/known_hosts
 WORKDIR /tmp
 RUN git clone git+ssh://git@git.eodc.eu/eodc/eoDataReaders.git
 WORKDIR /tmp/eoDataReaders
-RUN git checkout tags/v1.2.0
+RUN git checkout tags/v1.3.0
 RUN /bin/bash -c "python3 setup.py install"
 
 # Install gevent for sensor worker pool
