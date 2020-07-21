@@ -271,14 +271,18 @@ class ProcessesService:
                 return process_response
             processes = process_response["data"]["processes"]
 
-            # Get all products
+            # Get all collections (full metadata)
             data_response = self.data_service.get_all_products()
             if data_response["status"] == "error":
                 return data_response
-            collections = data_response["data"]["collections"]
-
+            collections_full_md = []
+            for col in data_response["data"]["collections"]:
+                data_response = self.data_service.get_product_detail(collection_id=col['id'])
+                if data_response["status"] == "error":
+                    return data_response
+                collections_full_md.append(data_response['data'])
             try:
-                _ = validate_process_graph(process, processes_src=processes, collections_src=collections)
+                _ = validate_process_graph(process, processes_src=processes, collections_src=collections_full_md)
                 output_errors: list = []
             except ValidationError as exp:
                 output_errors = [
