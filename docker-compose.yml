@@ -67,7 +67,7 @@ services:
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
       - $LOG_DIR:/usr/src/logs
     environment:
-      OOPENEO_VERSION: $OPENEO_VERSION
+      OEO_OPENEO_VERSION: $OPENEO_VERSION
     ports:
       - $GATEWAY_PORT:3000
 
