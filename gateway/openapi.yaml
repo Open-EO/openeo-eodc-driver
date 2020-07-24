@@ -39,7 +39,9 @@ info:
           - raster
   x-udf:
     Python:
+      title: Python 3.6
       description: The Python programming language.
+      type: 'language'
       default: '3.6'
       versions:
         3.6:
@@ -49,7 +51,9 @@ info:
             xarray:
               version: y.y
     R:
+      title: R 4.0
       description: The R programming language.
+      type: 'language'
       default: '4.0'
       versions:
         4.0:
