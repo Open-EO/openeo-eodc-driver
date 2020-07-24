@@ -5,14 +5,14 @@ servers:
   versions:
     v1.0:
       url: https://openeo.eodc.eu/v1.0
-      api_version: 1.0.0-rc.2
+      api_version: 1.0.0
     v0.4:
       url: https://openeo.eodc.eu/v0.4
       api_version: 0.4.2
 
 info:
   title: EODC openEO API
-  version: 1.0.0-rc.2
+  version: 1.0.0
   description: 'The EODC API provides access to the EODC services and data, as well as access to the openEO endpoints.'
   contact:
     name: Luca Foresta
@@ -95,21 +95,21 @@ paths:
       responses:
         '302': successfully redirects to /.well-known/openeo
   /:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1
   /.well-known/openeo:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1.well-known~1openeo
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1.well-known~1openeo
   /file_formats:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1file_formats
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1file_formats
   # /conformance:
-  #   $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1conformance
+  #   $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1conformance
   /udf_runtimes:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1udf_runtimes
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1udf_runtimes
   # /service_types:
-  #   $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1service_types
+  #   $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1service_types
 
   /collections:
     get:
-      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1collections
+      $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1collections
     post:
       summary: Post a request to refresh the cache
       description: >-
@@ -133,27 +133,27 @@ paths:
         '200':
           description: The cache has been refreshed
         4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/client_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/client_error
         5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/server_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/server_error
   /collections/{collection_id}:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1collections~1{collection_id}
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1collections~1{collection_id}
 
   /credentials/oidc:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1credentials~1oidc
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1credentials~1oidc
   /credentials/basic:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1credentials~1basic
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1credentials~1basic
   /me:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1me
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1me
 
   /processes:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1processes
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1processes
   /process_graphs:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1process_graphs
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1process_graphs
   /process_graphs/{process_graph_id}:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1process_graphs~1{process_graph_id}
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1process_graphs~1{process_graph_id}
   /validation:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1validation
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1validation
   /processes/{process_name}:
     put:
       summary: Creates a new process.
@@ -166,7 +166,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1processes/get/responses/200/content/application~1json/schema/properties/processes/items
+              $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1processes/get/responses/200/content/application~1json/schema/properties/processes/items
       security:
         - {}
         - Bearer: []
@@ -174,38 +174,38 @@ paths:
         '200':
           description: The processes has been successfully created.
         4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/client_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/client_error
         5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/server_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/server_error
 
   /jobs:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1jobs
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1jobs
   /result:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1result
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1result
   /jobs/{job_id}:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1jobs~1{job_id}
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1jobs~1{job_id}
   /jobs/{job_id}/results:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1jobs~1{job_id}~1results
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1jobs~1{job_id}~1results
   /jobs/{job_id}/estimate:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1jobs~1{job_id}~1estimate
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1jobs~1{job_id}~1estimate
   # /jobs/{job_id}/logs:
-  #   $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1jobs~1{job_id}~1logs
+  #   $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1jobs~1{job_id}~1logs
 
   /files:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1files
   /files/{path:path}:
-    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files~1{path}
+    $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1files~1{path}
   /downloads/{job_id}/{path}:
     parameters:
-      - $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/paths/~1files
+      - $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/paths/~1files
     get:
       responses:
         '200':
           description: aaa.
         4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/client_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/client_error
         5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/server_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/server_error
   
   /users_mng/users:
     description: >-
@@ -247,9 +247,9 @@ paths:
         '200':
           description: The OpenAPI v3.0.1 specification.
         4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/client_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/client_error
         5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/server_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/server_error
   /redoc:
     get:
       summary: API Reference
@@ -262,9 +262,9 @@ paths:
         '200':
           description: Returns the ReDoc client to view the OpenAPI v3.0.1 specification.
         4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/client_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/client_error
         5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/server_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/server_error
 
   /health:
     get:
@@ -278,6 +278,6 @@ paths:
         '200':
           description: The gateway is running.
         4XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/client_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/client_error
         5XX:
-          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0-rc.2/openapi.yaml#/components/responses/server_error
+          $ref: https://raw.githubusercontent.com/Open-EO/openeo-api/1.0.0/openapi.yaml#/components/responses/server_error
