@@ -71,6 +71,7 @@ class UserSchema(BaseSchema):
     email = fields.String(load_only=True)
     identity_provider_id = fields.String(load_only=True)
     profile_id = fields.String(load_only=True)
+    name = fields.String()
 
     @pre_load
     def get_id(self, in_data, **kwargs):
