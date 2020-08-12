@@ -34,7 +34,7 @@ class SettingKeys(Enum):
     """
     RABBIT_USER = "RABBIT_USER"
     """The username to authenticate on the RabbitMQ - e.g. `rabbitmq`."""
-    RABBIT_PASSWORD = "RABBIT_PASSWORD"
+    RABBIT_PASSWORD = "RABBIT_PASSWORD"  # noqa S105
     """The password to authenticate with the given user on the RabbitMQ."""
 
     # Additional
