@@ -28,6 +28,9 @@ def lint(session: Session) -> None:
         "flake8-bugbear",
         "flake8-bandit",
         "flake8-import-order",  # think about import order style!
+        "flake8-builtins",
+        "flake8-eradicate",
+        "flake8-print",
     )
     session.run("flake8", *args)
 
