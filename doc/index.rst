@@ -9,6 +9,8 @@ Welcome to OpenEO-EODC-Driver's documentation!
 .. toctree::
    :maxdepth: 2
 
+   source/modules
+
 Indices and tables
 ==================
 
