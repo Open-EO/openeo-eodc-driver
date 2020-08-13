@@ -1,10 +1,13 @@
-""" EO Data Discovery """
+"""Provides the implementation of the EO data discovery service and service exception.
+
+This is the main entry point to the EO data discovery.
+"""
 
 import json
 import logging
 import os
 from pprint import pformat
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 from nameko.rpc import rpc
 
@@ -18,14 +21,21 @@ initialise_settings()
 
 
 class ServiceException(Exception):
-    """ServiceException raises if an exception occured while processing the
-    request. The ServiceException is mapping any exception to a serializable
-    format for the API gateway.
+    """ServiceException is raised if an exception occurred while processing the request.
+
+    The ServiceException is mapping any exception to a serializable format for the API gateway.
+    Attributes:
+        code: An integer holding the error code.
+        user_id: The id of the user as string. (default: None)
+        msg: A string with the error message.
+        internal: A boolean indicating if this is an internal error. (default: True)
+        links: A list of links which can be useful when getting this error. (default: None)
     """
 
     def __init__(
             self, code: int, user_id: Optional[str], msg: str, internal: bool = True, links: list = None
     ) -> None:
+        """Initialize data service ServiceException."""
         self._service = service_name
         self._code = code
         self._user_id = user_id if user_id else "None"
@@ -34,13 +44,12 @@ class ServiceException(Exception):
         self._links = links if links else []
         LOGGER.exception(msg, exc_info=True)
 
-    def to_dict(self) -> dict:
-        """Serializes the object to a dict.
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the object to a dict.
 
         Returns:
-            dict -- The serialized exception
+            The serialized exception
         """
-
         return {
             "status": "error",
             "service": self._service,
@@ -53,33 +62,42 @@ class ServiceException(Exception):
 
 
 class DataService:
-    """Discovery of Earth observation datasets that are available at the back-end.
-    """
+    """Discovery of Earth observation datasets that are available at the backend."""
 
     name = service_name
     csw_session = CSWSession()
+    """CSWHandler dependency injected into the service."""
     csw_session_dc = CSWSessionDC()
+    """Second CSWHandler dependency also injected into the service.
+
+    This is only a midterm solution to support two CSW servers.
+    """
 
     def __init__(self) -> None:
+        """Initialize Data Service."""
         LOGGER.info(f"Initialized {self}")
 
     def __repr__(self) -> str:
+        """Return human readable version of the service."""
         return f"DataService('{self.name}')"
 
     @rpc
-    def get_all_products(self, user: Dict[str, Any] = None) -> Union[list, dict]:
-        """Requests will ask the back-end for available data and will return an array of
-        available datasets with very basic information such as their unique identifiers.
+    def get_all_products(self, user: Dict[str, Any] = None) -> dict:
+        """Return available datasets with basic information about them.
 
-        Keyword Arguments:
-            user {Dict[str, Any]} -- The user (default: {None})
+        The returned basic information includes for instance an unique identifier per dataset which can be used to get
+        more detailed information.
+        Depending on whether a user is given or not also private datasets may be returned. This depends on whether
+        the user has required access rights. If no user is defined only public datasets are returned.
+
+        Args:
+            user: User - determines which datasets are returned.
 
         Returns:
-             Union[list, dict] -- The products or a serialized exception
+             A dictionary with a list of products or a serialized exception.
         """
-
         LOGGER.info("All products requested")
-        LOGGER.debug("user_id requesting %s", self.get_user_id(user))
+        LOGGER.debug("user_id requesting %s", self._get_user_id(user))
         try:
             product_records = self.csw_session.get_all_products()
             if user and self.csw_session_dc.data_access in user["profile"]["data_access"]:
@@ -94,7 +112,7 @@ class DataService:
         except Exception as exp:
             return ServiceException(
                 500,
-                self.get_user_id(user),
+                self._get_user_id(user),
                 str(exp),
                 links=["#tag/EO-Data-Discovery/paths/~1data/get"],
             ).to_dict()
@@ -103,16 +121,17 @@ class DataService:
     def get_product_detail(
             self, collection_id: str, user: Dict[str, Any] = None
     ) -> dict:
-        """The request will ask the back-end for further details about a dataset.
+        """Return detailed information about a dataset.
 
-        Keyword Arguments:
-            user {Dict[str, Any]} -- The user (default: {None})
-            name {str} -- The product identifier (default: {None})
+        Depending on whether or not a user is given also private datasets may be accessible.
+
+        Args:
+            user: User (optional), determines which dataset are available.
+            collection_id: The identifier of a dataset.
 
         Returns:
-            dict -- The product or a serialized exception
+            Detailed information about a dataset as dictionary or a serialized exception.
         """
-
         try:
             LOGGER.info("%s product requested", collection_id)
             product_record = self.csw_session.get_product(collection_id)
@@ -129,7 +148,7 @@ class DataService:
                 if error_code:
                     return ServiceException(
                         error_code,
-                        self.get_user_id(user),
+                        self._get_user_id(user),
                         error_msg,
                         internal=False,
                         links=[],
@@ -154,20 +173,19 @@ class DataService:
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
         except Exception as exp:
-            return ServiceException(500, self.get_user_id(user), str(exp)).to_dict()
+            return ServiceException(500, self._get_user_id(user), str(exp)).to_dict()
 
     @rpc
     def refresh_cache(self, user: Dict[str, Any] = None, use_cache: bool = False) -> dict:
-        """The request will refresh the cache
+        """Refresh the cache of dataset information.
 
-        Keyword Arguments:
-            user {Dict[str, Any]} -- The user (default: {None})
-            use_cache {bool} -- Trigger to refresh the cache
+        Args:
+            user: User (not needed, exists for compatibility reasons)
+            use_cache: Whether the existing cache is used or data is refreshed.
 
         Returns:
-            dict -- Success message or Exception
+            Success message or Exception.
         """
-
         try:
             LOGGER.info("Refresh cache requested")
             self.csw_session.refresh_cache(use_cache)
@@ -179,7 +197,8 @@ class DataService:
                 "data": {"message": "Successfully refreshed cache"},
             }
         except Exception as exp:
-            return ServiceException(500, self.get_user_id(user), str(exp)).to_dict()
+            return ServiceException(500, self._get_user_id(user), str(exp)).to_dict()
 
-    def get_user_id(self, user: Optional[Dict[str, Any]]) -> Optional[str]:
+    def _get_user_id(self, user: Optional[Dict[str, Any]]) -> Optional[str]:
+        """Return the user_id if user object is set."""
         return user["id"] if user and "id" in user else None

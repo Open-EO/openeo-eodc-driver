@@ -8,3 +8,4 @@ services
    :maxdepth: 4
 
    capabilities
+   data

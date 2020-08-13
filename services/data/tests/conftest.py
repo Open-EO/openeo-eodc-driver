@@ -1,4 +1,15 @@
+"""Prepares test environment.
+
+Set all environment variables needed. As no fixture are required in this package none are defined here.
+"""
+
 import os
+import sys
+from os.path import abspath, dirname
+
+root_dir = dirname(dirname(abspath(__file__)))
+sys.path.append(root_dir)
+
 
 os.environ["ENV_FOR_DYNACONF"] = "unittest"
 

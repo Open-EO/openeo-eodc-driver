@@ -16,7 +16,7 @@ help:
 .PHONY: help Makefile
 
 # Change dynaconf environment
-export ENV_FOR_DYNACONF = "DOCUMENTATION"
+export ENV_FOR_DYNACONF = "documentation"
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

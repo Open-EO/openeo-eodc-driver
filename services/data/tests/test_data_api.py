@@ -1,3 +1,9 @@
+"""Holds the unittests for the data service.
+
+Only available rpc methods are tested. For each test a DataService is created one rpc method is called and the
+results are compared to reference values. Most tests use a mocked collection model provided which is also provided.
+"""
+
 import json
 import os
 
@@ -32,11 +38,11 @@ collection_dict = {
 
 collection_model = Collection(
     stac_version="0.9.0",
-    id="s2a_prd_msil1c",
+    id_="s2a_prd_msil1c",
     title="Sentinel-2A",
     description="Sentinel-2A description",
     keywords=["keyword1", "keyword2", "keyword3"],
-    license="Some license",
+    license_="Some license",
     # provider?
     extent=Extent(
         spatial=SpatialExtent(bbox=[[12.3, 34.5, 14.5, 36.7]]),
@@ -51,6 +57,7 @@ collection_model = Collection(
 
 
 def test_get_all_products() -> None:
+    """Test get all products."""
     data_service = worker_factory(DataService)
     data_service.csw_session.get_all_products.return_value = Collections([collection_model], [])
     result = data_service.get_all_products()
@@ -65,6 +72,7 @@ def test_get_all_products() -> None:
 
 
 def test_get_product_detail() -> None:
+    """Test get details about a specific product."""
     collection_id = "s2a_prd_msil1c"
     json_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "dependencies", "jsons",
                              collection_id + ".json")
@@ -73,7 +81,7 @@ def test_get_product_detail() -> None:
     json_data.update(collection_dict)
 
     data_service = worker_factory(DataService)
-    data_service.csw_session.get_product.return_value = collection_dict
+    data_service.csw_session.get_product.return_value = collection_model
     result = data_service.get_product_detail(collection_id=collection_id)
     assert result == {
         "status": "success",
