@@ -64,7 +64,7 @@ def initialise_settings() -> None:
     settings.configure(ENVVAR_PREFIX_FOR_DYNACONF="OEO")
     utils = SettingValidationUtils()
     settings.validators.register(
-        Validator(SettingKeys.GATEWAY_URL, must_exist=True, condition=utils.check_parse_url,
+        Validator(SettingKeys.GATEWAY_URL.value, must_exist=True, condition=utils.check_parse_url,
                   when=Validator("ENV_FOR_DYNACONF", is_in=["development"])),
     )
     settings.validators.validate()
