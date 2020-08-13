@@ -8,7 +8,6 @@ from typing import Any, Dict, Optional, Union
 
 from nameko.rpc import rpc
 
-from .dependencies.arg_parser import ValidationError
 from .dependencies.csw import CSWSession, CSWSessionDC
 from .dependencies.settings import initialise_settings
 from .schemas import CollectionSchema, CollectionsSchema
@@ -154,15 +153,6 @@ class DataService:
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
-        except ValidationError as exp:
-            return ServiceException(
-                exp.code,
-                self.get_user_id(user),
-                str(exp),
-                internal=False,
-                links=[
-                    "#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"],
-            ).to_dict()
         except Exception as exp:
             return ServiceException(500, self.get_user_id(user), str(exp)).to_dict()
 
@@ -188,15 +178,6 @@ class DataService:
                 "code": 200,
                 "data": {"message": "Successfully refreshed cache"},
             }
-        except ValidationError as exp:
-            return ServiceException(
-                400,
-                self.get_user_id(user),
-                str(exp),
-                internal=False,
-                links=[
-                    "#tag/EO-Data-Discovery/paths/~1collections~1{name}/get"],
-            ).to_dict()
         except Exception as exp:
             return ServiceException(500, self.get_user_id(user), str(exp)).to_dict()
 
