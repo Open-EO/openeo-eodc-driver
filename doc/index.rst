@@ -10,6 +10,7 @@ Welcome to OpenEO-EODC-Driver's documentation!
    :maxdepth: 2
 
    source/modules
+   source/developers
 
 Indices and tables
 ==================
