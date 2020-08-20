@@ -203,7 +203,7 @@ class JobService:
         """
         try:
             LOGGER.debug("Start creating job...")
-            vrt_flag = True
+            vrt_flag = False  # TODO switch bacj to True, when parallelised DAGs are working again
             if 'vrt_flag' in job_args.keys():
                 vrt_flag = job_args.pop("vrt_flag")
             process = job_args.pop("process")
