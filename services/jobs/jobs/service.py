@@ -203,7 +203,7 @@ class JobService:
         """
         try:
             LOGGER.debug("Start creating job...")
-            vrt_flag = False  # TODO switch bacj to True, when parallelised DAGs are working again
+            vrt_flag = True 
             if 'vrt_flag' in job_args.keys():
                 vrt_flag = job_args.pop("vrt_flag")
             process = job_args.pop("process")
@@ -228,10 +228,12 @@ class JobService:
             if process_response["status"] == "error":
                 return process_response
             backend_processes = process_response["data"]["processes"]
-            self.dag_writer.write_and_move_job(job_id=job_id, user_name=user["id"],
+            self.dag_writer.write_and_move_job(job_id=job_id, 
+                                               user_name=user["id"],
                                                process_graph_json=process,
                                                job_data=self.get_job_folder(user["id"], job_id),
-                                               vrt_only=vrt_flag, add_delete_sensor=True,
+                                               vrt_only=vrt_flag, 
+                                               add_delete_sensor=True,
                                                process_defs=backend_processes)
             job.dag_filename = f"dag_{job_id}.py"
             self.db.add(job)
@@ -274,6 +276,10 @@ class JobService:
             trigger_worked = self.airflow.trigger_dag(job_id=job_id)
             if not trigger_worked:
                 return ServiceException(500, user["id"], f"Job {job_id} could not be started.", links=[]).to_dict()
+            
+            # Schedule async creation/triggering of parallelised DAG 
+            threading.Thread(target=self._parallelise_dag, args=(user, job)).start()
+            #self._parallelise_dag(user, job)
 
             self._update_job_status(job_id=job_id)
             LOGGER.info(f"Processing successfully started for job {job_id}")
@@ -615,13 +621,62 @@ class JobService:
         raise ValueError('{} is not a supported output format'.format(output_format))
 
     def _delayed_delete(self, folder_path: str) -> None:
-        """
+        """Deletes a folder corresponding to a job, after having waiting for a sufficient amount of time.
+        
+        Arguments:
+            folder_path {str} -- The full path to the folder to be deleted
         """
 
         # Wait n minutes (allow for enough time to stream file(s) to user)
         sleep(settings.SYNC_DEL_DELAY)
         # Remove tmp folder
         shutil.rmtree(folder_path)
+    
+    def _parallelise_dag(self, user, job):
+        """Recreates and retriggers a DAG, with tasks parallelized, after the job structure (all vrt files) 
+        have been created.
+        
+        Arguments:
+            user {Dict[str, Any]} -- The user object
+            job {obj} -- The job object
+        """
+        
+        loop_flag = True
+        while loop_flag:
+            # Note: do not use jobs DB to query the job status (it can't be use in async calls)
+            job_status, _ = self.airflow.check_dag_status(job.id)
+            if job_status in [JobStatus.canceled, JobStatus.error]:
+                # End while lopp and exit
+                loop_flag = False
+            elif job_status is JobStatus.running:
+                sleep(3)
+            elif job_status is JobStatus.finished:
+                response = self.processes_service.get_user_defined(user, job.process_graph_id)
+                if response["status"] == "error":
+                    return response
+                process = response['data']
+                # End while lopp and recreate/trigger parallelised DAG
+                loop_flag = False
+                writer = AirflowDagWriter()
+                # (Re)write DAG, now parallelised
+                process_response = self.processes_service.get_all_predefined()
+                if process_response["status"] == "error":
+                    return process_response
+                backend_processes = process_response["data"]["processes"]
+                # (Re)write DAG, now parallelised
+                domain = writer.get_domain(job_id=job.id, user_name=user["id"],
+                                           process_graph_json=process, 
+                                           job_data=self.get_job_folder(user["id"], job.id), 
+                                           process_defs=backend_processes,
+                                           vrt_only=False,
+                                           add_delete_sensor=True)
+                domain.parallelize_task = True
+                writer.rewrite_and_move_job(domain)
+                # Trigger DAG
+                trigger_worked = self.airflow.trigger_dag(job_id=job.id)
+                if not trigger_worked:
+                    return ServiceException(500, user["id"], f"Job {job_id} could not be started.", links=[]).to_dict()
+        
 
     def generate_alphanumeric_id(self, k: int = 16) -> str:
         """
