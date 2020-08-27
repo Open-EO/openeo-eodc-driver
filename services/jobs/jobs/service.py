@@ -556,7 +556,7 @@ class JobService:
                                # > state in airflow set to failed though locally is stored as created or canceled
                                # > the state should only be updated if there was a new dag run since the canceled one
                                # - all times are stored in UTC
-                               or (execution_time and job.status_updated_at < execution_time)):
+                               or (execution_time and job.status_updated_at.replace(tzinfo=None) < execution_time)):
                 job.status = new_status
 
         job.status_updated_at = datetime.utcnow()
