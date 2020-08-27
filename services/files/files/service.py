@@ -287,7 +287,7 @@ class FilesService:
 
         return safe_join(out_dir, *parts)
 
-    def complete_to_public_path(self, user_id: str, complete_path: str) -> str:
+    def complete_to_public_path(self, user_id: str, complete_path: str, source_dir: str = 'files') -> str:
         """
         Creates the public path seen by the user from a path on the file system.
 
@@ -298,8 +298,7 @@ class FilesService:
         Returns:
             {str} -- The corresponding public path to the file visible to the user
         """
-
-        return complete_path.replace(f'{self.get_user_folder(user_id)}/files/', '')
+        return complete_path.replace(f'{self.get_user_folder(user_id)}/{source_dir}/', '')
 
     def get_file_modification_time(self, filepath: str) -> str:
         """
@@ -338,15 +337,21 @@ class FilesService:
         Returns a list of output files produced by a job.
         """
         try:
-            file_list = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*'))
+            file_list = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*[!{.dc, .json}]'))
+            metadata_file = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*.json'))[0]
             if not file_list:
                 return ServiceException(400, user_id, "Job output folder is empty. No files generated.").to_dict()
+            if not metadata_file:
+                return ServiceException(500, user_id, "The metadata of the result files does not exist").to_dict()
 
             LOGGER.info(f"Found {len(file_list)} output files for job {job_id}.")
             return {
                 "status": "success",
                 "code": 200,
-                "data": {"file_list": [self.complete_to_public_path(user_id, f) for f in file_list]}
+                "data": {
+                    "file_list": [self.complete_to_public_path(user_id, f, 'jobs') for f in file_list],
+                    "metadata_file": metadata_file
+                    }
             }
 
         except Exception as exp:
