@@ -44,6 +44,7 @@ def initialise_settings() -> None:
         Validator("AIRFLOW_HOST", must_exist=True, condition=utils.check_is_url,
                   when=Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"])),
         Validator("JOB_DATA", must_exist=True),
+        Validator("OPENEO_VERSION", must_exist=True),
         Validator("AIRFLOW_DAGS", must_exist=True, condition=utils.check_create_folder),
         Validator("SYNC_DEL_DELAY", must_exist=True, is_type_of=int, condition=utils.check_positive_int),
         Validator("SYNC_RESULTS_FOLDER", must_exist=True, condition=utils.check_create_folder),
