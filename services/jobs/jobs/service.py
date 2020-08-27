@@ -504,7 +504,7 @@ class JobService:
         Returns:
             str -- Complete url path
         """
-        return os.path.join(settings.GATEWAY_URL, "downloads", public_path)
+        return os.path.join(settings.GATEWAY_URL, settings.OPENEO_VERSION, "downloads", public_path)
 
     @staticmethod
     def authorize(user_id: str, job_id: str, job: Job) -> Optional[ServiceException]:
