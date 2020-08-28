@@ -461,12 +461,10 @@ class JobService:
             if output["status"] == "error":
                 return output
             file_list = output["data"]["file_list"]
+            metadata_file = output["data"]["metadata_file"]
 
-            # Add additional metadata from json
-            metadata_file_index = [i for i, f in enumerate(file_list) if f.endswith("results_metadata.json")]
-            if len(metadata_file_index) != 1:
-                return ServiceException(500, user["id"], "The metadata of the result files does not exist").to_dict()
-            with open(file_list.pop(metadata_file_index[0])) as f:
+            # # Add additional metadata from json
+            with open(metadata_file) as f:
                 metadata = json.load(f)
 
             job.assets = [{
@@ -506,7 +504,7 @@ class JobService:
         Returns:
             str -- Complete url path
         """
-        return os.path.join(settings.GATEWAY_URL, "downloads", public_path)
+        return os.path.join(settings.GATEWAY_URL, settings.OPENEO_VERSION, "downloads", public_path)
 
     @staticmethod
     def authorize(user_id: str, job_id: str, job: Job) -> Optional[ServiceException]:
