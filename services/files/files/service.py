@@ -358,7 +358,7 @@ class FilesService:
             return ServiceException(500, user_id, str(exp)).to_dict()
 
     @rpc
-    def download_result(self, user: Dict[str, Any], path: str) -> dict:
+    def download_result(self, user: Dict[str, Any], job_id: str, path: str) -> dict:
         """
         The request will ask the back-end to get the get the job result stored at the given path.
 
@@ -366,7 +366,7 @@ class FilesService:
             user {Dict[str, Any]} -- The user object
             path {str} -- The file path to the requested file
         """
-        return self.download(user, path, source_dir='jobs')
+        return self.download(user, os.path.join(job_id, path), source_dir='jobs')
 
     @rpc
     def upload_stop_job_file(self, user_id: str, job_id: str) -> None:
