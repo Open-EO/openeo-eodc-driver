@@ -51,7 +51,7 @@ with ctx:
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/files/<path:path>", func=rpc.files.download, auth=True, validate=True)
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/files/<path:path>", func=rpc.files.upload, auth=True, validate=True, methods=["PUT"])
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/files/<path:path>", func=rpc.files.delete, auth=True, validate=True, methods=["DELETE"])
-    gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/downloads/<job_id>/<path>", func=rpc.files.download_result, auth=True, validate=True)
+    gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/downloads/<job_id>/<path:path>", func=rpc.files.download_result, auth=True, validate=True)
 
     # Process Discovery
     gateway.add_endpoint(f"/{settings.OPENEO_VERSION}/processes", func=rpc.processes.get_all_predefined, auth=False, validate=True)
