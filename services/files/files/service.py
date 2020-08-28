@@ -351,7 +351,7 @@ class FilesService:
                 "data": {
                     "file_list": [self.complete_to_public_path(user_id, f, 'jobs') for f in file_list],
                     "metadata_file": metadata_file
-                    }
+                }
             }
 
         except Exception as exp:
