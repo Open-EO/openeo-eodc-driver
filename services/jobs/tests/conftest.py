@@ -35,6 +35,7 @@ os.environ["OEO_SYNC_RESULTS_FOLDER"] = get_sync_results_folder()
 os.environ["OEO_CSW_SERVER"] = "http://localhost:8000"
 
 os.environ["OEO_JOB_FOLDER"] = get_test_job_folder()
+os.environ["OEO_OPENEO_VERSION"] = "v1.0"
 
 
 @pytest.fixture()
