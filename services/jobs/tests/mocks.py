@@ -212,10 +212,12 @@ class MockedFilesService(MagicMock):
         return {
             "status": "success",
             "code": 200,
-            "data": {"file_list": [
-                os.path.join(job_folder, "result", "sample-output.tif"),
-                os.path.join(job_folder, "result", "results_metadata.json"),
-            ]}
+            "data": {
+                "file_list": [
+                    os.path.join(job_folder, "result", "sample-output.tif")
+                ],
+                "metadata_file": os.path.join(job_folder, "result", "results_metadata.json")
+            }
         }
 
     def setup_jobs_result_folder(self, user_id: str, job_id: str) -> str:

@@ -40,7 +40,7 @@ services:
             FLASK_ENV: $FLASK_ENV
         volumes:
             - $PLUGINS:/usr/local/airflow/plugins
-            - $DAGS:/usr/local/airflow/dags
+            - $AIRFLOW_DAGS:/usr/local/airflow/dags
             - $LOG_DIR_AIRFLOW:/usr/local/airflow/logs
             - ./build/airflow_worker_process.cfg:/usr/local/airflow/airflow.cfg
         ports:
@@ -94,7 +94,7 @@ services:
             FLASK_ENV: $FLASK_ENV
         volumes:
             - $PLUGINS:/usr/local/airflow/plugins
-            - $DAGS:/usr/local/airflow/dags
+            - $AIRFLOW_DAGS:/usr/local/airflow/dags
             - $LOG_DIR_AIRFLOW:/usr/local/airflow/logs
             - ./build/airflow_worker_process.cfg:/usr/local/airflow/airflow.cfg
         command: scheduler
@@ -124,7 +124,7 @@ services:
             OPENEO_R_UDF_URL: $OPENEO_R_UDF_URL
         volumes:
             - $PLUGINS:/usr/local/airflow/plugins
-            - $DAGS:/usr/local/airflow/dags
+            - $AIRFLOW_DAGS:/usr/local/airflow/dags
             - $HOST_INPUT:$CONTAINER_INPUT
             - files-data:$CONTAINER_OUTPUT
             - $LOG_DIR_AIRFLOW:/usr/local/airflow/logs
@@ -156,7 +156,7 @@ services:
             OPENEO_R_UDF_URL: $OPENEO_R_UDF_URL
         volumes:
             - $PLUGINS:/usr/local/airflow/plugins
-            - $DAGS:/usr/local/airflow/dags
+            - $AIRFLOW_DAGS:/usr/local/airflow/dags
             - $HOST_INPUT:$CONTAINER_INPUT
             - files-data:$CONTAINER_OUTPUT
             - $LOG_DIR_AIRFLOW:/usr/local/airflow/logs

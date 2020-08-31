@@ -41,7 +41,7 @@ class TestModifyJob(BaseCase):
         job_args.update({'status': 'created'})
         result = job_service.get(user=user, job_id=job_id)
         assert result['status'] == 'success'
-        assert datetime.strptime(result['data'].pop('created'), '%Y-%m-%dT%H:%M:%S.%f')
+        assert datetime.strptime(result['data'].pop('created'), '%Y-%m-%dT%H:%M:%SZ')
         assert result['data'].pop('id').startswith('jb-')
         assert result['data'].pop('process') == PG_OLD_REF['data']
         assert result == {'code': 200,
@@ -64,7 +64,7 @@ class TestModifyJob(BaseCase):
 
         result = job_service.get(user=user, job_id=job_id)
         assert result['status'] == 'success'
-        assert datetime.strptime(result['data'].pop('created'), '%Y-%m-%dT%H:%M:%S.%f')
+        assert datetime.strptime(result['data'].pop('created'), '%Y-%m-%dT%H:%M:%SZ')
         assert result['data'].pop('id').startswith('jb-')
         result['data'].pop('process')  # is returned from MockedProcessesService > always returns PG_OLD_REF
         assert result == {'code': 200,
