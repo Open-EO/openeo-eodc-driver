@@ -504,10 +504,12 @@ class JobService:
         Returns:
             str -- Complete url path
         """
-        download_url = os.path.join(settings.DNS_URL, settings.OPENEO_VERSION, "downloads", public_path)
+
         if settings.ENV_FOR_DYNACONF.lower() == "development":
-            download_url = download_url.replace(settings.DNS_URL, settings.GATEWAY_URL)
-        
+            download_url = os.path.join(settings.GATEWAY_URL, settings.OPENEO_VERSION, "downloads", public_path)
+        else:
+            download_url = os.path.join(settings.DNS_URL, "downloads", public_path)
+
         return download_url
 
     @staticmethod
