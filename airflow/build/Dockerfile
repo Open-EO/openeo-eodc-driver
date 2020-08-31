@@ -21,7 +21,7 @@ RUN ssh-keyscan git.eodc.eu >> /root/.ssh/known_hosts
 WORKDIR /tmp
 RUN git clone git+ssh://git@git.eodc.eu/eodc/eoDataReaders.git
 WORKDIR /tmp/eoDataReaders
-RUN git checkout tags/v2.0.1
+RUN git checkout tags/v2.0.2
 RUN /bin/bash -c "python3 setup.py install"
 
 # Install gevent for sensor worker pool
