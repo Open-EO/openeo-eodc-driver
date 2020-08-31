@@ -337,7 +337,7 @@ class FilesService:
         Returns a list of output files produced by a job.
         """
         try:
-            file_list = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*[!{.dc, .json}]'))
+            file_list = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*[!{.dc, .json, .vrt}]'))
             metadata_file = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*.json'))[0]
             if not file_list:
                 return ServiceException(400, user_id, "Job output folder is empty. No files generated.").to_dict()
