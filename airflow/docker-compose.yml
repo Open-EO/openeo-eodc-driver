@@ -122,6 +122,9 @@ services:
             FLASK_ENV: $FLASK_ENV
             OPENEO_PYTHON_UDF_URL: $OPENEO_PYTHON_UDF_URL
             OPENEO_R_UDF_URL: $OPENEO_R_UDF_URL
+            OEO_CSW_SERVER: $OEO_CSW_SERVER
+            OEO_CSW_SERVER_DC: $OEO_CSW_SERVER_DC
+            AIRFLOW_DAGS: /usr/local/airflow/dags
         volumes:
             - $PLUGINS:/usr/local/airflow/plugins
             - $AIRFLOW_DAGS:/usr/local/airflow/dags
