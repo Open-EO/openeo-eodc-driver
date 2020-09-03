@@ -1,4 +1,4 @@
-""" Files Management """
+"""Provides the implementation of the file management service and service exception."""
 
 import glob
 import logging
@@ -20,12 +20,19 @@ initialise_settings()
 
 
 class ServiceException(Exception):
-    """ServiceException raises if an exception occurs while processing the
-    request. The ServiceException is mapping any exception to a serializable
-    format for the API gateway.
+    """ServiceException is raised if an exception occurred while processing the request.
+
+    The ServiceException is mapping any exception to a serializable format for the API gateway.
+    Attributes:
+        code: An integer holding the error code.
+        user_id: The id of the user as string.
+        msg: A string with the error message.
+        internal: A boolean indicating if this is an internal error. (default: True)
+        links: A list of links which can be useful when getting this error. (default: None)
     """
 
     def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None) -> None:
+        """Initialize file service ServiceException."""
         if not links:
             links = []
 
@@ -38,12 +45,11 @@ class ServiceException(Exception):
         LOGGER.exception(msg, exc_info=True)
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serializes the object to a dict.
+        """Serialize the object to a dict.
 
         Returns:
-            dict -- The serialized exception
+            The serialized exception.
         """
-
         return {
             "status": "error",
             "service": self._service,
@@ -56,36 +62,52 @@ class ServiceException(Exception):
 
 
 class FileOperationUnsupported(ServiceException):
-    """ FileOperationUnsupported raised if folder is passed when file is expected.
-    """
+    """FileOperationUnsupported raised if folder is passed when file is expected."""
+
     def __init__(self, code: int, user_id: str, msg: str, internal: bool = True, links: list = None) -> None:
+        """Initialize FileOperationUnsupported exception."""
         super(FileOperationUnsupported, self).__init__(code, user_id, msg, internal, links)
 
 
 class FilesService:
-    """Management of batch processing tasks (jobs) and their results.
-    """
+    """Management of files created by a user."""
 
     name = service_name
 
     # each directory / file name is only allowed to use a max. of 200 Alpha-Numeric characters
     allowed_dirname = re.compile(r'[a-zA-Z0-9_-]{1,200}')
+    """Directory name restriction in regex format.
+
+    Each directory is only allowed to consist of max. 200 alpha-numeric characters.
+    """
     allowed_filename = re.compile(r'[a-zA-Z0-9_-]{1,200}\.[a-zA-Z0-9]{1,10}')
+    """Filename name restriction in regex format.
+
+    Each filename is only allowed to consist of max. 200 alpha-numeric characters with at top another 10 alpha-numeric
+    characters as file extension."""
 
     files_folder = "files"
+    """Name of the folder where all user uploads are stored - folder exists inside each user folder."""
     jobs_folder = "jobs"
+    """Name of the folder where all jobs computed by a user are stored - folder exists inside each user folder."""
     result_folder = "result"
+    """Name of the folder where job results computed by a user are stored - folder exists per single computed job."""
 
     @rpc
-    def download(self, user: Dict[str, Any], path: str, source_dir: str = 'files') -> dict:
-        """
-        The request will ask the back-end to get the get the file stored at the given path.
+    def download(self, user: Dict[str, Any], path: str, source_dir: str = None) -> dict:
+        """Return the file stored at the given path.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            path {str} -- The file path to the requested file
+        Args:
+            user: User determines if file is accessible.
+            path: The file path to the requested file.
+            source_dir: Top level folder name inside user folder. This can either be 'files' or 'jobs' in the current
+                setup. Defaults to the files directory ('files').
+
+        Returns:
+            A dictionary with the complete path on the file system or a serialized exception.
         """
         try:
+            source_dir = source_dir if source_dir else self.files_folder
             response = self.authorize_existing_file(user["id"], path, source_dir=source_dir)
             if isinstance(response, ServiceException):
                 return response.to_dict()
@@ -103,11 +125,14 @@ class FilesService:
 
     @rpc
     def delete(self, user: Dict[str, Any], path: str) -> dict:
-        """The request will ask the back-end to delete the file at the given path.
+        """Delete the file at the given path.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            path {str} -- The location of the file
+        Args:
+            user: The user object determines whether the given path is accessible.
+            path: The location of the file.
+
+        Returns:
+            The status (success/failure) of the delete operation as dictionary.
         """
         try:
             response = self.authorize_existing_file(user["id"], path)
@@ -125,10 +150,14 @@ class FilesService:
 
     @rpc
     def get_all(self, user: Dict[str, Any]) -> dict:
-        """The request will ask the back-end to get all available files for the given user.
+        """Get all available files for the given user.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
+        Args:
+            user: The user object to get list of files for.
+
+        Returns:
+            A sorted list of files available in the user's files folder or a serilized service exception. (No computed
+            but uploaded data only!)
         """
         try:
             prefix, _ = self.setup_user_folder(user["id"])
@@ -161,12 +190,15 @@ class FilesService:
 
     @rpc
     def upload(self, user: Dict[str, Any], path: str, tmp_path: str) -> dict:
-        """The request will ask the back-end to create a new job using the description send in the request body.
+        """Create a new job using the description send in the request body.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            path {str} -- The file path to the requested file
-            tmp_path {str} -- The path where the file was temporary stored
+        Args:
+            user: User who uploads a file.
+            path: The destination path of the file.
+            tmp_path: The path where the file is temporary stored.
+
+        Returns:
+            Some statistics about the file or a serialized service exception.
         """
         try:
             response = self.authorize_file(user["id"], path)
@@ -196,11 +228,15 @@ class FilesService:
 
     @rpc
     def setup_user_folder(self, user_id: str) -> List[str]:
-        """
-        Create user folder with files and jobs structure and return the paths.
+        """Create user folder structure and return the paths.
 
-        Arguments:
-            user_id {str} -- The identifier of the user
+        This creates a folder named <user_id> with two folders inside: 'files' and 'jobs'.
+
+        Args:
+            user_id: The identifier of the user.
+
+        Returns:
+            Two absolute paths - the first one points to the 'files' the second to the 'jobs' directory.
         """
         user_dir = self.get_user_folder(user_id)
         dirs_to_create = [os.path.join(user_dir, dir_name) for dir_name in [self.files_folder, self.jobs_folder]]
@@ -215,21 +251,23 @@ class FilesService:
 
     @staticmethod
     def get_user_folder(user_id: str) -> str:
+        """Get path to user folder from user_id."""
         return os.path.join(settings.OPENEO_FILES_DIR, user_id)
 
-    def authorize_file(self, user_id: str, path: str, source_dir: str = 'files') \
+    def authorize_file(self, user_id: str, path: str, source_dir: str = None) \
             -> Union[ServiceException, str]:
-        """
-        Returns Exception if path is invalid or points to a directory.
+        """Return Exception if path is invalid or points to a directory.
 
-        Arguments:
-            user_id {str} -- The identifier of the user
-            path {str} -- The file path to the requested file
+        Args:
+            user_id: The identifier of the user.
+            path: The file path to the requested file.
+            source_dir: Top level folder name inside user folder. This can either be 'files' or 'jobs' in the current
+                setup. Defaults to the files directory ('files').
 
-        Returns
-            Union[Optional[dict], Optional[str]] -- either the error is returned as ServiceException or if authorized
-            the complete filepath is returned
+        Returns:
+            If authorized the complete path on the file system is returned otherwise an error is returned.
         """
+        source_dir = source_dir if source_dir else self.files_folder
 
         # check pattern
         complete_path = self.get_allowed_path(user_id, path.split('/'), source_dir=source_dir)
@@ -244,16 +282,17 @@ class FilesService:
 
     def authorize_existing_file(self, user_id: str, path: str, source_dir: str = 'files') \
             -> Union[ServiceException, str]:
-        """
-        Returns Exception if path is invalid, points to a directory or does not exist.
+        """Return Exception if path is invalid, points to a directory or DOES NOT EXIST.
 
-        Arguments:
-            user_id {str} -- The identifier of the user
-            path {str} -- The file path to the requested file
+        Args:
+            user_id: The identifier of the user.
+            path: The file path to the requested file.
+            source_dir: Top level folder name inside user folder. This can either be 'files' or 'jobs' in the current
+                setup. Defaults to the files directory ('files').
 
         Returns:
-            Union[Optional[dict], Optional[str]] -- either the error is returned as ServiceException or if authorized
-            the complete filepath is returned
+            If authorized the complete path on the file system is returned otherwise an error is returned.
+
         """
         response = self.authorize_file(user_id, path, source_dir=source_dir)
         if isinstance(response, str) and not os.path.exists(response):
@@ -263,13 +302,16 @@ class FilesService:
         return response
 
     def get_allowed_path(self, user_id: str, parts: List[str], source_dir: str = 'files') -> Optional[str]:
-        """ Checks if file matches allowed pattern.
+        """Check if file name matches allowed pattern.
 
-        Arguments:
-            parts {List[str]} -- List of all directories and the filename
+        Args:
+            user_id: The identifier of the user.
+            parts: List of all directory names and the filename.
+            source_dir: Top level folder name inside user folder. This can either be 'files' or 'jobs' in the current
+                setup. Defaults to the files directory ('files').
 
         Returns:
-            Optional[str] -- The path, if it is allowed otherwise None
+            The file path if it is allowed otherwise None.
         """
         files_dir, jobs_dir = self.setup_user_folder(user_id)
         if source_dir == 'files':
@@ -288,27 +330,23 @@ class FilesService:
         return safe_join(out_dir, *parts)
 
     def complete_to_public_path(self, user_id: str, complete_path: str) -> str:
-        """
-        Creates the public path seen by the user from a path on the file system.
+        """Create the public path seen by the user from a path on the file system.
 
-        Arguments:
-            user_id {str} -- The identifier of the user
-            complete_path {str} -- A complete file path on the file system
+        When a user uploads a file e.g. to my_folder/file1.json the file will be stored for instance at
+        /path/to/folder/<user_id>/<files_folder>/my_folder/file1.json. This function can then be used to map the real
+        path on the file system back to the path the user would expect.
+
+        Args:
+            user_id: The identifier of the user.
+            complete_path: A complete file path on the file system.
 
         Returns:
-            {str} -- The corresponding public path to the file visible to the user
+            The corresponding public path to the file visible to the user.
         """
-
-        return complete_path.replace(f'{self.get_user_folder(user_id)}/files/', '')
+        return complete_path.replace(f'{self.get_user_folder(user_id)}/{self.files_folder}/', '')
 
     def get_file_modification_time(self, filepath: str) -> str:
-        """
-        Returns timestamp of last modification in format: '2019-05-21T16:11:37Z'.
-
-        Returns:
-            {str} -- The timestamp when the file was last modified.
-        """
-
+        """Return timestamp of last modification in format: '2019-05-21T16:11:37Z'."""
         numeric_tstamp = os.path.getmtime(filepath)
         timestamp = datetime.fromtimestamp(numeric_tstamp).isoformat("T", "seconds") + "Z"
 
@@ -317,12 +355,14 @@ class FilesService:
     # needed for job management
     @rpc
     def setup_jobs_result_folder(self, user_id: str, job_id: str) -> str:
-        """
-        Create user folder structure with folder for the given job_id.
+        """Create user folder structure with folder for the given job_id.
 
-        Arguments:
-            user_id {str} -- The identifier of the user
-            job_id {str} -- The identifier for the job
+        Args:
+            user_id: The identifier of the user.
+            job_id: The identifier for the job.
+
+        Returns:
+            Path to the job results folder for the given user and job id.
         """
         self.setup_user_folder(user_id)
         to_create = self.get_job_results_folder(user_id, job_id)
@@ -334,8 +374,14 @@ class FilesService:
 
     @rpc
     def get_job_output(self, user_id: str, job_id: str) -> dict:
-        """
-        Returns a list of output files produced by a job.
+        """Return the list of output files produced by a job.
+
+        Args:
+            user_id: The identifier of the user.
+            job_id: The identifier of the job.
+
+        Returns:
+            A list of output files produced by the given job or a serialized service exception.
         """
         try:
             file_list = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*'))
@@ -354,25 +400,26 @@ class FilesService:
 
     @rpc
     def download_result(self, user: Dict[str, Any], path: str) -> dict:
-        """
-        The request will ask the back-end to get the get the job result stored at the given path.
+        """Get the job result files stored at the given path.
 
         Arguments:
-            user {Dict[str, Any]} -- The user object
-            path {str} -- The file path to the requested file
+            user: The user object who computed the job.
+            path: The file path to the requested file.
+
+        Returns:
+            A dictionary with the complete path on the file system or a serialized exception.
         """
         return self.download(user, path, source_dir='jobs')
 
     @rpc
     def upload_stop_job_file(self, user_id: str, job_id: str) -> None:
-        """
-        Creates an empty file called STOP in a job directory.
+        """Create an empty file called STOP in a job directory.
 
         This is used in the current Airflow setup to stop a dag.
 
-        Arguments:
-            user_id {str} - The identifier of the user
-            job_id {str} -- The  identifier of the job
+        Args:
+            user_id: The identifier of the user.
+            job_id: The identifier of the job.
         """
         job_folder = self.get_job_id_folder(user_id, job_id)
         open(os.path.join(job_folder, 'STOP'), 'a').close()
@@ -380,12 +427,11 @@ class FilesService:
 
     @rpc
     def delete_complete_job(self, user_id: str, job_id: str) -> None:
-        """
-        Deletes the complete job folder of the given job.
+        """Delete the complete job folder of the given job.
 
-        Arguments:
-            user_id {str} - The identifier of the user
-            job_id {str} -- The  identifier of the job
+        Args:
+            user_id: The identifier of the user.
+            job_id: The  identifier of the job.
         """
         job_folder = self.get_job_id_folder(user_id, job_id)
         shutil.rmtree(job_folder)
@@ -393,15 +439,14 @@ class FilesService:
 
     @rpc
     def delete_job_without_results(self, user_id: str, job_id: str) -> bool:
-        """
-        Deletes everything in the job folder but the results folder of the given job.
+        """Delete everything in the job folder but the results folder of the given job.
 
-        Arguments:
-            user_id {str} - The identifier of the user
-            job_id {str} -- The  identifier of the job
+        Args:
+            user_id: The identifier of the user.
+            job_id: The  identifier of the job.
 
         Returns:
-            {bool} -- Whether there are results available or not
+            Whether there are results available or not.
         """
         job_result_folder = self.get_job_results_folder(user_id, job_id)
         if os.listdir(job_result_folder) == 0:
@@ -426,21 +471,25 @@ class FilesService:
         return os.listdir(job_result_folder) != 0
 
     def get_job_id_folder(self, user_id: str, job_id: str) -> str:
-        """
-        Creates the complete path to a specific job folder.
+        """Create and return the complete path to a specific job folder.
 
-        Arguments:
-            user_id {str} - The identifier of the user
-            job_id {str} -- The  identifier of the job
+        Args:
+            user_id: The identifier of the user.
+            job_id: The  identifier of the job.
+
+        Returns:
+            File system path to a specific job folder of a user.
         """
         return os.path.join(self.get_user_folder(user_id), self.jobs_folder, job_id)
 
     def get_job_results_folder(self, user_id: str, job_id: str) -> str:
-        """
-        Create the path to a result folder in a specific job folder.
+        """Create and return the path to a result folder in a specific job folder.
 
-        Arguments:
-            user_id {str} - The identifier of the user
-            job_id {str} -- The  identifier of the job
+        Arg:
+            user_id: The identifier of the user.
+            job_id: The  identifier of the job.
+
+        Returns:
+            File system path to the results folder of a specific job of a user.
         """
         return os.path.join(self.get_job_id_folder(user_id, job_id), self.result_folder)
