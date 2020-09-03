@@ -37,23 +37,27 @@ class SettingValidationUtils:
 
 
 def initialise_settings() -> None:
+    not_doc = Validator("ENV_FOR_DYNACONF", is_not_in=["documentation"])
+    not_unittest = Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"])
+
     settings.configure(ENVVAR_PREFIX_FOR_DYNACONF="OEO")
     utils = SettingValidationUtils()
     settings.validators.register(
-        Validator("GATEWAY_URL", must_exist=True, condition=utils.check_is_url),
+        Validator("GATEWAY_URL", must_exist=True, condition=utils.check_is_url, when=not_doc),
         Validator("AIRFLOW_HOST", must_exist=True, condition=utils.check_is_url,
-                  when=Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"])),
-        Validator("JOB_DATA", must_exist=True),
-        Validator("AIRFLOW_DAGS", must_exist=True, condition=utils.check_create_folder),
-        Validator("SYNC_DEL_DELAY", must_exist=True, is_type_of=int, condition=utils.check_positive_int),
-        Validator("SYNC_RESULTS_FOLDER", must_exist=True, condition=utils.check_create_folder),
+                  when=(not_unittest and not_doc)),
+        Validator("JOB_DATA", must_exist=True, when=not_doc),
+        Validator("AIRFLOW_DAGS", must_exist=True, condition=utils.check_create_folder, when=not_doc),
+        Validator("SYNC_DEL_DELAY", must_exist=True, is_type_of=int, condition=utils.check_positive_int, when=not_doc),
+        Validator("SYNC_RESULTS_FOLDER", must_exist=True, condition=utils.check_create_folder, when=not_doc),
         # Validator("CSW_SERVER", must_exist=True, condition=utils.check_url_is_reachable,
-        #           when=Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"])),
-        Validator("CSW_SERVER", must_exist=True),
+        #           when=(not_unittest and not_doc)),
+        Validator("CSW_SERVER", must_exist=True, when=not_doc),
     )
     settings.validators.validate()
     LOGGER.info("Settings validated")
 
-    # needed for eodc-openeo-bindings - should be removed once this is handled in a better way
-    environ["CSW_SERVER"] = settings.CSW_SERVER
-    environ["AIRFLOW_DAGS"] = settings.AIRFLOW_DAGS
+    if settings.ENV_FOR_DYNACONF != "documentation":
+        # needed for eodc-openeo-bindings - should be removed once this is handled in a better way
+        environ["CSW_SERVER"] = settings.CSW_SERVER
+        environ["AIRFLOW_DAGS"] = settings.AIRFLOW_DAGS

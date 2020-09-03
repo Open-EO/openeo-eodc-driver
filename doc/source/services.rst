@@ -10,3 +10,4 @@ services
    capabilities
    data
    files
+   jobs
