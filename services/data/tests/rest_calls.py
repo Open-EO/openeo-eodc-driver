@@ -2,12 +2,12 @@
 
 To run them at least the gateway, RabbitMQ and the data service need to be up and running.
 
-Additionally some environment variable need to be specified. In detail USERNAME, PASSWORD, BACKEND_URL. To provide them
-you can copy the `sample_auth` file provided in this directory and add a USERNAME PASSWORD combination existing on the
-backend. BACKEND_URL needs points to the public gateway url. Execute the copied script to export the variables.
+Also this script needs some environment variable. In detail USERNAME, PASSWORD, BACKEND_URL. To provide them you can
+copy the `sample_auth` file provided in this directory and add a USERNAME PASSWORD combination existing on the backend.
+BACKEND_URL needs points to the public gateway url. Execute the copied script to export the variables.
 
 Then this script can be directly executed with
->>>python ./rest_calls_data.py
+>>>python ./rest_calls.py
 
 It will perform calls to all data service endpoints and print the status code. Besides the output no check are
 performed.
