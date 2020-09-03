@@ -48,7 +48,7 @@ class ServiceException(Exception):
         """Serialize the object to a dict.
 
         Returns:
-            The serialized exception
+            The serialized exception.
         """
         return {
             "status": "error",
