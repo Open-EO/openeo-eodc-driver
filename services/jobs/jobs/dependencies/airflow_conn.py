@@ -43,7 +43,7 @@ class AirflowRestConnection:
         """
         Trigger airflow dag
         """
-        # _ = self.unpause_dag(job_id)
+        _ = self.unpause_dag(job_id)
         job_url = f"{self.dag_url}/{job_id}/dag_runs"
         response = requests.post(job_url, headers=self.header, data=self.data)
         return response.ok
