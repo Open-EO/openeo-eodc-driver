@@ -16,8 +16,7 @@ RUN pip uninstall -y pandas && pip install pandas==0.25
 WORKDIR /tmp
 RUN git clone https://github.com/eodcgmbh/eodc-openeo-bindings.git
 WORKDIR /tmp/eodc-openeo-bindings
-#RUN git checkout tags/v2.2.0
-RUN git checkout vrt-fixes
+RUN git checkout tags/v2.3.0
 RUN /bin/bash -c "python3 setup.py install"
 # Install eoDataReaders
 RUN mkdir /root/.ssh
