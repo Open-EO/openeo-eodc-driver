@@ -203,7 +203,7 @@ class JobService:
         """
         try:
             LOGGER.debug("Start creating job...")
-            vrt_flag = False  # TODO switch bacj to True, when parallelised DAGs are working again
+            vrt_flag = True
             if 'vrt_flag' in job_args.keys():
                 vrt_flag = job_args.pop("vrt_flag")
             process = job_args.pop("process")
@@ -228,10 +228,13 @@ class JobService:
             if process_response["status"] == "error":
                 return process_response
             backend_processes = process_response["data"]["processes"]
-            self.dag_writer.write_and_move_job(job_id=job_id, user_name=user["id"],
+            self.dag_writer.write_and_move_job(job_id=job_id,
+                                               user_name=user["id"],
                                                process_graph_json=process,
                                                job_data=self.get_job_folder(user["id"], job_id),
-                                               vrt_only=vrt_flag, add_delete_sensor=True,
+                                               vrt_only=vrt_flag,
+                                               add_delete_sensor=True,
+                                               add_parallel_sensor=True,
                                                process_defs=backend_processes)
             job.dag_filename = f"dag_{job_id}.py"
             self.db.add(job)
@@ -619,7 +622,10 @@ class JobService:
         raise ValueError('{} is not a supported output format'.format(output_format))
 
     def _delayed_delete(self, folder_path: str) -> None:
-        """
+        """Deletes a folder corresponding to a job, after having waiting for a sufficient amount of time.
+
+        Arguments:
+            folder_path {str} -- The full path to the folder to be deleted
         """
 
         # Wait n minutes (allow for enough time to stream file(s) to user)
