@@ -7,4 +7,4 @@ psycopg2==2.7.4
 SQLAlchemy==1.3.0
 OWSLib==0.18.0
 git+git://github.com/Open-EO/openeo-pg-parser-python.git@v2.0.1#egg=openeo-pg-parser-python
-git+git://github.com/eodcgmbh/eodc-openeo-bindings.git@v2.2.0#egg=eodc-openeo-bindings
+git+git://github.com/eodcgmbh/eodc-openeo-bindings.git@vrt-fixes#egg=eodc-openeo-bindings
