@@ -171,13 +171,13 @@ services:
       - ./envs/gateway.env
     environment:
       OEO_OPENEO_VERSION: $OPENEO_VERSION
-      OEO_AIRFLOW_DAGS: /usr/src/dags/
+      OEO_AIRFLOW_DAGS: /usr/src/dags
       OEO_SYNC_RESULTS_FOLDER: /usr/src/sync-results
       AIRFLOW_LOG_DIR: /usr/src/logs/airflow
       LOG_DIR: /usr/src/logs
     volumes:
       - ./services/jobs:/usr/src/app
-      - $AIRFLOW_DAGS:/usr/src/dags/
+      - $AIRFLOW_DAGS:/usr/src/dags
       - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
       - files-data:/usr/src/files
       - $LOG_DIR:/usr/src/logs

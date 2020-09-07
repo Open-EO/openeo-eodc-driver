@@ -20,11 +20,11 @@ def test_download_result(user_id_folder: Tuple[str, str], upload_file: str) -> N
     user_folder, user_id = user_id_folder
     user = create_user(user_id)
     file_service.setup_jobs_result_folder(user_id=user_id, job_id='test-job')
-    filepath = os.path.join(user_folder, 'jobs', 'test-job', 'download.txt')
+    filepath = os.path.join(user_folder, 'jobs', 'test-job', 'result', 'download.txt')
     shutil.copyfile(upload_file, filepath)
     assert os.path.isfile(filepath)
 
-    result = file_service.download_result(user=user, path='test-job/download.txt')
+    result = file_service.download_result(user=user, job_id='test-job', path='result/download.txt')
     assert result == {
         'status': 'success',
         'code': 200,

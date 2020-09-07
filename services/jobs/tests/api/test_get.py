@@ -23,7 +23,7 @@ class TestGetJob(BaseCase):
         result = job_service.get(user=user, job_id=job_id)
         assert result['status'] == 'success'
         # Datetime changes for each test -> cannot be compared to fixed value
-        assert datetime.strptime(result['data'].pop('created'), '%Y-%m-%dT%H:%M:%S.%f')
+        assert datetime.strptime(result['data'].pop('created'), '%Y-%m-%dT%H:%M:%SZ')
         assert result['data'].pop('process') == PG_OLD_REF['data']
         assert result == {'code': 200,
                           'data': {
@@ -45,8 +45,8 @@ class TestGetJob(BaseCase):
         result = job_service.get_all(user=user)
         assert result['status'] == 'success'
         # Datetime changes for each test -> cannot be compared to fixed value
-        assert datetime.strptime(result['data']['jobs'][0].pop('created'), '%Y-%m-%dT%H:%M:%S.%f')
-        assert datetime.strptime(result['data']['jobs'][1].pop('created'), '%Y-%m-%dT%H:%M:%S.%f')
+        assert datetime.strptime(result['data']['jobs'][0].pop('created'), '%Y-%m-%dT%H:%M:%SZ')
+        assert datetime.strptime(result['data']['jobs'][1].pop('created'), '%Y-%m-%dT%H:%M:%SZ')
         assert result == {'code': 200,
                           'data': {
                               'jobs': [{

@@ -228,10 +228,13 @@ class JobService:
             if process_response["status"] == "error":
                 return process_response
             backend_processes = process_response["data"]["processes"]
-            self.dag_writer.write_and_move_job(job_id=job_id, user_name=user["id"],
+            self.dag_writer.write_and_move_job(job_id=job_id,
+                                               user_name=user["id"],
                                                process_graph_json=process,
                                                job_data=self.get_job_folder(user["id"], job_id),
-                                               vrt_only=vrt_flag, add_delete_sensor=True,
+                                               vrt_only=vrt_flag,
+                                               add_delete_sensor=True,
+                                               add_parallel_sensor=True,
                                                process_defs=backend_processes)
             job.dag_filename = f"dag_{job_id}.py"
             self.db.add(job)
@@ -461,12 +464,10 @@ class JobService:
             if output["status"] == "error":
                 return output
             file_list = output["data"]["file_list"]
+            metadata_file = output["data"]["metadata_file"]
 
-            # Add additional metadata from json
-            metadata_file_index = [i for i, f in enumerate(file_list) if f.endswith("results_metadata.json")]
-            if len(metadata_file_index) != 1:
-                return ServiceException(500, user["id"], "The metadata of the result files does not exist").to_dict()
-            with open(file_list.pop(metadata_file_index[0])) as f:
+            # # Add additional metadata from json
+            with open(metadata_file) as f:
                 metadata = json.load(f)
 
             job.assets = [{
@@ -506,7 +507,13 @@ class JobService:
         Returns:
             str -- Complete url path
         """
-        return os.path.join(settings.GATEWAY_URL, "downloads", public_path)
+
+        if settings.ENV_FOR_DYNACONF.lower() == "development":
+            download_url = os.path.join(settings.GATEWAY_URL, settings.OPENEO_VERSION, "downloads", public_path)
+        else:
+            download_url = os.path.join(settings.DNS_URL, "downloads", public_path)
+
+        return download_url
 
     @staticmethod
     def authorize(user_id: str, job_id: str, job: Job) -> Optional[ServiceException]:
@@ -556,7 +563,7 @@ class JobService:
                                # > state in airflow set to failed though locally is stored as created or canceled
                                # > the state should only be updated if there was a new dag run since the canceled one
                                # - all times are stored in UTC
-                               or (execution_time and job.status_updated_at < execution_time)):
+                               or (execution_time and job.status_updated_at.replace(tzinfo=None) < execution_time)):
                 job.status = new_status
 
         job.status_updated_at = datetime.utcnow()
@@ -615,7 +622,10 @@ class JobService:
         raise ValueError('{} is not a supported output format'.format(output_format))
 
     def _delayed_delete(self, folder_path: str) -> None:
-        """
+        """Deletes a folder corresponding to a job, after having waiting for a sufficient amount of time.
+
+        Arguments:
+            folder_path {str} -- The full path to the folder to be deleted
         """
 
         # Wait n minutes (allow for enough time to stream file(s) to user)
