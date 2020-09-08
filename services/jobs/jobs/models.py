@@ -1,3 +1,4 @@
+"""This domain module provides the database model for the jobs database."""
 import enum
 from datetime import datetime
 from typing import Any
@@ -9,11 +10,13 @@ Base: Any = declarative_base()
 
 
 class JobStatus(enum.Enum):
+    """Enumerator holding all states a job can be in."""
+
     def __str__(self) -> str:
         return str(self.value)
 
-    created = "created"  # JobStatus should never be queued -> does not exist for a dag in airflow
-    queued = "queued"
+    created = "created"
+    queued = "queued"  # JobStatus should never be queued -> does not exist for a dag in airflow
     running = "running"
     canceled = "canceled"
     finished = "finished"
@@ -21,6 +24,8 @@ class JobStatus(enum.Enum):
 
 
 class Job(Base):
+    """Job table deinition."""
+
     __tablename__ = 'jobs'
 
     id = Column(String, primary_key=True)

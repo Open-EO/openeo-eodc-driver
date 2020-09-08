@@ -1,4 +1,6 @@
+"""Provide functionality to handle package settings."""
 import logging
+from enum import Enum
 from os import environ, makedirs
 from os.path import isdir
 from urllib.error import URLError
@@ -8,6 +10,21 @@ from urllib.request import Request, urlopen
 from dynaconf import Validator, settings
 
 LOGGER = logging.getLogger('standardlog')
+
+
+class SettingKeys(Enum):
+    GATEWAY_URL = "GATEWAY_URL"
+    AIRFLOW_HOST = "AIRFLOW_HOST"
+    JOB_DATA = "JOB_DATA"
+    AIRFLOW_DAGS = "AIRFLOW_DAGS"
+    SYNC_DEL_DELAY = "SYNC_DEL_DELAY"
+    SYNC_RESULTS_FOLDER = "SYNC_RESULTS_FOLDER"
+    CSW_SERVER = "CSW_SERVER"
+    """The url to a running CSW server.
+
+    E.g. eodc's CSW server is reachable under https://csw.eodc.eu
+    If you are running in docker and also have a CSW server in the same docker network it could be http://pycsw:8000
+    """
 
 
 class SettingValidationUtils:
