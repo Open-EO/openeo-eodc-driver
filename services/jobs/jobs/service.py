@@ -17,6 +17,7 @@ from nameko.rpc import RpcProxy, rpc
 from nameko_sqlalchemy import DatabaseSession
 
 from .dependencies.airflow_conn import AirflowRestConnectionProvider
+from .dependencies.dag_handler import DagHandlerProvider, DagIdExtensions
 from .dependencies.settings import initialise_settings
 from .exceptions import JobLocked, JobNotFinished, ServiceException
 from .models import Base, Job, JobStatus
@@ -36,7 +37,8 @@ class JobService:
     processes_service = RpcProxy("processes")
     files_service = RpcProxy("files")
     airflow = AirflowRestConnectionProvider()
-    dag_writer = AirflowDagWriter()
+    dag_handler = DagHandlerProvider()
+    dag_writer = AirflowDagWriter(DagIdExtensions().to_dict())
     check_stop_interval = 5  # should be similar or smaller than Airflow sensor's poke interval
 
     @rpc
@@ -106,7 +108,7 @@ class JobService:
                 backend_processes = process_response["data"]["processes"]
 
                 # handle dag file (remove and recreate it) - only needs to be updated if process graph changes
-                os.remove(self.get_dag_path(job.dag_filename))
+                self.dag_handler.remove_all_dags(job_id)
                 self.dag_writer.write_and_move_job(job_id=job_id, user_name=user["id"],
                                                    process_graph_json=process_graph_args,
                                                    job_data=self.get_job_folder(user["id"], job_id),
@@ -154,8 +156,9 @@ class JobService:
                 LOGGER.info(f"Stopped running job {job_id}.")
 
             self.files_service.delete_complete_job(user_id=user["id"], job_id=job_id)  # delete data on file system
-            os.remove(self.get_dag_path(job.dag_filename))  # delete dag file
-            self.airflow.delete_dag(job_id=job_id)  # delete from airflow database
+            self.dag_handler.remove_all_dags(job_id)  # delete dag file
+            for dag_id in self.dag_handler.get_all_dag_ids(job_id=job_id):
+                self.airflow.delete_dag(dag_id=dag_id)  # delete from airflow database
             self.db.delete(job)  # delete from our job database
             self.db.commit()
             LOGGER.info(f"Job {job_id} completely deleted.")
@@ -236,7 +239,6 @@ class JobService:
                                                add_delete_sensor=True,
                                                add_parallel_sensor=True,
                                                process_defs=backend_processes)
-            job.dag_filename = f"dag_{job_id}.py"
             self.db.add(job)
             self.db.commit()
             LOGGER.info(f"Dag file created for job {job_id}")
@@ -274,7 +276,7 @@ class JobService:
                 return ServiceException(400, user["id"], f"Job {job_id} is already {job.status}. Processing must be "
                                                          f"canceled before restart.", links=[]).to_dict()
 
-            trigger_worked = self.airflow.trigger_dag(job_id=job_id)
+            trigger_worked = self.airflow.trigger_dag(dag_id=self.dag_handler.get_preparation_dag_id(job_id))
             if not trigger_worked:
                 return ServiceException(500, user["id"], f"Job {job_id} could not be started.", links=[]).to_dict()
 
@@ -332,7 +334,8 @@ class JobService:
                 return ServiceException(400, user["id"], msg, links=[]).to_dict()
 
             LOGGER.info(f"Job {job_id} has been processed.")
-            self.airflow.unpause_dag(job_id=job_id, unpause=False)  # just to hide from view on default Airflow web view
+            # just to hide from view on default Airflow web view
+            self.airflow.unpause_dag(dag_id=self.dag_handler.get_non_parallel_dag_id(job_id), unpause=False)
             response_files = self.files_service.get_job_output(user_id=user["id"], job_id=job_id)
             if response_files["status"] == "error":
                 LOGGER.info(f"Could not retrieve output of Job {job_id}.")
@@ -417,9 +420,9 @@ class JobService:
 
                 results_exists = self.files_service.delete_job_without_results(user["id"], job_id)
                 if job.status == JobStatus.running and results_exists:
-                    self._update_job_status(job_id, JobStatus.canceled)
+                    self._set_job_status(job_id, JobStatus.canceled)
                 else:
-                    self._update_job_status(job_id, JobStatus.created)
+                    self._set_job_status(job_id, JobStatus.created)
                 self.db.commit()
                 LOGGER.info(f"Job {job_id} has not the status {job.status}.")
 
@@ -536,24 +539,28 @@ class JobService:
         LOGGER.info(f"User is authorized to access job {job_id}.")
         return None
 
-    def _update_job_status(self, job_id: str, manual_status: JobStatus = None) -> None:
+    def _set_job_status(self, job_id: str, new_status: JobStatus) -> None:
+        job = self.db.query(Job).filter_by(id=job_id).first()
+        job.status = new_status
+        job.status_updated_at = datetime.utcnow()
+        self.db.commit()
+        LOGGER.debug(f"Job Status of job {job_id} is {job.status}")
+
+    def _update_job_status(self, job_id: str) -> None:
         """Updates the job status.
 
         Whenever the job status is updated this method should be used to ensure the status_updated_at column is properly
-        set!
-        Either a status can be set manually or it is retrieved from airflow.
+        set! The new status is retrieved from airflow.
 
         Arguments:
             job_id {str} -- The id of the job
-
-        Keyword Arguments:
-            manual_status {JobStatus} -- The JobStatus to set for the job
         """
         job = self.db.query(Job).filter_by(id=job_id).first()
-        if manual_status:
-            job.status = manual_status
-        else:
-            new_status, execution_time = self.airflow.check_dag_status(job_id)
+        dag_ids = self.dag_handler.get_all_dag_ids(job_id)
+        all_status = []
+        all_execution_time = []
+        for dag_id in dag_ids:
+            new_status, execution_time = self.airflow.check_dag_status(dag_id=dag_id)
             if new_status and (not job.status
                                or job.status in [JobStatus.created,
                                                  JobStatus.queued,
@@ -564,10 +571,20 @@ class JobService:
                                # > the state should only be updated if there was a new dag run since the canceled one
                                # - all times are stored in UTC
                                or (execution_time and job.status_updated_at.replace(tzinfo=None) < execution_time)):
-                job.status = new_status
+                all_status.append(new_status)
+                all_execution_time.append(execution_time)
 
-        job.status_updated_at = datetime.utcnow()
-        self.db.commit()
+        if all_status:
+            # both equal or one was not rerun after cancel > only one value in list
+            if all(status == all_status[0] for status in all_status):
+                job.status = all_status[0]
+            else:
+                # execution time should always be set except when created is returned > both created > above case
+                idx = all_execution_time.index(max(all_execution_time))
+                job.status = all_status[idx]
+
+            job.status_updated_at = datetime.utcnow()
+            self.db.commit()
         LOGGER.debug(f"Job Status of job {job_id} is {job.status}")
 
     def get_job_folder(self, user_id: str, job_id: str) -> str:
@@ -581,17 +598,6 @@ class JobService:
             str -- The complete path to the job folder on the file system
         """
         return os.path.join(settings.JOB_DATA, user_id, "jobs", job_id)
-
-    def get_dag_path(self, dag_id: str) -> str:
-        """Get the complete path on the file system of a dag file.
-
-        Arguments:
-            dag_id {str} -- The identifier / filename of the dag
-
-        Returns:
-            str -- Absolute location of the dag on the file system
-        """
-        return os.path.join(settings.AIRFLOW_DAGS, dag_id)
 
     def _stop_airflow_job(self, user_id: str, job_id: str) -> None:
         """This triggers the airflow observer to set all running task to failed.
@@ -637,4 +643,4 @@ class JobService:
         """
         Generates a random alpha numeric value.
         """
-        return ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+        return ''.join(random.choices(string.ascii_letters + string.digits, k=k))

@@ -31,7 +31,7 @@ class TestJobResults(BaseCase):
         (JobStatus.queued, get_job_not_finished_exception),
         (JobStatus.running, get_job_not_finished_exception),
     ))
-    def test_result_excpetions(self, db_session: Session, job_status: JobStatus, exception_func: Callable) -> None:
+    def test_result_exceptions(self, db_session: Session, job_status: JobStatus, exception_func: Callable) -> None:
         job_service = get_configured_job_service(db_session, airflow=False)
         user = get_random_user()
         job_id = add_job(job_service, user=user)

@@ -1,6 +1,7 @@
 import pytest
 from nameko_sqlalchemy.database_session import Session
 
+from jobs.dependencies.dag_handler import DagHandler
 from tests.utils import add_job, get_configured_job_service, get_random_user
 from .base import BaseCase
 
@@ -19,4 +20,5 @@ class TestProcessJob(BaseCase):
 
         result = job_service.process(user=user, job_id=job_id)
         assert result == {'code': 202, 'status': 'success'}
-        job_service.airflow.trigger_dag.assert_called_once_with(job_id=job_id)
+        dag_id = DagHandler().get_preparation_dag_id(job_id=job_id)
+        job_service.airflow.trigger_dag.assert_called_once_with(dag_id=dag_id)

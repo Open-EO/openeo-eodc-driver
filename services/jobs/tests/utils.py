@@ -3,13 +3,14 @@ import os
 from typing import Any, Dict
 from uuid import uuid4
 
-from dynaconf import settings
 from nameko.testing.services import worker_factory
 from nameko_sqlalchemy.database_session import Session
 
+from jobs.dependencies.dag_handler import DagHandler
 from jobs.models import Job
 from jobs.service import JobService
-from .mocks import MockedAirflowConnection, MockedDagWriter, MockedFilesService, MockedProcessesService
+from .mocks import MockedAirflowConnection, MockedDagHandler, MockedDagWriter, MockedFilesService, \
+    MockedProcessesService
 
 
 def load_json(filename: str) -> dict:
@@ -19,7 +20,7 @@ def load_json(filename: str) -> dict:
 
 
 def get_configured_job_service(db_session: Session, processes: bool = True, dag_writer: bool = True,
-                               airflow: bool = True, files: bool = True) -> JobService:
+                               airflow: bool = True, files: bool = True, dag_handler: bool = True) -> JobService:
     """
     Creates a JobService and adds a mocked ProcessService, mocked DagWriter and mocked AirflowConnection
     """
@@ -32,11 +33,9 @@ def get_configured_job_service(db_session: Session, processes: bool = True, dag_
         job_service.airflow = MockedAirflowConnection()  # to update status and "trigger" dags
     if files:
         job_service.files_service = MockedFilesService()  # needed to create / retrieve a process graph
+    if dag_handler:
+        job_service.dag_handler = MockedDagHandler()
     return job_service
-
-
-def get_dag_path(dag_id: str) -> str:
-    return os.path.join(settings.AIRFLOW_DAGS, f'dag_{dag_id}.py')
 
 
 def add_job(job_service: JobService, user: Dict[str, Any], json_name: str = 'pg') -> str:
@@ -44,7 +43,10 @@ def add_job(job_service: JobService, user: Dict[str, Any], json_name: str = 'pg'
     job_data = load_json(json_name)
     result = job_service.create(user=user, **job_data)
     assert result['status'] == 'success'
-    assert os.path.isfile(get_dag_path(result["headers"]["OpenEO-Identifier"]))
+    dag_handler = DagHandler()
+    assert os.path.isfile(
+        dag_handler.get_dag_path_from_id(
+            dag_handler.get_preparation_dag_id(job_id=result["headers"]["OpenEO-Identifier"])))
     return result['headers']['OpenEO-Identifier']
 
 

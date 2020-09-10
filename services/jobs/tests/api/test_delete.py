@@ -4,7 +4,7 @@ import pytest
 from nameko_sqlalchemy.database_session import Session
 
 from jobs.models import Job
-from tests.utils import add_job, get_configured_job_service, get_dag_path, get_random_user
+from tests.utils import add_job, get_configured_job_service, get_random_user
 from .base import BaseCase
 
 
@@ -26,9 +26,10 @@ class TestDeleteJob(BaseCase):
 
         # Check everything is deleted which should be deleted
         job_service.files_service.delete_complete_job.assert_called_once_with(user_id=user["id"], job_id=job_id)
-        job_service.airflow.delete_dag.assert_called_once_with(job_id=job_id)
+        for dag_id in self.dag_handler.get_all_dag_ids(job_id=job_id):
+            job_service.airflow.delete_dag.assert_any_call(dag_id=dag_id)
+            assert not isfile(self.dag_handler.get_dag_path_from_id(dag_id=dag_id))
         assert db_session.query(Job).filter_by(user_id=user["id"]).filter_by(id=job_id).count() == 0
-        assert not isfile(get_dag_path(job_id))
 
     def test_stop_running_job(self, db_session: Session) -> None:
         pass  # TODO implement
