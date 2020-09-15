@@ -37,7 +37,7 @@ class IdentityProviderSchema(BaseSchema):
 
     id = fields.String(attribute='id_openeo', required=True)
     issuer = fields.String(attribute='issuer_url', required=True)
-    scopes = fields.String(required=True)
+    scopes = fields.String()
     title = fields.String(required=True)
     description = fields.String()
     links = fields.List(fields.Nested(LinkSchema))
