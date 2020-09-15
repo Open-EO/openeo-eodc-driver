@@ -1,6 +1,6 @@
 """ Models """
 import logging
-from typing import List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
 
 LOGGER = logging.getLogger("standardlog")
 
@@ -68,6 +68,9 @@ class Collection(NamedTuple):
     license: str
     extent: Extent
     links: list
+    cube_dimensions: Dict[str, Any]
+    summaries: Dict[str, Any]
+    assets: Optional[Dict[str, Any]] = None
     title: Optional[str] = None
     keywords: Optional[List[str]] = None
     providers: Optional[List[str]] = None
