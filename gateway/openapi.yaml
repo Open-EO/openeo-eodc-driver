@@ -32,13 +32,11 @@ info:
         title: GeoTiff
         gis_data_types:
           - raster
-        parameters:
     output:
       - name: GTiff
         title: GeoTiff
         gis_data_types:
           - raster
-        parameter:
   x-udf:
     Python:
       title: Python 3.6
