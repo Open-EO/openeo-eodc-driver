@@ -161,12 +161,6 @@ def test_get_all_products() -> None:
 
 def test_get_product_detail() -> None:
     collection_id = "s2a_prd_msil1c"
-    # json_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "dependencies", "jsons",
-    #                          collection_id + ".json")
-    # with open(json_path) as f:
-    #     json_data = json.load(f)
-    # json_data.update(collection_dict)
-
     data_service = worker_factory(DataService)
     collect_ret = deepcopy(collection_dict)
     collect_ret["cube_dimensions"] = collect_ret["cube:dimensions"]
