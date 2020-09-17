@@ -163,6 +163,35 @@ services:
     networks:
       - default
 
+  worker-force:
+    container_name: airflow-worker-force
+    build:
+      context: ./build/force
+    image: openeo-airflow-worker-force:$AIRFLOW_VERSION
+    restart: always
+    depends_on:
+      - scheduler
+    environment:
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+      REDIS_PASSWORD: $REDIS_PASSWORD
+      LOAD_EX: $LOAD_EX
+      FERNET_KEY: $FERNET_KEY
+      EXECUTOR: $EXECUTOR
+    volumes:
+      - $PLUGINS:/usr/local/airflow/plugins
+      - $AIRFLOW_DAGS:/usr/local/airflow/dags
+      - $HOST_INPUT:$CONTAINER_INPUT
+      - files-data:$CONTAINER_OUTPUT
+      - $LOG_DIR_AIRFLOW:/usr/local/airflow/logs
+      - ./build/force/airflow.cfg:/usr/local/airflow/airflow.cfg
+
+      - /home/sherrmann/data/force:/usr/local/airflow/force
+    command: worker -q force
+    networks:
+      - default
+
 volumes:
   files-data:
     external:
