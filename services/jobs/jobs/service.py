@@ -133,7 +133,7 @@ class JobService:
                                     links=[]).to_dict()
 
     @rpc
-    def delete(self, user: Dict[str, Any], job_id: str) -> dict:
+    def delete(self, user: Dict[str, Any], job_id: str, delayed=False) -> dict:
         """The request will ask the back-end to completely delete the job with the given job_id.
         This will stop the job if it is currently queued or running, remove the job itself and all results.
 
@@ -154,8 +154,12 @@ class JobService:
                 LOGGER.debug(f"Stopping running job {job_id}")
                 self._stop_airflow_job(user["id"], job_id)
                 LOGGER.info(f"Stopped running job {job_id}.")
-
-            self.files_service.delete_complete_job(user_id=user["id"], job_id=job_id)  # delete data on file system
+            
+            if delayed:
+                # Schedule async deletion of tmp folder
+                threading.Thread(target=self._delayed_delete, args=(user["id"], job_id)).start()
+            else:
+                self.files_service.delete_complete_job(user_id=user["id"], job_id=job_id)  # delete data on file system
             self.dag_handler.remove_all_dags(job_id)  # delete dag file
             for dag_id in self.dag_handler.get_all_dag_ids(job_id=job_id):
                 self.airflow.delete_dag(dag_id=dag_id)  # delete from airflow database
@@ -207,8 +211,11 @@ class JobService:
         try:
             LOGGER.debug("Start creating job...")
             vrt_flag = True
+            add_parallel_sensor = True
             if 'vrt_flag' in job_args.keys():
                 vrt_flag = job_args.pop("vrt_flag")
+            if 'add_parallel_sensor' in job_args.keys():
+                add_parallel_sensor = job_args.pop("add_parallel_sensor")
             process = job_args.pop("process")
             process_graph_id = process["id"] if "id" in process else self.generate_alphanumeric_id()
             process_response = self.processes_service.put_user_defined(
@@ -237,7 +244,7 @@ class JobService:
                                                job_data=self.get_job_folder(user["id"], job_id),
                                                vrt_only=vrt_flag,
                                                add_delete_sensor=True,
-                                               add_parallel_sensor=True,
+                                               add_parallel_sensor=add_parallel_sensor,
                                                process_defs=backend_processes)
             self.db.add(job)
             self.db.commit()
@@ -313,6 +320,7 @@ class JobService:
             # Create Job
             LOGGER.info("Creating job for sync processing.")
             job_args['vrt_flag'] = False
+            job_args['add_parallel_sensor'] = False
             response_create = self.create(user=user, **job_args)
             if response_create['status'] == 'error':
                 return response_create
@@ -336,29 +344,16 @@ class JobService:
             LOGGER.info(f"Job {job_id} has been processed.")
             # just to hide from view on default Airflow web view
             self.airflow.unpause_dag(dag_id=self.dag_handler.get_non_parallel_dag_id(job_id), unpause=False)
-            response_files = self.files_service.get_job_output(user_id=user["id"], job_id=job_id)
+            response_files = self.files_service.get_job_output(user_id=user["id"], job_id=job_id, internal=True)
             if response_files["status"] == "error":
                 LOGGER.info(f"Could not retrieve output of Job {job_id}.")
                 return response_files
 
             filepath = response_files['data']['file_list'][0]
             fmt = self.map_output_format(filepath.split('.')[-1])
-
-            # Copy directory to tmp location
-            job_folder = self.files_service.setup_jobs_result_folder(user_id=user["id"], job_id=job_id) \
-                .replace('/result', '')
-            job_tmp_folder = os.path.join(settings.SYNC_RESULTS_FOLDER, job_id)
-            shutil.copytree(job_folder, job_tmp_folder)
-            filepath = filepath.replace(job_folder, job_tmp_folder)
-
+            
             # Remove job data (sync jobs must not be stored)
-            response_delete = self.delete(user=user, job_id=job_id)
-            if response_delete["status"] == "error":
-                LOGGER.info(f"Could not delete Job {job_id}.")
-                return response_delete
-
-            # Schedule async deletion of tmp folder
-            threading.Thread(target=self._delayed_delete, args=(job_tmp_folder, )).start()
+            self.delete(user, job_id, delayed=True)
 
             return {
                 "status": "success",
@@ -627,17 +622,18 @@ class JobService:
                 return out_name
         raise ValueError('{} is not a supported output format'.format(output_format))
 
-    def _delayed_delete(self, folder_path: str) -> None:
+    def _delayed_delete(self, user: Dict[str, Any], job_id: str) -> None:
         """Deletes a folder corresponding to a job, after having waiting for a sufficient amount of time.
 
         Arguments:
-            folder_path {str} -- The full path to the folder to be deleted
         """
 
         # Wait n minutes (allow for enough time to stream file(s) to user)
         sleep(settings.SYNC_DEL_DELAY)
-        # Remove tmp folder
-        shutil.rmtree(folder_path)
+        # Delete data on file system
+        self.files_service.delete_complete_job(user_id=user["id"], job_id=job_id)
+        # # Remove tmp folder
+        # shutil.rmtree(folder_path)
 
     def generate_alphanumeric_id(self, k: int = 16) -> str:
         """
