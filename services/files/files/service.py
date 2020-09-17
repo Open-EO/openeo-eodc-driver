@@ -332,7 +332,7 @@ class FilesService:
         return to_create
 
     @rpc
-    def get_job_output(self, user_id: str, job_id: str, internal=False) -> dict:
+    def get_job_output(self, user_id: str, job_id: str, internal: bool = False) -> dict:
         """
         Returns a list of output files produced by a job.
         """
