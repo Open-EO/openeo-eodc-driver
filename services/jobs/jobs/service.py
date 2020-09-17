@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import random
-import shutil
 import string
 import threading
 from collections import namedtuple
@@ -133,7 +132,7 @@ class JobService:
                                     links=[]).to_dict()
 
     @rpc
-    def delete(self, user: Dict[str, Any], job_id: str, delayed=False) -> dict:
+    def delete(self, user: Dict[str, Any], job_id: str, delayed: bool = False) -> dict:
         """The request will ask the back-end to completely delete the job with the given job_id.
         This will stop the job if it is currently queued or running, remove the job itself and all results.
 
@@ -154,7 +153,7 @@ class JobService:
                 LOGGER.debug(f"Stopping running job {job_id}")
                 self._stop_airflow_job(user["id"], job_id)
                 LOGGER.info(f"Stopped running job {job_id}.")
-            
+
             if delayed:
                 # Schedule async deletion of tmp folder
                 threading.Thread(target=self._delayed_delete, args=(user["id"], job_id)).start()
@@ -351,7 +350,7 @@ class JobService:
 
             filepath = response_files['data']['file_list'][0]
             fmt = self.map_output_format(filepath.split('.')[-1])
-            
+
             # Remove job data (sync jobs must not be stored)
             self.delete(user, job_id, delayed=True)
 
@@ -632,8 +631,7 @@ class JobService:
         sleep(settings.SYNC_DEL_DELAY)
         # Delete data on file system
         self.files_service.delete_complete_job(user_id=user["id"], job_id=job_id)
-        # # Remove tmp folder
-        # shutil.rmtree(folder_path)
+        LOGGER.info(f"Deleted data on filesystem for job_id:{job_id}.")
 
     def generate_alphanumeric_id(self, k: int = 16) -> str:
         """

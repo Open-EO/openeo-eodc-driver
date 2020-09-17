@@ -208,7 +208,8 @@ class MockedProcessesService(MagicMock):
 
 class MockedFilesService(MagicMock):
 
-    def get_job_output(self, user_id: str, job_id: str) -> Dict[str, Any]:
+    def get_job_output(self, user_id: str, job_id: str, internal: bool = False) -> Dict[str, Any]:
+        # TODO update structure to reflect latest version of method
         job_folder = self.setup_jobs_result_folder(user_id, job_id)
         return {
             "status": "success",
