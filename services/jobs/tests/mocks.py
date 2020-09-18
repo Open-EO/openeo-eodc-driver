@@ -1,10 +1,11 @@
 import os
 from datetime import datetime
-from typing import Any, Dict, NamedTuple, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 from unittest.mock import MagicMock
 
 from dynaconf import settings
 
+from jobs.dependencies.dag_handler import DagHandler
 from jobs.models import JobStatus
 
 PG_OLD_REF: dict = {
@@ -175,10 +176,10 @@ PG_OLD_REF: dict = {
 
 class MockedAirflowConnection(MagicMock):
 
-    def unpause_dag(self, job_id: str, unpause: bool = True) -> bool:
+    def unpause_dag(self, dag_id: str, unpause: bool = True) -> bool:
         return True
 
-    def check_dag_status(self, job_id: str) -> Tuple[Optional[JobStatus], Optional[datetime]]:
+    def check_dag_status(self, dag_id: str) -> Tuple[Optional[JobStatus], Optional[datetime]]:
         return JobStatus.created, None
 
 
@@ -189,7 +190,7 @@ class MockedDagDomain(NamedTuple):
 class MockedDagWriter(MagicMock):
 
     def write_and_move_job(self, job_id: str, **kwargs: Any) -> None:
-        dag_file = os.path.join(settings.AIRFLOW_DAGS, f'dag_{job_id}.py')
+        dag_file = os.path.join(settings.AIRFLOW_DAGS, f'dag_{job_id}_prep.py')
         open(dag_file, 'a').close()
 
 
@@ -207,7 +208,8 @@ class MockedProcessesService(MagicMock):
 
 class MockedFilesService(MagicMock):
 
-    def get_job_output(self, user_id: str, job_id: str) -> Dict[str, Any]:
+    def get_job_output(self, user_id: str, job_id: str, internal: bool = False) -> Dict[str, Any]:
+        # TODO update structure to reflect latest version of method
         job_folder = self.setup_jobs_result_folder(user_id, job_id)
         return {
             "status": "success",
@@ -222,3 +224,17 @@ class MockedFilesService(MagicMock):
 
     def setup_jobs_result_folder(self, user_id: str, job_id: str) -> str:
         return settings.JOB_FOLDER
+
+
+class MockedDagHandler(MagicMock):
+
+    original_dag_handler = DagHandler()
+
+    def get_preparation_dag_id(self, job_id: str) -> str:
+        return self.original_dag_handler.get_preparation_dag_id(job_id)
+
+    def get_all_dag_ids(self, job_id: str) -> List[str]:
+        return self.original_dag_handler.get_all_dag_ids(job_id=job_id)
+
+    def remove_all_dags(self, job_id: str) -> None:
+        return self.original_dag_handler.remove_all_dags(job_id=job_id)

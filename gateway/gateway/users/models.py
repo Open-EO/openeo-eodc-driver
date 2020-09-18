@@ -25,6 +25,7 @@ class Users(db.Model):
     identity_provider_id = db.Column(db.String, db.ForeignKey('identity_providers.id'))
     profile_id = db.Column(db.String, db.ForeignKey('profiles.id'), nullable=False)
     budget = db.Column(db.Integer)
+    name = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

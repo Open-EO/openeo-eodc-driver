@@ -42,9 +42,10 @@ MOCKED_API_SPEC = {
                 {
                     "name": "GTiff",
                     "title": "GeoTiff",
-                    "gis_data_types": {
+                    "gis_data_types": [
                         "raster"
-                    },
+                    ],
+                    "parameters": {},
                 }
             ],
             "output": [
@@ -53,19 +54,22 @@ MOCKED_API_SPEC = {
                     "title": "GeoTiff",
                     "gis_data_types": [
                         "raster"
-                    ]
+                    ],
+                    "parameters": {},
                 }, {
                     "name": "png",
                     "title": "PNG",
                     "gis_data_types": [
                         "raster"
                     ],
+                    "parameters": {},
                 }, {
                     "name": "jpeg",
                     "title": "JPEG",
                     "gis_data_types": [
                         "raster"
-                    ]
+                    ],
+                    "parameters": {},
                 }
             ]
         },
@@ -203,7 +207,7 @@ def test_get_file_formats() -> None:
             'input': {
                 'GTiff': {
                     'title': 'GeoTiff',
-                    'gis_data_types': {'raster'},
+                    'gis_data_types': ['raster'],
                     'parameters': {}}
             }}}
 

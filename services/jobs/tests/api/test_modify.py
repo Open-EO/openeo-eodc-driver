@@ -7,7 +7,7 @@ from nameko_sqlalchemy.database_session import Session
 
 from jobs.models import JobStatus
 from tests.mocks import PG_OLD_REF
-from tests.utils import add_job, get_configured_job_service, get_dag_path, get_random_user
+from tests.utils import add_job, get_configured_job_service, get_random_user
 from .base import BaseCase
 from .exceptions import get_job_locked_exception
 
@@ -24,7 +24,8 @@ class TestModifyJob(BaseCase):
         job_service = get_configured_job_service(db_session)
         user = get_random_user()
         job_id = add_job(job_service, user=user)
-        initial_dag_file_time = getmtime(get_dag_path(job_id))
+        initial_dag_file_time = getmtime(
+            self.dag_handler.get_dag_path_from_id(self.dag_handler.get_preparation_dag_id(job_id=job_id)))
 
         job_args = {
             'title': 'New title',
@@ -35,8 +36,9 @@ class TestModifyJob(BaseCase):
         result = job_service.modify(user=user, job_id=job_id, **job_args)
         assert result == {'code': 204, 'status': 'success'}
         # Check dag file was not modified
-        assert isfile(get_dag_path(job_id))
-        assert initial_dag_file_time == getmtime(get_dag_path(job_id))
+        dag_path = self.dag_handler.get_dag_path_from_id(self.dag_handler.get_preparation_dag_id(job_id=job_id))
+        assert isfile(dag_path)
+        assert initial_dag_file_time == getmtime(dag_path)
 
         job_args.update({'status': 'created'})
         result = job_service.get(user=user, job_id=job_id)
@@ -53,14 +55,16 @@ class TestModifyJob(BaseCase):
         job_service = get_configured_job_service(db_session)
         user = get_random_user()
         job_id = add_job(job_service, user=user)
-        initial_dag_file_time = getmtime(get_dag_path(job_id))
+        initial_dag_file_time = getmtime(
+            self.dag_handler.get_dag_path_from_id(self.dag_handler.get_preparation_dag_id(job_id=job_id)))
 
         job_args: dict = {'process': {'process_graph': {}}}
         result = job_service.modify(user=user, job_id=job_id, **job_args)
         assert result == {'code': 204, 'status': 'success'}
         # Check dag file was updated
-        assert isfile(get_dag_path(job_id))
-        assert initial_dag_file_time < getmtime(get_dag_path(job_id))
+        dag_path = self.dag_handler.get_dag_path_from_id(self.dag_handler.get_preparation_dag_id(job_id=job_id))
+        assert isfile(dag_path)
+        assert initial_dag_file_time < getmtime(dag_path)
 
         result = job_service.get(user=user, job_id=job_id)
         assert result['status'] == 'success'
