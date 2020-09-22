@@ -16,6 +16,7 @@ from requests import post
 from .cache import cache_json, get_cache_path, get_json_cache
 from .links import LinkHandler
 from .xml_templates import xml_and, xml_base, xml_bbox, xml_begin, xml_end, xml_product, xml_series
+from .stac_utils import add_non_csw_info
 from ..models import Collection, Collections, Extent, SpatialExtent, TemporalExtent
 
 LOGGER = logging.getLogger("standardlog")
@@ -141,26 +142,6 @@ class CSWHandler:
             _ = self._get_records(
                 collection["id"], series=True, use_cache=use_cache)[0]
 
-    def _add_non_csw_info(self, records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        for record in records:
-            record.update(self._get_non_csw_info_single_record(record["id"]))
-        return records
-
-    def _get_non_csw_info_single_record(self, collection_id: str) -> Dict[str, Any]:
-        # Add cube:dimensions and summaries
-        json_file = os.path.join(
-            os.path.dirname(__file__),
-            "jsons",
-            collection_id + ".json",
-        )
-        response = {}
-        if os.path.isfile(json_file):
-            with open(json_file) as file_json:
-                json_data = json.load(file_json)
-                for key in json_data.keys():
-                    response[key] = json_data[key]
-        return response
-
     def _get_records(
             self,
             product: str = None,
@@ -217,7 +198,7 @@ class CSWHandler:
                 all_records += records
             # additionally add the links, cube:dimensions, summaries to each record and collection
             all_records = self.link_handler.get_links(all_records)
-            all_records = self._add_non_csw_info(all_records)
+            all_records = add_non_csw_info(all_records)
             cache_json(all_records, path_to_cache)
         else:
             all_records = get_json_cache(path_to_cache)
