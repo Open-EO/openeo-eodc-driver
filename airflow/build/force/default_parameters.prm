@@ -1,0 +1,93 @@
+++PARAM_LEVEL2_START++
+
+# INPUT/OUTPUT DIRECTORIES
+# ------------------------------------------------------------------------
+FILE_QUEUE = /usr/local/airflow/force/queue.txt
+DIR_LEVEL2 = /usr/local/airflow/force/level2
+DIR_LOG = /usr/local/airflow/force/logs
+DIR_TEMP = /usr/local/airflow/force/tmp
+
+# DIGITAL ELEVATION MODEL
+# ------------------------------------------------------------------------
+FILE_DEM = NULL
+DEM_NODATA = -32767
+
+# DATA CUBES
+# ------------------------------------------------------------------------
+DO_REPROJ = TRUE
+DO_TILE = TRUE
+FILE_TILE = NULL
+TILE_SIZE = 30000
+BLOCK_SIZE = 3000
+RESOLUTION_LANDSAT = 30
+RESOLUTION_SENTINEL2 = 10
+ORIGIN_LON = -25
+ORIGIN_LAT = 60
+PROJECTION = GLANCE7
+RESAMPLING = CC
+
+# RADIOMETRIC CORRECTION OPTIONS
+# ------------------------------------------------------------------------
+DO_ATMO = TRUE
+DO_TOPO = TRUE
+DO_BRDF = TRUE
+ADJACENCY_EFFECT = TRUE
+MULTI_SCATTERING = TRUE
+
+# WATER VAPOR CORRECTION OPTIONS
+# ------------------------------------------------------------------------
+DIR_WVPLUT = NULL
+WATER_VAPOR = NULL
+
+# AEROSOL OPTICAL DEPTH OPTIONS
+# ------------------------------------------------------------------------
+DO_AOD  = TRUE
+DIR_AOD  = NULL
+
+# CLOUD DETECTION OPTIONS
+# ------------------------------------------------------------------------
+MAX_CLOUD_COVER_FRAME = 75
+MAX_CLOUD_COVER_TILE  = 75
+CLOUD_THRESHOLD  = 0.225
+SHADOW_THRESHOLD = 0.02
+
+# RESOLUTION MERGING
+# ------------------------------------------------------------------------
+RES_MERGE = IMPROPHE
+
+# CO-REGISTRATION OPTIONS
+# ------------------------------------------------------------------------
+DIR_COREG_BASE = NULL
+COREG_BASE_NODATA = -9999
+
+# MISCELLANEOUS OPTIONS
+# ------------------------------------------------------------------------
+IMPULSE_NOISE = TRUE
+BUFFER_NODATA = FALSE
+
+# TIER LEVEL
+# ------------------------------------------------------------------------
+TIER = 1
+
+# PARALLEL PROCESSING
+# ------------------------------------------------------------------------
+# Multiprocessing options (NPROC, DELAY) only apply when using the batch
+# utility force-level2. They are not used by the core function force-l2ps.
+# ------------------------------------------------------------------------
+NPROC = 32
+NTHREAD = 2
+PARALLEL_READS = FALSE
+DELAY = 3
+TIMEOUT_ZIP = 30
+
+# OUTPUT OPTIONS
+# ------------------------------------------------------------------------
+OUTPUT_FORMAT = GTiff
+OUTPUT_DST = FALSE
+OUTPUT_AOD = FALSE
+OUTPUT_WVP = FALSE
+OUTPUT_VZN = FALSE
+OUTPUT_HOT = FALSE
+OUTPUT_OVV = TRUE
+
+++PARAM_LEVEL2_END++

@@ -69,9 +69,18 @@ RUN apt-get purge -y --auto-remove apt-utils cmake git build-essential software-
 
 # Test FORCE run
 RUN force
-RUN mkdir /usr/local/airflow/logs
+
 RUN apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
+
+# Setup FORCE folders
+RUN mkdir /usr/local/airflow/force
+RUN mkdir /usr/local/airflow/force/logs
+RUN mkdir /usr/local/airflow/force/tmp
+RUN mkdir /usr/local/airflow/force/level2
+COPY ./default_parameters.prm /usr/local/airflow/force
+
+RUN mkdir /usr/local/airflow/logs
 RUN chown -R airflow: /usr/local/airflow
 USER airflow
 WORKDIR /usr/local/airflow
