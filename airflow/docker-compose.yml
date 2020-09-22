@@ -24,6 +24,7 @@ services:
     container_name: airflow-webserver
     build:
       context: ./build/all
+      network: host
     image: openeo-airflow-all:$AIRFLOW_VERSION
     restart: always
     depends_on:
@@ -59,6 +60,7 @@ services:
     container_name: airflow-flower
     build:
       context: ./build/base
+      network: host
     image: openeo-airflow-base:$AIRFLOW_VERSION
     restart: always
     environment:
@@ -79,6 +81,7 @@ services:
     container_name: airflow-scheduler
     build:
       context: ./build/all
+      network: host
     image: openeo-airflow-all:$AIRFLOW_VERSION
     restart: always
     depends_on:
@@ -105,6 +108,7 @@ services:
     container_name: airflow-worker-eodatareaders
     build:
       context: ./build/eodatareaders
+      network: host
     image: openeo-airflow-worker-eodatareaders:$AIRFLOW_VERSION
     restart: always
     depends_on:
@@ -140,6 +144,7 @@ services:
     container_name: airflow-worker-sensor
     build:
       context: ./build/sensor
+      network: host
     image: openeo-airflow-worker-sensor:$AIRFLOW_VERSION
     restart: always
     depends_on:
@@ -167,6 +172,7 @@ services:
     container_name: airflow-worker-force
     build:
       context: ./build/force
+      network: host
     image: openeo-airflow-worker-force:$AIRFLOW_VERSION
     restart: always
     depends_on:
