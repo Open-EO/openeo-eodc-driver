@@ -4,10 +4,12 @@ import logging
 from pprint import pformat
 from typing import Any, Dict, Optional, Union
 
+from dynaconf import settings
 from nameko.rpc import rpc
 
 from .dependencies.arg_parser import ValidationError
 from .dependencies.csw import CSWSession, CSWSessionDC
+from .dependencies.wekeo_hda import HDASession
 from .dependencies.settings import initialise_settings
 from .schema import CollectionSchema, CollectionsSchema
 
@@ -58,6 +60,7 @@ class DataService:
     name = service_name
     csw_session = CSWSession()
     csw_session_dc = CSWSessionDC()
+    hda_session = HDASession()
 
     def __init__(self) -> None:
         LOGGER.info(f"Initialized {self}")
@@ -85,9 +88,12 @@ class DataService:
                 acube_collections = self.csw_session_dc.get_all_products()
                 for col in acube_collections[0]:
                     product_records[0].append(col)
+            if settings.WEKEO_API_URL:
+                wekeo_collections = self.hda_session.get_all_products()
+                for col in wekeo_collections[0]:
+                    product_records[0].append(col)
 
             response = CollectionsSchema().dump(product_records)
-            # response = CollectionsSchema().dump(product_records)
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
@@ -115,7 +121,13 @@ class DataService:
 
         try:
             LOGGER.info("%s product requested", collection_id)
-            product_record = self.csw_session.get_product(collection_id)
+
+            if collection_id in settings.WHITELIST:
+                product_record = self.csw_session.get_product(collection_id)
+            elif collection_id in settings.WHITELIST_DC:
+                product_record = self.csw_session_dc.get_product(collection_id)
+            elif collection_id in settings.WHITELIST_WEKEO:
+                product_record = self.hda_session.get_product(collection_id)
 
             if collection_id in ('TUW_SIG0_S1'):
                 # Check user permission

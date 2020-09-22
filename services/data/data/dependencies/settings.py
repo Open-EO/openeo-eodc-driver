@@ -53,10 +53,20 @@ def initialise_settings() -> None:
         Validator("DATA_ACCESS_DC", must_exist=True),
         Validator("GROUP_PROPERTY_DC", must_exist=True),
         Validator("WHITELIST_DC", must_exist=True),
+        
+        Validator("WEKEO_API_URL"),
+        Validator("WEKEO_USER"),
+        Validator("WEKEO_PASSWORD"),
+        Validator("DATA_ACCESS_WEKEO"),
+        Validator("WHITELIST_WEKEO"),
     )
     settings.validators.validate()
 
     settings.WHITELIST = settings.WHITELIST.split(",")
     settings.WHITELIST_DC = settings.WHITELIST_DC.split(",")
+    try:
+        settings.WHITELIST_WEKEO = settings.WHITELIST_WEKEO.split(",")
+    except:
+        pass
 
     LOGGER.info("Settings validated")
