@@ -79,6 +79,6 @@ RUN mkdir /usr/local/airflow/config/force \
   && mkdir /usr/local/airflow/logs \
   && mkdir /usr/local/airflow/logs/force
 
-xRUN chown -R airflow: /usr/local/airflow
+RUN chown -R airflow: /usr/local/airflow
 USER airflow
 WORKDIR /usr/local/airflow
