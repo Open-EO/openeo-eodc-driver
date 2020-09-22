@@ -74,13 +74,11 @@ RUN apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
 
 # Setup FORCE folders
-RUN mkdir /usr/local/airflow/force
-RUN mkdir /usr/local/airflow/force/logs
-RUN mkdir /usr/local/airflow/force/tmp
-RUN mkdir /usr/local/airflow/force/level2
-COPY ./default_parameters.prm /usr/local/airflow/force
+RUN mkdir /usr/local/airflow/config/force
+  && mkdir /usr/local/airflow/data/level2/force
+  && mkdir /usr/local/airflow/logs
+  && mkdir /usr/local/airflow/logs/force
 
-RUN mkdir /usr/local/airflow/logs
-RUN chown -R airflow: /usr/local/airflow
+xRUN chown -R airflow: /usr/local/airflow
 USER airflow
 WORKDIR /usr/local/airflow

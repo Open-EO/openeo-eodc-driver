@@ -187,7 +187,8 @@ services:
       - $LOG_DIR_AIRFLOW:/usr/local/airflow/logs
       - ./build/force/airflow.cfg:/usr/local/airflow/airflow.cfg
 
-      - /home/sherrmann/data/force:/usr/local/airflow/force
+      - $FORCE_CONFIG_FOLDER:/usr/local/airflow/config/force
+      - $FORCE_LEVEL2_DATA_FOLDER:/usr/local/airflow/data/level2/force
     command: worker -q force
     networks:
       - default
