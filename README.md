@@ -3,6 +3,8 @@
 - openEO version: 1.0.x (currently in development)
 - openEO version: 0.4.2 (legacy, see openeo-openshift-driver [tag v1.1.2](https://github.com/Open-EO/openeo-openshift-driver/releases/tag/v1.1.2))
 
+![alt text](eodc_backend_chart.svg "EODC back-end")
+
 ## Information
 
 This repository contains a fully dockerized implementation of the openEO API (openeo.org), written in Python. The web

@@ -61,9 +61,11 @@ def initialise_settings() -> None:
     utils = SettingValidationUtils()
     settings.validators.register(
         Validator("GATEWAY_URL", must_exist=True, condition=utils.check_is_url, when=not_doc),
+        Validator("DNS_URL", must_exist=True, condition=utils.check_is_url, when=not_doc),
         Validator("AIRFLOW_HOST", must_exist=True, condition=utils.check_is_url,
                   when=(not_unittest and not_doc)),
         Validator("JOB_DATA", must_exist=True, when=not_doc),
+        Validator("OPENEO_VERSION", must_exist=True),
         Validator("AIRFLOW_DAGS", must_exist=True, condition=utils.check_create_folder, when=not_doc),
         Validator("SYNC_DEL_DELAY", must_exist=True, is_type_of=int, condition=utils.check_positive_int, when=not_doc),
         Validator("SYNC_RESULTS_FOLDER", must_exist=True, condition=utils.check_create_folder, when=not_doc),

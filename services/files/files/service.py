@@ -329,8 +329,9 @@ class FilesService:
 
         return safe_join(out_dir, *parts)
 
-    def complete_to_public_path(self, user_id: str, complete_path: str) -> str:
-        """Create the public path seen by the user from a path on the file system.
+
+    def complete_to_public_path(self, user_id: str, complete_path: str, source_dir: str = 'files') -> str:
+        """Creates the public path seen by the user from a path on the file system.
 
         When a user uploads a file e.g. to my_folder/file1.json the file will be stored for instance at
         /path/to/folder/<user_id>/<files_folder>/my_folder/file1.json. This function can then be used to map the real
@@ -339,11 +340,14 @@ class FilesService:
         Args:
             user_id: The identifier of the user.
             complete_path: A complete file path on the file system.
+            source_dir: Top level folder name inside user folder. This can either be 'files' or 'jobs' in the current
+                setup. Defaults to the files directory ('files').
 
         Returns:
-            The corresponding public path to the file visible to the user.
+            {str} -- The corresponding public path to the file visible to the user
         """
-        return complete_path.replace(f'{self.get_user_folder(user_id)}/{self.files_folder}/', '')
+        return complete_path.replace(f'{self.get_user_folder(user_id)}/{source_dir}/', '')
+
 
     def get_file_modification_time(self, filepath: str) -> str:
         """Return timestamp of last modification in format: '2019-05-21T16:11:37Z'."""
@@ -384,32 +388,40 @@ class FilesService:
             A dictionary containing a list of output files produced by the given job or a serialized service exception.
         """
         try:
-            file_list = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*'))
+            file_list = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*[!{.dc, .json, .vrt}]'))
+            metadata_file = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*.json'))[0]
             if not file_list:
                 return ServiceException(400, user_id, "Job output folder is empty. No files generated.").to_dict()
+            if not metadata_file:
+                return ServiceException(500, user_id, "The metadata of the result files does not exist").to_dict()
 
             LOGGER.info(f"Found {len(file_list)} output files for job {job_id}.")
             return {
                 "status": "success",
                 "code": 200,
-                "data": {"file_list": [self.complete_to_public_path(user_id, f) for f in file_list]}
+                "data": {
+                    "file_list": [self.complete_to_public_path(user_id, f, 'jobs') for f in file_list],
+                    "metadata_file": metadata_file
+                }
             }
 
         except Exception as exp:
             return ServiceException(500, user_id, str(exp)).to_dict()
 
     @rpc
-    def download_result(self, user: Dict[str, Any], path: str) -> dict:
+    def download_result(self, user: Dict[str, Any], job_id: str, path: str) -> dict:
         """Get the job result files stored at the given path.
+        The request will ask the back-end to get the get the job result stored at the given path.
 
         Arguments:
             user: The user object who computed the job.
+            job_id: The identifier of the job.
             path: The file path to the requested file.
 
         Returns:
             A dictionary with the complete path on the file system or a serialized exception.
         """
-        return self.download(user, path, source_dir='jobs')
+        return self.download(user, os.path.join(job_id, path), source_dir='jobs')
 
     @rpc
     def upload_stop_job_file(self, user_id: str, job_id: str) -> None:

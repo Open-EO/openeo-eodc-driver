@@ -107,7 +107,7 @@ class JobShortSchema(BaseSchema, MoneyConverter):
     title = fields.String()
     description = fields.String()
     status = fields.String(required=True)
-    created = fields.DateTime(attribute="created_at", required=True)
+    created = fields.DateTime(attribute="created_at", required=True, format='%Y-%m-%dT%H:%M:%SZ')
     # database is updated on REST call does not correspond to when the status changed on airflow
     # updated = fields.DateTime(attribute="status_updated_at")
     plan = fields.String()
