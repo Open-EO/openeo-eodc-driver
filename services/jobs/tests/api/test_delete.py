@@ -1,3 +1,4 @@
+"""Test delete job."""
 from os.path import isfile
 
 import pytest
@@ -10,12 +11,15 @@ from .base import BaseCase
 
 @pytest.mark.usefixtures("set_job_data", "dag_folder")
 class TestDeleteJob(BaseCase):
+    """Test the delete job method."""
 
     @pytest.fixture()
     def method(self) -> str:
+        """Return delete - Method to be used in base test case is delete."""
         return "delete"
 
     def test_delete_basic(self, db_session: Session) -> None:
+        """Check deleting a basic job works as expected."""
         job_service = get_configured_job_service(db_session)
         user = get_random_user()
         job_id = add_job(job_service, user=user)
@@ -32,4 +36,8 @@ class TestDeleteJob(BaseCase):
         assert db_session.query(Job).filter_by(user_id=user["id"]).filter_by(id=job_id).count() == 0
 
     def test_stop_running_job(self, db_session: Session) -> None:
+        """Check deleting a running job also stops it.
+
+        Currently not implemented!
+        """
         pass  # TODO implement

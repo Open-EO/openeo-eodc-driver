@@ -1,3 +1,5 @@
+"""Provides a set of classes to manage dags."""
+
 import os
 from typing import Dict, List
 
@@ -6,17 +8,24 @@ from nameko.extensions import DependencyProvider
 
 
 class DagIdExtensions:
-    """Domain holding the dag íd naming conventions."""
+    """Domain holding the dag id naming conventions."""
 
     preparation = "prep"
+    """Suffix to be added to preparation dags."""
     parallel = "parallel"
+    """Suffix to be added to parallel dags."""
     filename_prefix = "dag"
+    """General prefix for all dags."""
     file_extension = "py"
+    """File extension for all dag files."""
 
     def to_dict(self) -> Dict[str, str]:
+        """Serialize information to a dictionary."""
         return {
             "preparation": self.preparation,
             "parallel": self.parallel,
+            "filename_prefix": self.filename_prefix,
+            "file_extension": self.file_extension,
         }
 
 
@@ -24,6 +33,7 @@ class DagHandler:
     """Handles the mapping between job_id and dags."""
 
     job_id_extensions = DagIdExtensions()
+    """Provide needed configuration."""
 
     def get_non_parallel_dag_id(self, job_id: str) -> str:
         """Return dag id for sync job.
@@ -87,6 +97,15 @@ class DagHandler:
 
 
 class DagHandlerProvider(DependencyProvider):
+    """DependencyProvider for the DagHandler object."""
 
     def get_dependency(self, worker_ctx: object) -> DagHandler:
+        """Return the instantiated object that is injected to a service worker.
+
+        Args:
+            worker_ctx: The service worker.
+
+        Returns:
+            DagHandler: The instantiated DagHandler object.
+        """
         return DagHandler()

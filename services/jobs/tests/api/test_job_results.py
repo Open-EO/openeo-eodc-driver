@@ -1,3 +1,4 @@
+"""Test get job results."""
 from datetime import datetime
 from typing import Any, Callable
 
@@ -13,15 +14,18 @@ from .exceptions import get_job_canceled_service_exception, get_job_error_servic
 
 @pytest.mark.usefixtures("set_job_data", "dag_folder")
 class TestJobResults(BaseCase):
+    """Test the get_results method."""
 
     api_spec = {
         "info": {
             "stac_version": "0.9.0",
         },
     }
+    """Basic, required, API_SPECS."""
 
     @pytest.fixture()
     def method(self) -> str:
+        """Return get_results - Method to be used in base test case is get_results."""
         return "get_results"
 
     @pytest.mark.parametrize(("job_status", "exception_func"), (
@@ -32,6 +36,7 @@ class TestJobResults(BaseCase):
         (JobStatus.running, get_job_not_finished_exception),
     ))
     def test_result_exceptions(self, db_session: Session, job_status: JobStatus, exception_func: Callable) -> None:
+        """Check the correct exceptions are returned depending on the current job status."""
         job_service = get_configured_job_service(db_session, airflow=False)
         user = get_random_user()
         job_id = add_job(job_service, user=user)
@@ -41,6 +46,7 @@ class TestJobResults(BaseCase):
         assert result == exception_func(user_id=user["id"], job_id=job_id)
 
     def test_get_results(self, db_session: Session) -> None:
+        """Check getting results for a basic job works as expected."""
         job_service = get_configured_job_service(db_session, airflow=False)
         job_service.airflow.check_dag_status.return_value = (JobStatus.finished, datetime.now())
         user = get_random_user()
@@ -72,7 +78,17 @@ class TestJobResults(BaseCase):
         }
 
     def test_not_existing_job(self, db_session: Session, method: str, **kwargs: Any) -> None:
+        """Check the correct exception is returned if the job does not exist.
+
+        The get_results method need an additional parameter api_spec therefore it cannot directly be executed form the
+        parent class.
+        """
         super(TestJobResults, self).test_not_existing_job(db_session, method, api_spec=self.api_spec)
 
     def test_not_authorized_for_job(self, db_session: Session, method: str, **kwargs: Any) -> None:
+        """Check the correct exception is returned if the user is not authorized.
+
+        The get_results method need an additional parameter api_spec therefore it cannot directly be executed form the
+        parent class.
+        """
         super(TestJobResults, self).test_not_authorized_for_job(db_session, method, api_spec=self.api_spec)

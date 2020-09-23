@@ -345,7 +345,6 @@ class JobService:
             A dictionary containing the status of the request and the filepath to the output of the job. If an error
             occurs a serialized service exception is returned.
         """
-
         TypeMap = namedtuple('TypeMap', 'file_extension content_type')
         type_map = {
             'Gtiff': TypeMap('tif', 'image/tiff'),
@@ -413,13 +412,12 @@ class JobService:
         """Return a cost estimation for a given job - currently a default value of 0 is returned.
 
         Args:
-            user: The user object, to determin access rights.
+            user: The user object, to determine access rights.
             job_id: The id of the job to check.
 
         Returns:
             A dictionary including the status of the request and estimated costs or a serialized service exception.
         """
-
         default_out = {
             "costs": 0,
         }
@@ -554,9 +552,8 @@ class JobService:
             public_path: A public filepath (NOT the complete path on the file system!).
 
         Returns:
-            Complete url.
+            Complete url from where the file can be downloaded.
         """
-
         if settings.ENV_FOR_DYNACONF.lower() == "development":
             download_url = os.path.join(settings.GATEWAY_URL, settings.OPENEO_VERSION, "downloads", public_path)
         else:
@@ -593,10 +590,13 @@ class JobService:
         LOGGER.debug(f"Job Status of job {job_id} is {job.status}")
 
     def _update_job_status(self, job_id: str) -> None:
-        """Updates the job status.
+        """Update the job status.
 
         Whenever the job status is updated this method should be used to ensure the status_updated_at column is properly
         set! The new status is retrieved from airflow.
+
+        One job creates two dags, one to create the processing instructions as vrt files and one which executes the
+        commands in parallel. Therefore always the status of the "newer" dag is used.
 
         Args:
             job_id: The id of the job.
@@ -643,7 +643,7 @@ class JobService:
         Returns:
             The complete path to the specific job folder on the file system.
         """
-        return os.path.join(settings.JOB_DATA, user_id, "jobs", job_id)
+        return os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id)
 
     def _stop_airflow_job(self, user_id: str, job_id: str) -> None:
         """Trigger the airflow observer to set all running task to failed.
@@ -690,5 +690,5 @@ class JobService:
         LOGGER.info(f"Deleted data on filesystem for job_id:{job_id}.")
 
     def generate_alphanumeric_id(self, k: int = 16) -> str:
-        """Generates a random alpha numeric value."""
+        """Generate a random alpha numeric value."""
         return ''.join(random.choices(string.ascii_letters + string.digits, k=k))

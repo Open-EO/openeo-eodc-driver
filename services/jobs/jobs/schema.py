@@ -103,13 +103,14 @@ class NestedDict(fields.Nested):
 
 class JobShortSchema(BaseSchema, MoneyConverter):
     """Schema including general information of a job."""
-    id = fields.String(required=True)
+
+    id_ = fields.String(data_key="id", attribute="id", required=True)
     title = fields.String()
     description = fields.String()
     status = fields.String(required=True)
     created = fields.DateTime(attribute="created_at", required=True, format='%Y-%m-%dT%H:%M:%SZ')
     # database is updated on REST call does not correspond to when the status changed on airflow
-    # updated = fields.DateTime(attribute="status_updated_at")
+    # > update column can not be used!
     plan = fields.String()
     costs = fields.Method('to_euro_cost', deserialize='to_cent', attribute="current_costs")
     budget = fields.Method('to_euro_budget', deserialize='to_cent')
@@ -117,6 +118,7 @@ class JobShortSchema(BaseSchema, MoneyConverter):
 
 class JobFullSchema(JobShortSchema):
     """Schema including detailed information about a job."""
+
     process = fields.Dict(required=True)
     progress = fields.Float()
 
@@ -127,7 +129,7 @@ class JobCreateSchema(BaseSchema, MoneyConverter):
     __model__ = Job
     """The database table model to convert the data to."""
 
-    id = fields.String(required=True)
+    id_ = fields.String(data_key="id", attribute="id", required=True)
     user_id = fields.String(required=True)
     title = fields.String()
     description = fields.String()
@@ -144,6 +146,7 @@ class JobCreateSchema(BaseSchema, MoneyConverter):
 
 class ProviderSchema(BaseSchema):
     """Schema to store provider information."""
+
     name = fields.String(required=True)
     description = fields.String()
     role = fields.String()  # enum
@@ -163,7 +166,7 @@ class PropertiesSchema(BaseSchema):
     end_datetime = fields.DateTime()
     title = fields.String()
     description = fields.String()
-    license = fields.String()  # Stac license
+    license_ = fields.String(data_key="license", attribute="license")  # Stac license
     providers = fields.List(fields.Nested(ProviderSchema))
     created = fields.DateTime()
     updated = fields.DateTime()
@@ -188,32 +191,36 @@ class PropertiesSchema(BaseSchema):
 
 class AssetSchema(BaseSchema):
     """Schema to store information about an asset."""
+
     href = fields.Url(required=True)
     title = fields.String()
     description = fields.String()
-    type = fields.String()
+    type_ = fields.String(data_key="type", attribute="type")
     roles = fields.List(fields.String())
     name = fields.String(required=True)  # Asset's dict key
 
 
 class LinkSchema(BaseSchema):
     """Schema to store details about a link."""
+
     rel = fields.String(required=True)
     href = fields.Url(required=True)
-    type = fields.String()
+    type_ = fields.String(data_key="type", attribute="type")
     title = fields.String()
 
 
 class GeometrySchema(BaseSchema):
     """Schema to store geometry - currently only raw coordinates are supported."""
-    type = fields.String(required=True)  # enum
+
+    type_ = fields.String(data_key="type", attribute="type", required=True)  # enum
     coordinates = fields.Raw(required=True)
-    # we don't support GeoJson GeometryCollection
+    # TODO we don't support GeoJson GeometryCollection
 
 
 class JobResultsBaseSchema(BaseSchema):
     """Base schema for job results."""
-    id = fields.String(required=True)
+
+    id_ = fields.String(data_key="id", attribute="id", required=True)
     title = fields.String(required=False)
     description = fields.String(required=False)
     status = fields.String(required=True)
@@ -225,7 +232,8 @@ class JobResultsBaseSchema(BaseSchema):
 
 class JobResultsMetadataSchema(BaseSchema):
     """Schema for results' metadata."""
-    type = fields.String(required=True)
+
+    type_ = fields.String(data_key="type", attribute="type", required=True)
     bbox = fields.List(fields.Float(), required=True)
     geometry = fields.Nested(GeometrySchema, required=True)
     properties = fields.Nested(PropertiesSchema, required=True)

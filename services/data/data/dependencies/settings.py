@@ -28,7 +28,6 @@ class SettingKeys(Enum):
     In this setup it is the URI of the gateway. E.g. for eodc this is https://openeo.eodc.eu/v1.0, for a local
     deployment it could be http://0.0.0.0:3000/v1.0.
     """
-
     CSW_SERVER = "CSW_SERVER"
     """The url to a running CSW server.
 

@@ -1,3 +1,4 @@
+"""Test get job."""
 from datetime import datetime
 
 import pytest
@@ -10,12 +11,15 @@ from .base import BaseCase
 
 @pytest.mark.usefixtures("set_job_data", "dag_folder")
 class TestGetJob(BaseCase):
+    """Test the get methods for a job / all jobs."""
 
     @pytest.fixture()
     def method(self) -> str:
+        """Return get - Method to be used in base test case is get."""
         return "get"
 
     def test_add_and_get(self, db_session: Session) -> None:
+        """Check getting details about a job works as expected."""
         job_service = get_configured_job_service(db_session)
         user = get_random_user()
         job_id = add_job(job_service, user=user)
@@ -36,6 +40,7 @@ class TestGetJob(BaseCase):
                           'status': 'success'}
 
     def test_get_all_jobs(self, db_session: Session) -> None:
+        """Check getting all jobs works as expected."""
         job_service = get_configured_job_service(db_session)
         user = get_random_user()
         job_id = add_job(job_service, user=user)
@@ -66,6 +71,7 @@ class TestGetJob(BaseCase):
                           }
 
     def test_get_all_empty(self, db_session: Session) -> None:
+        """Check getting all jobs when no jobs exist."""
         job_service = get_configured_job_service(db_session)
         user = get_random_user()
 

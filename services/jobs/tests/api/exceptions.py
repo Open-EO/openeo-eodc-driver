@@ -1,7 +1,9 @@
+"""A set of reference exceptions which can be thrown by the service."""
 from typing import Any, Dict
 
 
 def get_missing_resource_service_exception(user_id: str, job_id: str) -> Dict[str, Any]:
+    """Return a missing-resource-exception as dictionary."""
     return {
         "status": "error",
         "service": "jobs",
@@ -14,6 +16,7 @@ def get_missing_resource_service_exception(user_id: str, job_id: str) -> Dict[st
 
 
 def get_not_authorized_service_exception(user_id: str, job_id: str) -> Dict[str, Any]:
+    """Return a not-authorized-exception as dictionary."""
     return {
         "status": "error",
         "service": "jobs",
@@ -26,6 +29,7 @@ def get_not_authorized_service_exception(user_id: str, job_id: str) -> Dict[str,
 
 
 def get_job_error_service_exception(user_id: str, job_id: str) -> Dict[str, Any]:
+    """Return a job-error-exception as dictionary."""
     return {
         "status": "error",
         "service": "jobs",
@@ -38,6 +42,7 @@ def get_job_error_service_exception(user_id: str, job_id: str) -> Dict[str, Any]
 
 
 def get_job_canceled_service_exception(user_id: str, job_id: str) -> Dict[str, Any]:
+    """Return a job-canceled-exception as dictionary."""
     return {
         "status": "error",
         "service": "jobs",
@@ -50,6 +55,7 @@ def get_job_canceled_service_exception(user_id: str, job_id: str) -> Dict[str, A
 
 
 def get_job_not_finished_exception(user_id: str, job_id: str) -> Dict[str, Any]:
+    """Return a job-not-finished-exception as dictionary."""
     return {
         "status": "error",
         "service": "jobs",
@@ -62,6 +68,7 @@ def get_job_not_finished_exception(user_id: str, job_id: str) -> Dict[str, Any]:
 
 
 def get_job_locked_exception(user_id: str, job_id: str, job_status: str) -> Dict[str, Any]:
+    """Return a job-locked-exception as dictionary."""
     return {
         "status": "error",
         "service": "jobs",

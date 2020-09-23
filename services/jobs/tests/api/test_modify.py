@@ -1,3 +1,4 @@
+"""Test modify job."""
 from datetime import datetime
 from os.path import getmtime, isfile
 
@@ -14,13 +15,15 @@ from .exceptions import get_job_locked_exception
 
 @pytest.mark.usefixtures("set_job_data", "dag_folder")
 class TestModifyJob(BaseCase):
+    """Test modify methode."""
 
     @pytest.fixture()
     def method(self) -> str:
-        return "get"
+        """Return modify - Method to be used in base test case is modify."""
+        return "modify"
 
     def test_modify_job(self, db_session: Session) -> None:
-        """Test modification of simple Job Attributes"""
+        """Test modification of simple job attributes."""
         job_service = get_configured_job_service(db_session)
         user = get_random_user()
         job_id = add_job(job_service, user=user)
@@ -51,7 +54,7 @@ class TestModifyJob(BaseCase):
                           'status': 'success'}
 
     def test_modify_job_pg(self, db_session: Session) -> None:
-        """Test modification of a job's process graph"""
+        """Test modification of a job's process graph."""
         job_service = get_configured_job_service(db_session)
         user = get_random_user()
         job_id = add_job(job_service, user=user)
@@ -81,6 +84,7 @@ class TestModifyJob(BaseCase):
 
     @pytest.mark.parametrize("job_status", (JobStatus.running, JobStatus.queued))
     def test_job_active_error(self, db_session: Session, job_status: JobStatus) -> None:
+        """Test the correct error is thrown if the user tries to modify an active job."""
         job_service = get_configured_job_service(db_session, airflow=False)
         job_service.airflow.check_dag_status.return_value = (job_status, datetime.now())
         user = get_random_user()

@@ -13,6 +13,7 @@ class JobStatus(enum.Enum):
     """Enumerator holding all states a job can be in."""
 
     def __str__(self) -> str:
+        """Return the value as a string."""
         return str(self.value)
 
     created = "created"
@@ -24,11 +25,11 @@ class JobStatus(enum.Enum):
 
 
 class Job(Base):
-    """Job table deinition."""
+    """Job table definition."""
 
     __tablename__ = 'jobs'
 
-    id = Column(String, primary_key=True)
+    id = Column(String, primary_key=True)  # noqa A003
     user_id = Column(String, nullable=False)
     title = Column(String, nullable=True)
     description = Column(String, nullable=True)
