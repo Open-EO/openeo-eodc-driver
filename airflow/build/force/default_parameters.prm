@@ -74,7 +74,7 @@ TIER = 1
 # Multiprocessing options (NPROC, DELAY) only apply when using the batch
 # utility force-level2. They are not used by the core function force-l2ps.
 # ------------------------------------------------------------------------
-NPROC = 32
+NPROC = 8
 NTHREAD = 2
 PARALLEL_READS = FALSE
 DELAY = 3

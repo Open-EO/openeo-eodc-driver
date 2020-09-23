@@ -74,8 +74,8 @@ RUN apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
 
 # Setup FORCE folders
-RUN mkdir /usr/local/airflow/config/force \
-  && mkdir /usr/local/airflow/data/level2/force \
+RUN mkdir -p /usr/local/airflow/config/force \
+  && mkdir -p /usr/local/airflow/data/level2/force \
   && mkdir /usr/local/airflow/logs \
   && mkdir /usr/local/airflow/logs/force
 
