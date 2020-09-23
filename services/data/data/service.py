@@ -104,7 +104,6 @@ class DataService:
                     product_records[0].append(col)
 
             response = CollectionsSchema().dump(product_records)
-            # response = CollectionsSchema().dump(product_records)
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}

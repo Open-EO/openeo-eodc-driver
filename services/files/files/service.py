@@ -329,9 +329,8 @@ class FilesService:
 
         return safe_join(out_dir, *parts)
 
-
     def complete_to_public_path(self, user_id: str, complete_path: str, source_dir: str = 'files') -> str:
-        """Creates the public path seen by the user from a path on the file system.
+        """Create the public path seen by the user from a path on the file system.
 
         When a user uploads a file e.g. to my_folder/file1.json the file will be stored for instance at
         /path/to/folder/<user_id>/<files_folder>/my_folder/file1.json. This function can then be used to map the real
@@ -347,7 +346,6 @@ class FilesService:
             {str} -- The corresponding public path to the file visible to the user
         """
         return complete_path.replace(f'{self.get_user_folder(user_id)}/{source_dir}/', '')
-
 
     def get_file_modification_time(self, filepath: str) -> str:
         """Return timestamp of last modification in format: '2019-05-21T16:11:37Z'."""
@@ -415,9 +413,8 @@ class FilesService:
     @rpc
     def download_result(self, user: Dict[str, Any], job_id: str, path: str) -> dict:
         """Get the job result files stored at the given path.
-        The request will ask the back-end to get the get the job result stored at the given path.
 
-        Arguments:
+        Args:
             user: The user object who computed the job.
             job_id: The identifier of the job.
             path: The file path to the requested file.

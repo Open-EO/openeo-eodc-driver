@@ -4,8 +4,6 @@ Only available rpc methods are tested. For each test a DataService is created on
 results are compared to reference values. Most tests use a mocked collection model provided which is also provided.
 """
 
-from copy import deepcopy
-
 from nameko.testing.services import worker_factory
 
 from data.models import Collection, Collections, Extent, Link, SpatialExtent, TemporalExtent
@@ -170,9 +168,7 @@ def test_get_product_detail() -> None:
     """Test get details about a specific product."""
     collection_id = "s2a_prd_msil1c"
     data_service = worker_factory(DataService)
-    collect_ret = deepcopy(collection_dict)
-    collect_ret["cube_dimensions"] = collect_ret["cube:dimensions"]
-    data_service.csw_session.get_product.return_value = collect_ret
+    data_service.csw_session.get_product.return_value = collection_model
     result = data_service.get_product_detail(collection_id=collection_id)
     assert result == {
         "status": "success",

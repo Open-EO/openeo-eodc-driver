@@ -32,15 +32,13 @@ class BaseSchema(Schema):
 
 
 class NestedDict(fields.Nested):
-    """
-    Allows nesting a schema inside a dictionary.
+    """Allows nesting a schema inside a dictionary.
+
     This is analogous to nesting schema inside lists but using a dictionary with a given key instead.
     """
 
     def __init__(self, nested: Any, key: str, *args: set, **kwargs: dict) -> None:
-        """
-        Initialize nested dictionary field.
-        """
+        """Initialize nested dictionary field."""
         super().__init__(nested, many=True, *args, **kwargs)
         self.key = key
 
@@ -115,10 +113,12 @@ class BandSchema(BaseSchema):
 
 
 class AssetSchema(BaseSchema):
+    """Schema for Assets."""
+
     href = fields.Url(required=True)
     title = fields.String()
     description = fields.String()
-    type = fields.String()
+    type_ = fields.String(data_key="type")
     roles = fields.List(fields.String())
     name = fields.String(required=True)  # Asset's dict key
 
