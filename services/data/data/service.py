@@ -3,9 +3,7 @@
 This is the main entry point to the EO data discovery.
 """
 
-import json
 import logging
-import os
 from pprint import pformat
 from typing import Any, Dict, Optional
 
@@ -13,7 +11,7 @@ from nameko.rpc import rpc
 
 from .dependencies.csw import CSWSession, CSWSessionDC
 from .dependencies.settings import initialise_settings
-from .schemas import CollectionSchema, CollectionsSchema
+from .schema import CollectionSchema, CollectionsSchema
 
 service_name = "data"
 LOGGER = logging.getLogger("standardlog")
@@ -106,6 +104,7 @@ class DataService:
                     product_records[0].append(col)
 
             response = CollectionsSchema().dump(product_records)
+            # response = CollectionsSchema().dump(product_records)
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
@@ -155,20 +154,6 @@ class DataService:
                     ).to_dict()
 
             response = CollectionSchema().dump(product_record)
-
-            # Add cube:dimensions and summaries
-            # TODO these fields should be added to the cached JSONs when writing them to disk
-            json_file = os.path.join(
-                os.path.dirname(__file__),
-                "dependencies",
-                "jsons",
-                collection_id + ".json",
-            )
-            if os.path.isfile(json_file):
-                with open(json_file) as file_json:
-                    json_data = json.load(file_json)
-                    for key in json_data.keys():
-                        response[key] = json_data[key]
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}

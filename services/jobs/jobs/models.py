@@ -42,6 +42,5 @@ class Job(Base):
     current_costs = Column(Integer, nullable=True)
     logs = Column(String)
     metrics = Column(JSON)
-    dag_filename = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

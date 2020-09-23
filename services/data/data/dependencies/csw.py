@@ -5,10 +5,12 @@ data service.
 """
 
 import ast
+import json
 import logging
+import os
 from json import dumps
 from os import makedirs, path
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from defusedxml.minidom import parseString
 from dynaconf import settings
@@ -89,14 +91,15 @@ class CSWHandler:
             # TODO find way to write to JSON with correct format
             collection_list.append(
                 Collection(
-                    # TODO change back to collection["stac_version"]
-                    stac_version="0.9.0",
+                    stac_version=collection["stac_version"],
                     id_=collection["id"],
                     description=collection["description"],
                     license_=collection["license"],
                     extent=Extent(
                         spatial=SpatialExtent(bbox=bbox),
                         temporal=TemporalExtent(interval=interval)),
+                    cube_dimensions=collection["cube:dimensions"],
+                    summaries=collection["summaries"],
                     links=collection["links"],
                 )
             )
@@ -133,6 +136,8 @@ class CSWHandler:
             links=data["links"],
             title=data["title"],
             keywords=data["keywords"],
+            cube_dimensions=data["cube:dimensions"],
+            summaries=data["summaries"],
         )
 
         return collection
@@ -149,6 +154,26 @@ class CSWHandler:
         for collection in data:
             _ = self._get_records(
                 collection["id"], series=True, use_cache=use_cache)[0]
+
+    def _add_non_csw_info(self, records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        for record in records:
+            record.update(self._get_non_csw_info_single_record(record["id"]))
+        return records
+
+    def _get_non_csw_info_single_record(self, collection_id: str) -> Dict[str, Any]:
+        # Add cube:dimensions and summaries
+        json_file = os.path.join(
+            os.path.dirname(__file__),
+            "jsons",
+            collection_id + ".json",
+        )
+        response = {}
+        if os.path.isfile(json_file):
+            with open(json_file) as file_json:
+                json_data = json.load(file_json)
+                for key in json_data.keys():
+                    response[key] = json_data[key]
+        return response
 
     def _get_records(
             self,
@@ -204,8 +229,9 @@ class CSWHandler:
                     record_next, cur_filter, output_schema
                 )
                 all_records += records
-            # additionally add the links to each record and collection
+            # additionally add the links, cube:dimensions, summaries to each record and collection
             all_records = self.link_handler.get_links(all_records)
+            all_records = self._add_non_csw_info(all_records)
             cache_json(all_records, path_to_cache)
         else:
             all_records = get_json_cache(path_to_cache)

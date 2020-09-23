@@ -3,8 +3,9 @@ from os.path import isfile
 import pytest
 from nameko_sqlalchemy.database_session import Session
 
+from jobs.dependencies.dag_handler import DagHandler
 from jobs.models import Job
-from tests.utils import get_configured_job_service, get_dag_path, get_random_user, load_json
+from tests.utils import get_configured_job_service, get_random_user, load_json
 
 
 @pytest.mark.usefixtures("set_job_data", "dag_folder")
@@ -25,7 +26,9 @@ class TestCreateJob:
         results_job_id = result['headers']['OpenEO-Identifier']
         assert results_job_id == result['headers']['Location'][5:]
         assert db_session.query(Job).filter(Job.user_id == user["id"]).filter(Job.id == results_job_id).count() == 1
-        assert isfile(get_dag_path(result['headers']['OpenEO-Identifier']))
+        dag_handler = DagHandler()
+        assert isfile(dag_handler.get_dag_path_from_id(
+            dag_handler.get_preparation_dag_id(job_id=result['headers']['OpenEO-Identifier'])))
 
         job_service.processes_service.put_user_defined.assert_called_once_with(
             user=user, process_graph_id="pg_id", **job_data["process"]

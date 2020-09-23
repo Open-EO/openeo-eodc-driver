@@ -2,12 +2,15 @@ from typing import Any, Callable
 
 from nameko_sqlalchemy.database_session import Session
 
+from jobs.dependencies.dag_handler import DagHandler
 from jobs.service import JobService
 from .exceptions import get_missing_resource_service_exception, get_not_authorized_service_exception
 from ..utils import add_job, get_configured_job_service, get_random_job_id, get_random_user
 
 
 class BaseCase:
+
+    dag_handler = DagHandler()
 
     def get_method(self, service: JobService, method: str) -> Callable:
         mapper = {

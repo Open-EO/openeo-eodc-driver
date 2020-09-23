@@ -28,34 +28,34 @@ class AirflowRestConnection:
         self.api_url = f"{airflow_base_url}/api/experimental"
         self.dag_url = f"{self.api_url}/dags"
 
-    def unpause_dag(self, job_id: str, unpause: bool = True) -> bool:
+    def unpause_dag(self, dag_id: str, unpause: bool = True) -> bool:
         """
         Pause/unpause dag
         """
-        request_url = f"{self.dag_url}/{job_id}/paused/{str(not unpause)}"
+        request_url = f"{self.dag_url}/{dag_id}/paused/{str(not unpause)}"
         response = requests.get(request_url, headers=self.header, data=self.data)
         # NB It may take 1-2 seconds before the DAG has the attribute "is_paused" set
         while not response.ok:
             response = requests.get(request_url, headers=self.header, data=self.data)
         return response.ok
 
-    def trigger_dag(self, job_id: str) -> bool:
+    def trigger_dag(self, dag_id: str) -> bool:
         """
         Trigger airflow dag
         """
-        _ = self.unpause_dag(job_id)
-        job_url = f"{self.dag_url}/{job_id}/dag_runs"
+        _ = self.unpause_dag(dag_id)
+        job_url = f"{self.dag_url}/{dag_id}/dag_runs"
         response = requests.post(job_url, headers=self.header, data=self.data)
         return response.ok
 
-    def check_dag_status(self, job_id: str) -> Tuple[Optional[JobStatus], Optional[datetime]]:
+    def check_dag_status(self, dag_id: str) -> Tuple[Optional[JobStatus], Optional[datetime]]:
         """
         Check status of airflow dag and return it
         """
         dag_status = None
-        execution_date = None
+        execution_date = datetime.min
 
-        job_url = f"{self.dag_url}/{job_id}/dag_runs"
+        job_url = f"{self.dag_url}/{dag_id}/dag_runs"
         response = requests.get(job_url, headers=self.header, data=self.data)
         if response.status_code == 200:
             if not response.json():
@@ -71,11 +71,11 @@ class AirflowRestConnection:
 
         return dag_status, execution_date
 
-    def delete_dag(self, job_id: str) -> bool:
+    def delete_dag(self, dag_id: str) -> bool:
         """
         Delete the dag with the given id.
         """
-        job_url = f"{self.dag_url}/{job_id}"
+        job_url = f"{self.dag_url}/{dag_id}"
         response = requests.delete(job_url)
         return response.status_code == 200
 

@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import random
-import shutil
 import string
 import threading
 from collections import namedtuple
@@ -17,6 +16,7 @@ from nameko.rpc import RpcProxy, rpc
 from nameko_sqlalchemy import DatabaseSession
 
 from .dependencies.airflow_conn import AirflowRestConnectionProvider
+from .dependencies.dag_handler import DagHandlerProvider, DagIdExtensions
 from .dependencies.settings import initialise_settings
 from .exceptions import JobLocked, JobNotFinished, ServiceException
 from .models import Base, Job, JobStatus
@@ -39,7 +39,8 @@ class JobService:
     """Rpc connection to files service"""
     airflow = AirflowRestConnectionProvider()
     """Object to connection to Airflow REST endpoints."""
-    dag_writer = AirflowDagWriter()
+    dag_handler = DagHandlerProvider()
+    dag_writer = AirflowDagWriter(DagIdExtensions().to_dict())
     """Object to write Airflow dags."""
     check_stop_interval = 5
     """Time interval in seconds to check whether a job was stopped.
@@ -121,7 +122,7 @@ class JobService:
                 backend_processes = process_response["data"]["processes"]
 
                 # handle dag file (remove and recreate it) - only needs to be updated if process graph changes
-                os.remove(self.get_dag_path(job.dag_filename))
+                self.dag_handler.remove_all_dags(job_id)
                 self.dag_writer.write_and_move_job(job_id=job_id, user_name=user["id"],
                                                    process_graph_json=process_graph_args,
                                                    job_data=self.get_job_folder(user["id"], job_id),
@@ -146,7 +147,7 @@ class JobService:
                                     links=[]).to_dict()
 
     @rpc
-    def delete(self, user: Dict[str, Any], job_id: str) -> dict:
+    def delete(self, user: Dict[str, Any], job_id: str, delayed: bool = False) -> dict:
         """Completely delete the job with the given job_id.
 
         This will stop the job if it is currently queued or running, remove the job itself and all results.
@@ -154,6 +155,8 @@ class JobService:
         Args:
             user: The user object, to determine access rights.
             job_id: The id of the job.
+            delayed: Whether this should happen directly or it should be delayed for some seconds. This can be used for
+                synchronous where results need to be returned and then deleted.
 
         Returns:
             A dictionary with the status of the request.
@@ -172,9 +175,14 @@ class JobService:
                 self._stop_airflow_job(user["id"], job_id)
                 LOGGER.info(f"Stopped running job {job_id}.")
 
-            self.files_service.delete_complete_job(user_id=user["id"], job_id=job_id)  # delete data on file system
-            os.remove(self.get_dag_path(job.dag_filename))  # delete dag file
-            self.airflow.delete_dag(job_id=job_id)  # delete from airflow database
+            if delayed:
+                # Schedule async deletion of tmp folder
+                threading.Thread(target=self._delayed_delete, args=(user["id"], job_id)).start()
+            else:
+                self.files_service.delete_complete_job(user_id=user["id"], job_id=job_id)  # delete data on file system
+            self.dag_handler.remove_all_dags(job_id)  # delete dag file
+            for dag_id in self.dag_handler.get_all_dag_ids(job_id=job_id):
+                self.airflow.delete_dag(dag_id=dag_id)  # delete from airflow database
             self.db.delete(job)  # delete from our job database
             self.db.commit()
             LOGGER.info(f"Job {job_id} completely deleted.")
@@ -230,8 +238,11 @@ class JobService:
         try:
             LOGGER.debug("Start creating job...")
             vrt_flag = True
+            add_parallel_sensor = True
             if 'vrt_flag' in job_args.keys():
                 vrt_flag = job_args.pop("vrt_flag")
+            if 'add_parallel_sensor' in job_args.keys():
+                add_parallel_sensor = job_args.pop("add_parallel_sensor")
             process = job_args.pop("process")
             process_graph_id = process["id"] if "id" in process else self.generate_alphanumeric_id()
             process_response = self.processes_service.put_user_defined(
@@ -260,9 +271,8 @@ class JobService:
                                                job_data=self.get_job_folder(user["id"], job_id),
                                                vrt_only=vrt_flag,
                                                add_delete_sensor=True,
-                                               add_parallel_sensor=True,
+                                               add_parallel_sensor=add_parallel_sensor,
                                                process_defs=backend_processes)
-            job.dag_filename = f"dag_{job_id}.py"
             self.db.add(job)
             self.db.commit()
             LOGGER.info(f"Dag file created for job {job_id}")
@@ -304,7 +314,7 @@ class JobService:
                 return ServiceException(400, user["id"], f"Job {job_id} is already {job.status}. Processing must be "
                                                          f"canceled before restart.", links=[]).to_dict()
 
-            trigger_worked = self.airflow.trigger_dag(job_id=job_id)
+            trigger_worked = self.airflow.trigger_dag(dag_id=self.dag_handler.get_preparation_dag_id(job_id))
             if not trigger_worked:
                 return ServiceException(500, user["id"], f"Job {job_id} could not be started.", links=[]).to_dict()
 
@@ -350,6 +360,7 @@ class JobService:
             # Create Job
             LOGGER.info("Creating job for sync processing.")
             job_args['vrt_flag'] = False
+            job_args['add_parallel_sensor'] = False
             response_create = self.create(user=user, **job_args)
             if response_create['status'] == 'error':
                 return response_create
@@ -371,8 +382,9 @@ class JobService:
                 return ServiceException(400, user["id"], msg, links=[]).to_dict()
 
             LOGGER.info(f"Job {job_id} has been processed.")
-            self.airflow.unpause_dag(job_id=job_id, unpause=False)  # just to hide from view on default Airflow web view
-            response_files = self.files_service.get_job_output(user_id=user["id"], job_id=job_id)
+            # just to hide from view on default Airflow web view
+            self.airflow.unpause_dag(dag_id=self.dag_handler.get_non_parallel_dag_id(job_id), unpause=False)
+            response_files = self.files_service.get_job_output(user_id=user["id"], job_id=job_id, internal=True)
             if response_files["status"] == "error":
                 LOGGER.info(f"Could not retrieve output of Job {job_id}.")
                 return response_files
@@ -380,21 +392,8 @@ class JobService:
             filepath = response_files['data']['file_list'][0]
             fmt = self.map_output_format(filepath.split('.')[-1])
 
-            # Copy directory to tmp location
-            job_folder = self.files_service.setup_jobs_result_folder(user_id=user["id"], job_id=job_id) \
-                .replace('/result', '')
-            job_tmp_folder = os.path.join(settings.SYNC_RESULTS_FOLDER, job_id)
-            shutil.copytree(job_folder, job_tmp_folder)
-            filepath = filepath.replace(job_folder, job_tmp_folder)
-
             # Remove job data (sync jobs must not be stored)
-            response_delete = self.delete(user=user, job_id=job_id)
-            if response_delete["status"] == "error":
-                LOGGER.info(f"Could not delete Job {job_id}.")
-                return response_delete
-
-            # Schedule async deletion of tmp folder
-            threading.Thread(target=self._delayed_delete, args=(job_tmp_folder, )).start()
+            self.delete(user, job_id, delayed=True)
 
             return {
                 "status": "success",
@@ -462,9 +461,9 @@ class JobService:
 
                 results_exists = self.files_service.delete_job_without_results(user["id"], job_id)
                 if job.status == JobStatus.running and results_exists:
-                    self._update_job_status(job_id, JobStatus.canceled)
+                    self._set_job_status(job_id, JobStatus.canceled)
                 else:
-                    self._update_job_status(job_id, JobStatus.created)
+                    self._set_job_status(job_id, JobStatus.created)
                 self.db.commit()
                 LOGGER.info(f"Job {job_id} has not the status {job.status}.")
 
@@ -586,22 +585,28 @@ class JobService:
         LOGGER.info(f"User is authorized to access job {job_id}.")
         return None
 
-    def _update_job_status(self, job_id: str, manual_status: JobStatus = None) -> None:
+    def _set_job_status(self, job_id: str, new_status: JobStatus) -> None:
+        job = self.db.query(Job).filter_by(id=job_id).first()
+        job.status = new_status
+        job.status_updated_at = datetime.utcnow()
+        self.db.commit()
+        LOGGER.debug(f"Job Status of job {job_id} is {job.status}")
+
+    def _update_job_status(self, job_id: str) -> None:
         """Updates the job status.
 
         Whenever the job status is updated this method should be used to ensure the status_updated_at column is properly
-        set!
-        Either a status can be set manually or it is retrieved from airflow.
+        set! The new status is retrieved from airflow.
 
         Args:
             job_id: The id of the job.
-            manual_status: A new JobStatus to set for the job. Optional!
         """
         job = self.db.query(Job).filter_by(id=job_id).first()
-        if manual_status:
-            job.status = manual_status
-        else:
-            new_status, execution_time = self.airflow.check_dag_status(job_id)
+        dag_ids = self.dag_handler.get_all_dag_ids(job_id)
+        all_status = []
+        all_execution_time = []
+        for dag_id in dag_ids:
+            new_status, execution_time = self.airflow.check_dag_status(dag_id=dag_id)
             if new_status and (not job.status
                                or job.status in [JobStatus.created,
                                                  JobStatus.queued,
@@ -612,10 +617,20 @@ class JobService:
                                # > the state should only be updated if there was a new dag run since the canceled one
                                # - all times are stored in UTC
                                or (execution_time and job.status_updated_at.replace(tzinfo=None) < execution_time)):
-                job.status = new_status
+                all_status.append(new_status)
+                all_execution_time.append(execution_time)
 
-        job.status_updated_at = datetime.utcnow()
-        self.db.commit()
+        if all_status:
+            # both equal or one was not rerun after cancel > only one value in list
+            if all(status == all_status[0] for status in all_status):
+                job.status = all_status[0]
+            else:
+                # execution time should always be set except when created is returned > both created > above case
+                idx = all_execution_time.index(max(all_execution_time))
+                job.status = all_status[idx]
+
+            job.status_updated_at = datetime.utcnow()
+            self.db.commit()
         LOGGER.debug(f"Job Status of job {job_id} is {job.status}")
 
     def get_job_folder(self, user_id: str, job_id: str) -> str:
@@ -629,17 +644,6 @@ class JobService:
             The complete path to the specific job folder on the file system.
         """
         return os.path.join(settings.JOB_DATA, user_id, "jobs", job_id)
-
-    def get_dag_path(self, dag_id: str) -> str:
-        """Get the complete path on the file system of a dag file.
-
-        Args:
-            dag_id: The identifier / filename of the dag.
-
-        Returns:
-            Absolute location of the dag on the file system.
-        """
-        return os.path.join(settings.AIRFLOW_DAGS, dag_id)
 
     def _stop_airflow_job(self, user_id: str, job_id: str) -> None:
         """Trigger the airflow observer to set all running task to failed.
@@ -671,7 +675,7 @@ class JobService:
                 return out_name
         raise ValueError('{} is not a supported output format'.format(output_format))
 
-    def _delayed_delete(self, folder_path: str) -> None:
+    def _delayed_delete(self, user: Dict[str, Any], job_id: str) -> None:
         """Wait for some time and then delete a complete folder structure corresponding to a job.
 
         This is used for the sync processing to ensure result data is downloaded before it is deleted.
@@ -681,9 +685,10 @@ class JobService:
         """
         # Wait n minutes (allow for enough time to stream file(s) to user)
         sleep(settings.SYNC_DEL_DELAY)
-        # Remove tmp folder
-        shutil.rmtree(folder_path)
+        # Delete data on file system
+        self.files_service.delete_complete_job(user_id=user["id"], job_id=job_id)
+        LOGGER.info(f"Deleted data on filesystem for job_id:{job_id}.")
 
     def generate_alphanumeric_id(self, k: int = 16) -> str:
         """Generates a random alpha numeric value."""
-        return ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+        return ''.join(random.choices(string.ascii_letters + string.digits, k=k))

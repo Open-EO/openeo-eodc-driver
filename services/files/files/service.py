@@ -377,12 +377,14 @@ class FilesService:
         return to_create
 
     @rpc
-    def get_job_output(self, user_id: str, job_id: str) -> dict:
+    def get_job_output(self, user_id: str, job_id: str, internal: bool = False) -> dict:
         """Return the list of output files produced by a job.
 
         Args:
             user_id: The identifier of the user.
             job_id: The identifier of the job.
+            internal: Whether the path public to the user (False) or the complete file system path should be returned.
+                (Default: False)
 
         Returns:
             A dictionary containing a list of output files produced by the given job or a serialized service exception.
@@ -394,13 +396,15 @@ class FilesService:
                 return ServiceException(400, user_id, "Job output folder is empty. No files generated.").to_dict()
             if not metadata_file:
                 return ServiceException(500, user_id, "The metadata of the result files does not exist").to_dict()
+            if not internal:
+                file_list = [self.complete_to_public_path(user_id, f, 'jobs') for f in file_list]
 
             LOGGER.info(f"Found {len(file_list)} output files for job {job_id}.")
             return {
                 "status": "success",
                 "code": 200,
                 "data": {
-                    "file_list": [self.complete_to_public_path(user_id, f, 'jobs') for f in file_list],
+                    "file_list": file_list,
                     "metadata_file": metadata_file
                 }
             }

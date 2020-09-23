@@ -4,7 +4,7 @@ This is not a database model! The data service does not have a dedicated databas
 The classes defined here are rather classic simple classes - mainly NamedTuples - used to ensure fixed data structures.
 """
 import logging
-from typing import Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
 
 LOGGER = logging.getLogger("standardlog")
 
@@ -106,6 +106,9 @@ class Collection(NamedTuple):
     """Spatial and temporal extent of the collection."""
     links: list
     """Links related to this collection."""
+    cube_dimensions: Dict[str, Any]
+    summaries: Dict[str, Any]
+    assets: Optional[Dict[str, Any]] = None
     title: Optional[str] = None
     """A short descriptive one-line title of the collection."""
     keywords: Optional[List[str]] = None
