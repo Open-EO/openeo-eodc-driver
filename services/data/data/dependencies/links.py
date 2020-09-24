@@ -16,33 +16,32 @@ class LinkHandler:
         service_url: The URI reachable from the outside. This is the gateway url in the current setup.
     """
 
-    def __init__(self, service_url: str) -> None:
+    def __init__(self) -> None:
         """Initialise LinkHandler."""
-        self.service_url = service_url
         self.api_endpoint = "collections"
 
     def _get_root_record(self) -> Link:
         """Create /collections link with rel root."""
         rel = "root"
-        href = os.path.join(self.service_url, self.api_endpoint)
+        href = self.api_endpoint
         return Link(href=href, rel=rel)
 
     def _get_parent_record(self) -> Link:
         """Create /collections link with rel parent."""
         rel = "parent"
-        href = os.path.join(self.service_url, self.api_endpoint)
+        href = self.api_endpoint
         return Link(href=href, rel=rel)
 
     def _get_self_record(self, record: dict) -> Link:
         """Create link to specific product collection."""
         rel = "self"
-        href = os.path.join(self.service_url, self.api_endpoint, record["id"])
+        href = os.path.join(self.api_endpoint, record["id"])
         return Link(href=href, rel=rel)
 
     def _get_self_collection(self) -> Link:
         """Create /collection link with rel self."""
         rel = "self"
-        href = os.path.join(self.service_url, self.api_endpoint)
+        href = self.api_endpoint
         return Link(href=href, rel=rel)
 
     def _get_source(self) -> None:

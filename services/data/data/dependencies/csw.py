@@ -45,18 +45,17 @@ class CSWHandler:
         group_property: The query property to use when querying for a product.
         white_list: A list of collections available at the CSW server which should be exposed via OpenEO.
         cache_path: The path to a directory where records should be cached.
-        service_uri: The outside entry point URI. In this setup this is the gateway URI.
     """
 
     def __init__(self, csw_server_uri: str, data_access: str, group_property: str, white_list: List[str],
-                 cache_path: str, service_uri: str) -> None:
+                 cache_path: str) -> None:
         """Initialise CSWHandler."""
         self.csw_server_uri = csw_server_uri
         self.data_access = data_access
         self.group_property = group_property
         self.white_list = white_list
         self.cache_path = cache_path
-        self.link_handler = LinkHandler(service_uri)
+        self.link_handler = LinkHandler()
 
         self._create_path(self.cache_path)
         LOGGER.debug("Initialized %s", self)
@@ -400,7 +399,6 @@ class CSWSession(DependencyProvider):
             group_property=settings.GROUP_PROPERTY,
             white_list=settings.WHITELIST,
             cache_path=settings.CACHE_PATH,
-            service_uri=settings.DNS_URL,
         )
 
 
@@ -425,5 +423,4 @@ class CSWSessionDC(DependencyProvider):
             group_property=settings.GROUP_PROPERTY_DC,
             white_list=settings.WHITELIST_DC,
             cache_path=settings.CACHE_PATH,
-            service_uri=settings.DNS_URL,
         )

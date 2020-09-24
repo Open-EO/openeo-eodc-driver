@@ -21,13 +21,6 @@ class SettingKeys(Enum):
 
     If you are running in docker the path needs to be inside the container.
     """
-    DNS_URL = "DNS_URL"
-    """The URI visible from the outside.
-
-    It is used to return proper links.
-    In this setup it is the URI of the gateway. E.g. for eodc this is https://openeo.eodc.eu/v1.0, for a local
-    deployment it could be http://0.0.0.0:3000/v1.0.
-    """
     CSW_SERVER = "CSW_SERVER"
     """The url to a running CSW server.
 
@@ -120,7 +113,6 @@ def initialise_settings() -> None:
 
     settings.validators.register(
         Validator(SettingKeys.CACHE_PATH.value, must_exist=True, condition=utils.check_create_folder, when=no_doc),
-        Validator(SettingKeys.DNS_URL.value, must_exist=True, condition=utils.check_parse_url, when=no_doc),
 
         # Validator("CSW_SERVER", must_exist=True, when=Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"]),
         #           condition=utils.check_url_is_reachable),
