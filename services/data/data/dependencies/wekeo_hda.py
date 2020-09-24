@@ -2,10 +2,10 @@
 
 
 import logging
-import requests
 from time import sleep
-from typing import Any, Dict, List
+from typing import Dict, List
 
+import requests
 from dynaconf import settings
 from nameko.extensions import DependencyProvider
 
@@ -26,18 +26,21 @@ class HDAError(Exception):
 class HDAHandler:
     """
     """
-    
+
     def __init__(self, service_uri: str, service_user: str, service_password: str) -> None:
         self.service_uri = service_uri
         self.service_user = service_user
         self.service_password = service_password
-        self.service_headers = None
-        self.set_headers()
+        self.service_headers = {
+            'Authorization': None,
+            'Accept': 'application/json'
+        }
+        self._set_headers()
         self.link_handler = LinkHandler(service_uri)
 
         LOGGER.debug("Initialized %s", self)
-    
-    def set_headers(self):
+
+    def _set_headers(self) -> None:
         response = requests.get(self.service_uri + "/gettoken",
                                 auth=(self.service_user, self.service_password)
                                 )
@@ -46,26 +49,22 @@ class HDAHandler:
             raise HDAError(response.text)
 
         access_token = response.json()['access_token']
-        self.service_headers = {
-            'Authorization': f'Bearer {access_token}',
-            'Accept': 'application/json'
-            }
-    
-    
+        self.service_headers['Authorization'] = f'Bearer {access_token}'
+
     def get_all_products(self) -> Collections:
         """Returns all products available at the back-end.
 
         Returns:
             list -- The list containing information about available products
         """
-        
+
         collection_list = []
         for data_id in settings.WHITELIST_WEKEO:
             collection_list.append(self.get_product(data_id))
-        
+
         links = self.link_handler.get_links(collection=True)
         collections = Collections(collections=collection_list, links=links)
-        
+
         return collections
 
     def get_product(self, data_id: str) -> Collection:
@@ -77,7 +76,7 @@ class HDAHandler:
         Returns:
             dict -- The product data
         """
-        
+
         temp_var = data_id.split(':')
         wekeo_data_id = ':'.join(temp_var[:-1])
         response = requests.get(f"{self.service_uri}/querymetadata/{wekeo_data_id}",
@@ -87,9 +86,9 @@ class HDAHandler:
 
         data = response.json()
         data["id"] = data_id
-        all_records = self.link_handler.get_links([data])
-        all_records = add_non_csw_info([data])
-        
+        data = self.link_handler.get_links([data])
+        data = add_non_csw_info([data])
+
         collection = Collection(
             stac_version=data["stac_version"],
             id=data["id"],
@@ -102,8 +101,7 @@ class HDAHandler:
             cube_dimensions=data["cube:dimensions"],
             summaries=data["summaries"],
         )
-        
-        
+
         # bbox = {
         #     'west': 7.631289019431526,
         #     'east': 12.843490774792011,
@@ -115,12 +113,12 @@ class HDAHandler:
         # self.get_filepaths(wekeo_data_id, var_id, bbox, textent)
 
         return collection
-    
+
     def get_filepaths(self, wekeo_data_id: str, var_id: str, spatial_extent: Dict, temporal_extent: List) -> List[str]:
         """
-        
+
         """
-        
+
         # Create WEkEO 'data descriptor'
         data_descriptor = {
             "datasetId": wekeo_data_id,
@@ -153,11 +151,11 @@ class HDAHandler:
                 }
             ]
         }
-        
+
         # Create a WEkEO 'datarequest'
         response = requests.post(f"{self.service_uri}/datarequest",
-                                json=data_descriptor,
-                                headers=self.service_headers)
+                                 json=data_descriptor,
+                                 headers=self.service_headers)
         if not response.ok:
             raise HDAError(response.text)
         # check 'datarequest' status
@@ -168,37 +166,42 @@ class HDAHandler:
             sleep(3)
         if not response.ok:
             raise HDAError(response.text)
-        
+
         # Get job result -> list of files corresponding to the datarequest
         response = requests.get(f"{self.service_uri}/datarequest/jobs/{job_id}/result",
                                 headers=self.service_headers)
         if not response.ok:
             raise HDAError(response.text)
-        
+
         # Loop through list and download each file
         for item in response.json()['content']:
             # TODO use threads to do this async and in parallel
-            
+
             # Create a WEkEO 'dataorder'
-            data2 = {"jobId": job_id,"uri": item['url']}
-            response2 = requests.post(f"{self.service_uri}/dataorder",json=data2,headers=self.service_headers)
+            data2 = {"jobId": job_id, "uri": item['url']}
+            response2 = requests.post(f"{self.service_uri}/dataorder",
+                                      json=data2, headers=self.service_headers)
             if not response2.ok:
                 raise HDAError(response.text)
             # check 'dataorder' status
             order_id = response2.json()['orderId']
             while not response2.json()['message']:
                 response2 = requests.get(f"{self.service_uri}/dataorder/status/{order_id}",
-                                        headers=self.service_headers)
+                                         headers=self.service_headers)
                 sleep(3)
-            
+
             # Download file
-            response3 = requests.get(f"{self.service_uri}/dataorder/download/{order_id}",headers=self.service_headers, stream=True)
+            response3 = requests.get(f"{self.service_uri}/dataorder/download/{order_id}",
+                                     headers=self.service_headers, stream=True)
             with open('s3_test.zip', 'wb') as f:
                 for chunk in response3.iter_content(chunk_size=1024):
                     if chunk:
                         f.write(chunk)
-        
-        
+
+        filepaths = ['placeholer']  # TODO: fill variable
+
+        return filepaths
+
 
 class HDASession(DependencyProvider):
     """ The HDASession is the DependencyProvider of the HDAHandler. """
