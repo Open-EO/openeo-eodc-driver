@@ -1,12 +1,10 @@
 """ CSW Session """
 
 import ast
-import json
 import logging
-import os
 from json import dumps
 from os import makedirs, path
-from typing import Any, Dict, List, Tuple
+from typing import List, Tuple
 
 from defusedxml.minidom import parseString
 from dynaconf import settings
@@ -15,8 +13,8 @@ from requests import post
 
 from .cache import cache_json, get_cache_path, get_json_cache
 from .links import LinkHandler
-from .xml_templates import xml_and, xml_base, xml_bbox, xml_begin, xml_end, xml_product, xml_series
 from .stac_utils import add_non_csw_info
+from .xml_templates import xml_and, xml_base, xml_bbox, xml_begin, xml_end, xml_product, xml_series
 from ..models import Collection, Collections, Extent, SpatialExtent, TemporalExtent
 
 LOGGER = logging.getLogger("standardlog")
