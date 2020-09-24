@@ -2,7 +2,7 @@
 
 Schemas are defined to fit request return schemas defined in the `OpenEO API Batch Jobs`_.
 
-_OpenEO API Batch Jobs: https://open-eo.github.io/openeo-api/#tag/Batch-Jobs
+.. _OpenEO API Batch Jobs: https://open-eo.github.io/openeo-api/#tag/Batch-Jobs
 """
 from typing import Any, Dict, List, Optional
 from uuid import uuid4

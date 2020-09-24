@@ -8,7 +8,7 @@ service does not directly connect to another microservice and also does not need
 
 Also a set of configuration settings needs to be provided. Settings are excepted to be made available as
 environment variables. All environment variables need to be prefixed with ``OEO_`` (short hand for OpenEO). The full list
-of required environment variables can be found in :py:class:`~files.dependencies.settings.SettingKeys`. It should
+of required environment variables can be found in :py:class:`~jobs.dependencies.settings.SettingKeys`. It should
 be mentioned that NO defaults are defined.
 
 Besides this similar considerations apply as for the :mod:`~capabilities`.

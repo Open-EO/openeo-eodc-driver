@@ -51,6 +51,7 @@ class SettingKeys(Enum):
 
     If you are running in docker the path needs to be inside the container. E.g.: /usr/src/sync-results
     """
+    # TODO to be removed once new bindings and api version is done
     CSW_SERVER = "CSW_SERVER"
     """The url to a running CSW server.
 
@@ -118,14 +119,14 @@ def initialise_settings() -> None:
                   when=not_doc),
         Validator(SettingKeys.SYNC_RESULTS_FOLDER.value, must_exist=True, condition=utils.check_create_folder,
                   when=not_doc),
-        # Validator(SettingKeys.CSW_SERVER.value, must_exist=True, condition=utils.check_url_is_reachable,
-        #           when=(not_unittest and not_doc)),
+        # TODO to be removed once new bindings and api version is done
         Validator(SettingKeys.CSW_SERVER.value, must_exist=True, when=not_doc),
     )
     settings.validators.validate()
     LOGGER.info("Settings validated")
 
     if settings.ENV_FOR_DYNACONF != "documentation":
+        # TODO to be removed once new bindings and api version is done
         # needed for eodc-openeo-bindings - should be removed once this is handled in a better way
         environ["CSW_SERVER"] = settings.CSW_SERVER
         environ["AIRFLOW_DAGS"] = settings.AIRFLOW_DAGS
