@@ -9,8 +9,9 @@ from nameko.rpc import rpc
 
 from .dependencies.arg_parser import ValidationError
 from .dependencies.csw import CSWSession, CSWSessionDC
-from .dependencies.wekeo_hda import HDASession
 from .dependencies.settings import initialise_settings
+from .dependencies.wekeo_hda import HDASession
+from .models import Collections
 from .schema import CollectionSchema, CollectionsSchema
 
 service_name = "data"
@@ -58,9 +59,12 @@ class DataService:
     """
 
     name = service_name
-    csw_session = CSWSession()
-    csw_session_dc = CSWSessionDC()
-    hda_session = HDASession()
+    if settings.IS_CSW_SERVER:
+        csw_session = CSWSession()
+    if settings.IS_CSW_SERVER_DC:
+        csw_session_dc = CSWSessionDC()
+    if settings.IS_HDA_WEKEO:
+        hda_session = HDASession()
 
     def __init__(self) -> None:
         LOGGER.info(f"Initialized {self}")
@@ -83,17 +87,23 @@ class DataService:
         LOGGER.info("All products requested")
         LOGGER.debug("user_id requesting %s", self.get_user_id(user))
         try:
-            product_records = self.csw_session.get_all_products()
-            if user and self.csw_session_dc.data_access in user["profile"]["data_access"]:
+            all_collections = Collections(collections=[], links=[])
+            if settings.IS_CSW_SERVER:
+                csw_collections = self.csw_session.get_all_products()
+                for col in csw_collections[0]:
+                    all_collections[0].append(col)
+            if settings.IS_CSW_SERVER_DC and \
+               user and \
+               self.csw_session_dc.data_access in user["profile"]["data_access"]:
                 acube_collections = self.csw_session_dc.get_all_products()
                 for col in acube_collections[0]:
-                    product_records[0].append(col)
-            if settings.WEKEO_API_URL:
+                    all_collections[0].append(col)
+            if settings.IS_HDA_WEKEO:
                 wekeo_collections = self.hda_session.get_all_products()
                 for col in wekeo_collections[0]:
-                    product_records[0].append(col)
+                    all_collections[0].append(col)
 
-            response = CollectionsSchema().dump(product_records)
+            response = CollectionsSchema().dump(all_collections)
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
@@ -122,30 +132,31 @@ class DataService:
         try:
             LOGGER.info("%s product requested", collection_id)
 
-            if collection_id in settings.WHITELIST:
+            if settings.IS_CSW_SERVER and collection_id in settings.WHITELIST:
                 product_record = self.csw_session.get_product(collection_id)
-            elif collection_id in settings.WHITELIST_DC:
+            elif settings.IS_CSW_SERVER_DC and collection_id in settings.WHITELIST_DC:
                 product_record = self.csw_session_dc.get_product(collection_id)
-            elif collection_id in settings.WHITELIST_WEKEO:
+            elif settings.IS_HDA_WEKEO and collection_id in settings.WHITELIST_WEKEO:
                 product_record = self.hda_session.get_product(collection_id)
 
-            if collection_id in ('TUW_SIG0_S1'):
-                # Check user permission
-                error_code = None
-                if not user:
-                    error_code = 401  # Unauthorized
-                    error_msg = "This collection is not publicly accessible."
-                if user and self.csw_session_dc.data_access not in user["profile"]["data_access"]:
-                    error_code = 403  # Forbidden (dpes not have permissions)
-                    error_msg = "User is not authorized to access this collection."
-                if error_code:
-                    return ServiceException(
-                        error_code,
-                        self.get_user_id(user),
-                        error_msg,
-                        internal=False,
-                        links=[],
-                    ).to_dict()
+            # Check user permission
+            # TODO: implement better logc for checking user permissions
+            error_code = None
+            if collection_id in ('TUW_SIG0_S1') and not user:
+                error_code = 401  # Unauthorized
+                error_msg = "This collection is not publicly accessible."
+            elif collection_id in ('TUW_SIG0_S1') and \
+                    user and self.csw_session_dc.data_access not in user["profile"]["data_access"]:
+                error_code = 403  # Forbidden (dpes not have permissions)
+                error_msg = "User is not authorized to access this collection."
+            if error_code:
+                return ServiceException(
+                    error_code,
+                    self.get_user_id(user),
+                    error_msg,
+                    internal=False,
+                    links=[],
+                ).to_dict()
 
             response = CollectionSchema().dump(product_record)
 
@@ -177,8 +188,10 @@ class DataService:
 
         try:
             LOGGER.info("Refresh cache requested")
-            self.csw_session.refresh_cache(use_cache)
-            self.csw_session_dc.refresh_cache(use_cache)
+            if settings.IS_CSW_SERVER:
+                self.csw_session.refresh_cache(use_cache)
+            if settings.IS_CSW_SERVER_DC:
+                self.csw_session_dc.refresh_cache(use_cache)
 
             return {
                 "status": "success",
