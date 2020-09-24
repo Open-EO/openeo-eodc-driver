@@ -42,6 +42,5 @@ class Job(Base):
     budget = Column(Integer, nullable=True)
     current_costs = Column(Integer, nullable=True)
     logs = Column(String)
-    metrics = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
