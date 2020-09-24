@@ -34,17 +34,14 @@ def get_test_job_folder() -> str:
 
 os.environ["ENV_FOR_DYNACONF"] = "unittest"
 
-os.environ["OEO_GATEWAY_URL"] = "http://0.0.0.0:3000"
-os.environ["OEO_DNS_URL"] = "https://openeo.eodc.eu/v1.0"
+os.environ["OEO_OPENEO_VERSION"] = "v1.0"
 os.environ["OEO_AIRFLOW_HOST"] = "http://airflow-webserver:8080"
 os.environ["OEO_AIRFLOW_OUTPUT"] = get_test_data_folder()
 os.environ["OEO_AIRFLOW_DAGS"] = get_dags_folder()
 os.environ["OEO_SYNC_DEL_DELAY"] = "5"
 os.environ["OEO_SYNC_RESULTS_FOLDER"] = get_sync_results_folder()
 os.environ["OEO_CSW_SERVER"] = "http://localhost:8000"
-
 os.environ["OEO_JOB_FOLDER"] = get_test_job_folder()
-os.environ["OEO_OPENEO_VERSION"] = "v1.0"
 
 
 @pytest.fixture()

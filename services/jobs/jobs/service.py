@@ -518,7 +518,7 @@ class JobService:
                 metadata = json.load(f)
 
             job.assets = [{
-                "href": self._get_download_url(f),
+                "href": self._get_download_url(api_spec["servers"][0]["url"], f),
                 "name": os.path.basename(f)
             } for f in file_list]
 
@@ -545,21 +545,17 @@ class JobService:
         except Exception as exp:
             return ServiceException(500, user["id"], str(exp), links=[]).to_dict()
 
-    def _get_download_url(self, public_path: str) -> str:
+    def _get_download_url(self, base_url: str, public_path: str) -> str:
         """Create the download url from the public filepath of a result file.
 
         Args:
+            base_url: The base URI visible from the outside e.g. https://openeo.eodc.eu or http://localhost:3000.
             public_path: A public filepath (NOT the complete path on the file system!).
 
         Returns:
             Complete url from where the file can be downloaded.
         """
-        if settings.ENV_FOR_DYNACONF.lower() == "development":
-            download_url = os.path.join(settings.GATEWAY_URL, settings.OPENEO_VERSION, "downloads", public_path)
-        else:
-            download_url = os.path.join(settings.DNS_URL, "downloads", public_path)
-
-        return download_url
+        return os.path.join(base_url, settings.OPENEO_VERSION, "downloads", public_path)
 
     @staticmethod
     def authorize(user_id: str, job_id: str, job: Optional[Job]) -> Optional[ServiceException]:

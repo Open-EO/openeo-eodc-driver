@@ -15,18 +15,10 @@ LOGGER = logging.getLogger('standardlog')
 class SettingKeys(Enum):
     """Holds all required setting keys with description."""
 
-    GATEWAY_URL = "GATEWAY_URL"
-    """The complete url to the gateway as string.
+    OPENEO_VERSION = "OPENEO_VERSION"
+    """The OpenEO version running - in the 'version url format'.
 
-    This setting is only required in development environments to patch the download url. This should be improved in the
-    future. E.g. `http://0.0.0.0:3000/v1.0`
-    """
-    DNS_URL = "DNS_URL"
-    """The URI visible from the outside.
-
-    It is used to return proper links.
-    In this setup it is the URI of the gateway. E.g. for eodc this is https://openeo.eodc.eu/v1.0, for a local
-    deployment it could be http://0.0.0.0:3000/v1.0.
+    This is used for version urls only! So depending how you setup version urls the format can change. E.g. v1.0
     """
     AIRFLOW_HOST = "AIRFLOW_HOST"
     """The complete url to the Apache Airflow webserver as a string.
@@ -117,12 +109,10 @@ def initialise_settings() -> None:
     settings.configure(ENVVAR_PREFIX_FOR_DYNACONF="OEO")
     utils = SettingValidationUtils()
     settings.validators.register(
-        Validator(SettingKeys.GATEWAY_URL.value, must_exist=True, condition=utils.check_parse_url, when=not_doc),
-        Validator(SettingKeys.DNS_URL.value, must_exist=True, condition=utils.check_parse_url, when=not_doc),
+        Validator(SettingKeys.OPENEO_VERSION.value, must_exist=True, when=not_doc),
         Validator(SettingKeys.AIRFLOW_HOST.value, must_exist=True, condition=utils.check_parse_url,
                   when=(not_unittest and not_doc)),
         Validator(SettingKeys.AIRFLOW_OUTPUT.value, must_exist=True, when=not_doc),
-        Validator("OPENEO_VERSION", must_exist=True),
         Validator(SettingKeys.AIRFLOW_DAGS.value, must_exist=True, condition=utils.check_create_folder, when=not_doc),
         Validator(SettingKeys.SYNC_DEL_DELAY.value, must_exist=True, is_type_of=int, condition=utils.check_positive_int,
                   when=not_doc),

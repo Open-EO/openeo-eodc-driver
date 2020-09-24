@@ -17,6 +17,16 @@ class TestJobResults(BaseCase):
     """Test the get_results method."""
 
     api_spec = {
+        "servers": [
+            {
+                "url": 'https://openeo.eodc.eu/',
+                "description": 'The URL to the EODC API',
+            },
+            {
+                "url": "https://openeo.eodc.eu/v1.0",
+                "description": "API version 1.0.0-rc.2"
+            },
+        ],
         "info": {
             "stac_version": "0.9.0",
         },
