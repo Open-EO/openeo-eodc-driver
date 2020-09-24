@@ -12,20 +12,20 @@ from capabilities.service import CapabilitiesService
 MOCKED_API_SPEC = {
     "openapi": "3.0.1",
     "servers":
-        {
-            "url": 'https://openeo.eodc.eu/',
-            "description": 'The URL to the EODC API',
-            "versions": {
-                "v1.0": {
-                    "url": "https://openeo.eodc.eu/v1.0",
-                    "api_version": "1.0.0-rc.2"
-                },
-                "v0.4": {
-                    "url": "https://openeo.eodc.eu/v0.4",
-                    "api_version": "0.4.2"
-                }
+        [
+            {
+                "url": 'https://openeo.eodc.eu/',
+                "description": 'The URL to the EODC API',
+            },
+            {
+                "url": "https://openeo.eodc.eu/v1.0",
+                "description": "API version 1.0.0-rc.2"
+            },
+            {
+                "url": "https://openeo.eodc.eu/v0.4",
+                "description": "API version 0.4.2"
             }
-        },
+        ],
     "info": {
         "title": "EODC API",
         "version": "1.0.0-rc.2",

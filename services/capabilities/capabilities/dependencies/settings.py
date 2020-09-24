@@ -2,23 +2,14 @@
 
 import logging
 from enum import Enum
-from urllib.parse import urlparse
 
-from dynaconf import Validator, settings
+from dynaconf import settings
 
 LOGGER = logging.getLogger('standardlog')
 
 
 class SettingKeys(Enum):
     """Holds all required setting keys."""
-
-    # Service internal
-    GATEWAY_URL = "GATEWAY_URL"
-    """The complete url to the gateway as string.
-
-    This setting is only required in development environments to patch the url in the OpenAPI Specification. This
-    should be improved in the future. E.g. `http://0.0.0.0:3000/v1.0`
-    """
 
     # Connection to RabbitMQ
     RABBIT_HOST = "RABBIT_HOST"
@@ -46,27 +37,17 @@ class SettingKeys(Enum):
     """
 
 
-class SettingValidationUtils:
-    """Provides a set of functions to validated settings."""
-
-    def check_parse_url(self, url: str) -> bool:
-        """Checks if the provided url can be parsed."""
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
-
-
 def initialise_settings() -> None:
     """Configures and validates settings.
+
+    As this service needs no environment variables in the Python code this is an empty wrapper to be filled in the
+    future.
 
     Raises:
         :py:class:`~dynaconf.validator.ValidationError`: A setting is not valid.
     """
     settings.configure(ENVVAR_PREFIX_FOR_DYNACONF="OEO")
-    utils = SettingValidationUtils()
-    settings.validators.register(
-        Validator(SettingKeys.GATEWAY_URL.value, must_exist=True, condition=utils.check_parse_url,
-                  when=Validator("ENV_FOR_DYNACONF", is_in=["development"])),
-    )
+    settings.validators.register()
     settings.validators.validate()
 
     LOGGER.info("Settings validated")

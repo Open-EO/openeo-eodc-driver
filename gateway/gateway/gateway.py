@@ -289,15 +289,11 @@ class Gateway:
             "html": "redoc.html",
         }
 
-    def main_page(self) -> dict:
+    def main_page(self, api_spec: dict) -> dict:
         """
         Redirect main page "/" to openeo well known dodument "/.well-known/openeo".
         """
-        if settings.ENV_FOR_DYNACONF.lower() == "development":
-            base_url = settings.GATEWAY_URL
-        else:
-            # Get DNS_URL without versioning
-            base_url = settings.DNS_URL.replace('/' + settings.OPENEO_VERSION, '')
+        base_url = api_spec["servers"][0]["url"]  # Without version - the first one!
         return redirect(base_url + "/.well-known/openeo")
 
     def _parse_error_to_json(self, exc):

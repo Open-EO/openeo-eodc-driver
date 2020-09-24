@@ -6,7 +6,6 @@ This is the main entry point to the capabilities discovery.
 import logging
 from typing import Any, Dict, Optional
 
-from dynaconf import settings
 from nameko.rpc import rpc
 
 from capabilities.dependencies.settings import initialise_settings
@@ -139,16 +138,13 @@ class CapabilitiesService:
             # NB The api 'versions' must match exactly the version numbers available here:
             # https://github.com/Open-EO/openeo-api
             api_versions = []
-            for ver in api_spec["servers"]["versions"]:
-                this_ver = api_spec["servers"]["versions"][ver]
-                this_ver["production"] = api_spec["info"]["production"]
-
-                # TODO find a better solution for this
-                if settings.ENV_FOR_DYNACONF.lower() == "development":
-                    # change https url to localhost
-                    this_ver['url'] = settings.GATEWAY_URL + this_ver['url'].split(".eu")[1]
-
-                api_versions.append(this_ver)
+            for server in api_spec["servers"][1:]:
+                this_version = {
+                    "production": api_spec["info"]["production"],
+                    "url": server["url"],
+                    "api_version": server["description"].split(" ")[-1]
+                }
+                api_versions.append(this_version)
 
             return {
                 "status": "success",

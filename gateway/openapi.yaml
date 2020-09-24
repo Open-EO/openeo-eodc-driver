@@ -1,14 +1,11 @@
 openapi: 3.0.1
 servers:
-  url: https://openeo.eodc.eu
-  description: The URL to the EODC API
-  versions:
-    v1.0:
-      url: https://openeo.eodc.eu/v1.0
-      api_version: 1.0.0
-    v0.4:
-      url: https://openeo.eodc.eu/v0.4
-      api_version: 0.4.2
+  - url: http://localhost:3000
+    description: The main entrypoint to EODC's OpenEO API
+  - url: http://localhost:3000/v1.0
+    description: API version 1.0.0
+  - url: http://localhost:3000/v0.4
+    description: API version 0.4.2
 
 info:
   title: EODC openEO API
