@@ -5,3 +5,4 @@ For Developers
    :maxdepth: 4
 
    documentation
+   tests
