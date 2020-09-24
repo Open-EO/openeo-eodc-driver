@@ -1,24 +1,24 @@
 openapi: 3.0.1
 servers:
-  - url: http://localhost:3000
-    description: The main entrypoint to EODC's OpenEO API
-  - url: http://localhost:3000/v1.0
-    description: API version 1.0.0
-  - url: http://localhost:3000/v0.4
+  - url: https://openeo.sample.come
+    description: A short description
+  - url: https://openeo.sample.com/v1.0
+    description: API version 1.0.0 (description has to end with exact api_version!)
+  - url: https://openeo.sample.com/v0.4
     description: API version 0.4.2
 
 info:
-  title: EODC openEO API
+  title: Your openEO API
   version: 1.0.0
-  description: 'The EODC API provides access to the EODC services and data, as well as access to the openEO endpoints.'
+  description: 'E.g. This API provides access to the EODC services and data, as well as access to the openEO endpoints.'
   contact:
-    name: Luca Foresta
-    url: 'https://openeo.eodc.eu'
-    email: luca.foresta@eodc.eu
+    name: Your Name
+    url: 'https://openeo.sample.come'
+    email: your.name@sample.com
   license:
     name: Apache 2.0
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
-  x-backend_version: 2.0.0
+  x-backend_version: 0.0.1
   x-stac_version: 0.9.0
   x-id: '0.0.1'  # id of collections' catalogue (arbitrary number for now)
   x-production: false
@@ -61,8 +61,8 @@ info:
 # add service types    
 
 externalDocs:
-  description: EODC API Description
-  url: 'https://openeo.eodc.eu/redoc'
+  description: Your API Description
+  url: 'https://openeo.sample.com/redoc'
 tags:
   - name: OpenAPI
     description: The OpenAPI specification and Tools for inspecting

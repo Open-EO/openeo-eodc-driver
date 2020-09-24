@@ -16,7 +16,9 @@ Additionally, three docker-compose files implement a CSW server for data access 
 
 In order to start the API web app and its micro-services, a simple docker-compose up is needed. However some environment variables must be set first.
 
-#### Set environment variables
+#### Configuration
+
+First some environment variable need to be set.
 
 Copy the `sample.env` file and the `/sample-envs` folder to to `.env` and `/envs`, respectively. The latter are
 included in the `.gitignore` by default. Do not change this. Variables in the `.env`file are used in
@@ -39,6 +41,8 @@ prior validation.
 - `envs/rabbitmq.env`
 - `envs/users.env`
 
+Then also copy `/gateway/gateway/sample_openapi.yaml` file to `/gateway/gateway/openapi.yaml` and edit `servers` and
+`info` sections, adding your urls, name and some description.
 
 #### Bring up web app and services
 
