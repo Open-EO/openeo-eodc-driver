@@ -7,10 +7,12 @@ import json
 import os
 from typing import Any, Dict, List
 
+
 def add_non_csw_info(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for record in records:
         record.update(get_non_csw_info_single_record(record["id"]))
     return records
+
 
 def get_non_csw_info_single_record(collection_id: str) -> Dict[str, Any]:
     # Add cube:dimensions and summaries
