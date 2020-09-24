@@ -14,10 +14,10 @@ data.models module
    :undoc-members:
    :show-inheritance:
 
-data.schemas module
+data.schema module
 -------------------
 
-.. automodule:: data.schemas
+.. automodule:: data.schema
    :members:
    :undoc-members:
    :show-inheritance:
