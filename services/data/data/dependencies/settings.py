@@ -40,33 +40,30 @@ def initialise_settings() -> None:
         Validator("CACHE_PATH", must_exist=True, condition=utils.check_create_folder),
         Validator("DNS_URL", must_exist=True, condition=utils.check_parse_url),
 
-        # Validator("CSW_SERVER", must_exist=True, when=Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"]),
-        #           condition=utils.check_url_is_reachable),
-        Validator("CSW_SERVER", must_exist=True),
-        Validator("DATA_ACCESS", must_exist=True),
-        Validator("GROUP_PROPERTY", must_exist=True),
-        Validator("WHITELIST", must_exist=True),
+        Validator("IS_CSW_SERVER", default=False),
+        Validator("CSW_SERVER", "DATA_ACCESS", "GROUP_PROPERTY", "WHITELIST",
+                  must_exist=True, when=Validator("IS_CSW_SERVER", eq="True")),
 
-        # Validator("CSW_SERVER_DC", must_exist=True, when=Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"]),
-        #           condition=utils.check_url_is_reachable),
-        Validator("CSW_SERVER_DC", must_exist=True),
-        Validator("DATA_ACCESS_DC", must_exist=True),
-        Validator("GROUP_PROPERTY_DC", must_exist=True),
-        Validator("WHITELIST_DC", must_exist=True),
-        
-        Validator("WEKEO_API_URL"),
-        Validator("WEKEO_USER"),
-        Validator("WEKEO_PASSWORD"),
-        Validator("DATA_ACCESS_WEKEO"),
-        Validator("WHITELIST_WEKEO"),
+        Validator("IS_CSW_SERVER_DC", default=False),
+        Validator("CSW_SERVER_DC", "DATA_ACCESS_DC", "GROUP_PROPERTY_DC", "WHITELIST_DC",
+                  must_exist=True, when=Validator("IS_CSW_SERVER_DC", eq="True")),
+
+        Validator("IS_HDA_WEKEO", default=False),
+        Validator("WEKEO_API_URL", "WEKEO_USER", "WEKEO_PASSWORD", "WEKEO_DATA_FOLDER",
+                  "DATA_ACCESS_WEKEO", "WHITELIST_WEKEO",
+                  must_exist=True, when=Validator("IS_HDA_WEKEO", eq="True")),
     )
     settings.validators.validate()
+    if not (settings.IS_CSW_SERVER or settings.IS_CSW_SERVER_DC or settings.IS_HDA_WEKEO):
+        raise Exception("No (meta)data connector is specified. At least one of the"
+                        "following env variables must be true: OEO_IS_CSW_SERVER,"
+                        " OEO_IS_CSW_SERVER_DC, OEO_IS_HDA_WEKEO.")
 
-    settings.WHITELIST = settings.WHITELIST.split(",")
-    settings.WHITELIST_DC = settings.WHITELIST_DC.split(",")
-    try:
+    if settings.IS_CSW_SERVER:
+        settings.WHITELIST = settings.WHITELIST.split(",")
+    if settings.IS_CSW_SERVER_DC:
+        settings.WHITELIST_DC = settings.WHITELIST_DC.split(",")
+    if settings.IS_HDA_WEKEO:
         settings.WHITELIST_WEKEO = settings.WHITELIST_WEKEO.split(",")
-    except:
-        pass
 
     LOGGER.info("Settings validated")
