@@ -351,8 +351,15 @@ class CSWHandler:
 
     def get_filepaths(self, collection_id: str, spatial_extent: List[float], temporal_extent: List[str]
                       ) -> List[str]:
-        """
-        Retrieves a file list from the a CSW server according to the specified parameters.
+        """Retrieves a file list from the a CSW server according to the specified parameters.
+
+        Arguments:
+            collecion_id {str} -- identifier of the collection
+            spatial_extent {List[float]} -- bounding box [ymin, xmin, ymax, ymax]
+            temporal_extent {List[str]} -- e.g. ["2018-06-04", "2018-06-23"]
+
+        Returns:
+            list -- list of filepaths
         """
 
         csw = CatalogueServiceWeb(self.csw_server_uri, timeout=300)
