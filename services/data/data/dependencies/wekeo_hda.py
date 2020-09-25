@@ -3,7 +3,7 @@
 
 import logging
 from time import sleep
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import requests
 from dynaconf import settings
@@ -77,8 +77,9 @@ class HDAHandler:
             dict -- The product data
         """
 
-        temp_var = data_id.split(':')
-        wekeo_data_id = ':'.join(temp_var[:-1])
+        # temp_var = data_id.split(':')
+        # wekeo_data_id = ':'.join(temp_var[:-1])
+        wekeo_data_id, _ = self._split_collection_id(data_id)
         response = requests.get(f"{self.service_uri}/querymetadata/{wekeo_data_id}",
                                 headers=self.service_headers)
         if not response.ok:
@@ -86,8 +87,8 @@ class HDAHandler:
 
         data = response.json()
         data["id"] = data_id
-        data = self.link_handler.get_links([data])
         data = add_non_csw_info([data])
+        data = self.link_handler.get_links(data)[0]
 
         collection = Collection(
             stac_version=data["stac_version"],
@@ -102,22 +103,56 @@ class HDAHandler:
             summaries=data["summaries"],
         )
 
-        # bbox = {
-        #     'west': 7.631289019431526,
-        #     'east': 12.843490774792011,
-        #     'north': 46.001682783839534,
-        #     'south': 43.96918075703031
-        # }
-        # textent = ['2020-09-04T00:00:00.000Z', '2020-09-04T01:00:00.000Z']
-        # var_id = data['parameters']['stringChoices'][1]['details']['valuesLabels'][temp_var[-1]]
-        # self.get_filepaths(wekeo_data_id, var_id, bbox, textent)
-
         return collection
 
-    def get_filepaths(self, wekeo_data_id: str, var_id: str, spatial_extent: Dict, temporal_extent: List) -> List[str]:
+    def get_filepaths(self, collection_id: str, spatial_extent: Dict, temporal_extent: List) -> List[str]:
+        """Retrieves a URL list from the WEkEO HDA according to the specified parameters.
+
+        Arguments:
+            collecion_id {str} -- identifier of the collection
+            spatial_extent {List[float]} -- bounding box [ymin, xmin, ymax, ymax]
+            temporal_extent {List[str]} -- e.g. ["2018-06-04", "2018-06-23"]
+
+        Returns:
+            list -- list of URLs / filepaths
         """
 
+        # Create Data Descriptor
+        data_descriptor = self.create_data_descriptor(collection_id, spatial_extent, temporal_extent)
+
+        # Create a Data Request job
+        job_id = self._create_datarequest(data_descriptor)
+
+        # Get URLs for individual files
+        filepaths, next_page_url = self._get_download_urls(f"{self.service_uri}/datarequest/jobs/{job_id}/result")
+        while next_page_url:
+            tmp_filepaths, next_page_url = self._get_download_urls(next_page_url)
+            filepaths.extend(tmp_filepaths)
+
+        return filepaths
+
+    def _split_collection_id(self, collection_id: str) -> List:
+        """Splits a collection_id into the collection name and variable name, e.g.
+        EO:ESA:DAT:SENTINEL-5P:TROPOMI:L2__NO2___ into:
+        EO:ESA:DAT:SENTINEL-5P:TROPOMI and L2__NO2___.
+
+        Arguments:
+            collecion_id {str} -- identifier of the collection
+
+        Returns:
+            list -- list with two strings
         """
+
+        temp_var = collection_id.split(':')
+        wekeo_data_id = ':'.join(temp_var[:-1])
+        wekeo_var_id = temp_var[-1]
+
+        return [wekeo_data_id, wekeo_var_id]
+
+    def create_data_descriptor(self, collection_id: str, spatial_extent: Dict, temporal_extent: List) -> Dict:
+        """ """
+
+        wekeo_data_id, wekeo_var_id = self._split_collection_id(collection_id)
 
         # Create WEkEO 'data descriptor'
         data_descriptor = {
@@ -125,12 +160,7 @@ class HDAHandler:
             "boundingBoxValues": [
                 {
                     "name": "bbox",
-                    "bbox": [
-                        spatial_extent["west"],
-                        spatial_extent["south"],
-                        spatial_extent["east"],
-                        spatial_extent["north"]
-                    ]
+                    "bbox": spatial_extent
                 }
             ],
             "dateRangeSelectValues": [
@@ -147,10 +177,15 @@ class HDAHandler:
                 },
                 {
                     "name": "productType",
-                    "value": var_id
+                    "value": wekeo_var_id
                 }
             ]
         }
+
+        return data_descriptor
+
+    def _create_datarequest(self, data_descriptor: Dict) -> str:
+        """ """
 
         # Create a WEkEO 'datarequest'
         response = requests.post(f"{self.service_uri}/datarequest",
@@ -158,49 +193,30 @@ class HDAHandler:
                                  headers=self.service_headers)
         if not response.ok:
             raise HDAError(response.text)
-        # check 'datarequest' status
+        # Check 'datarequest' status
         job_id = response.json()['jobId']
         while not response.json()['message']:
             response = requests.get(f"{self.service_uri}/datarequest/status/{job_id}",
                                     headers=self.service_headers)
-            sleep(3)
+            sleep(1)
         if not response.ok:
             raise HDAError(response.text)
 
-        # Get job result -> list of files corresponding to the datarequest
-        response = requests.get(f"{self.service_uri}/datarequest/jobs/{job_id}/result",
-                                headers=self.service_headers)
+        return job_id
+
+    def _get_download_urls(self, url: str) -> Tuple:
+        """ """
+
+        response = requests.get(url, headers=self.service_headers)
         if not response.ok:
             raise HDAError(response.text)
+        next_page_url = response.json()['nextPage']
 
-        # Loop through list and download each file
+        download_urls = []
         for item in response.json()['content']:
-            # TODO use threads to do this async and in parallel
+            download_urls.append(item['url'])
 
-            # Create a WEkEO 'dataorder'
-            data2 = {"jobId": job_id, "uri": item['url']}
-            response2 = requests.post(f"{self.service_uri}/dataorder",
-                                      json=data2, headers=self.service_headers)
-            if not response2.ok:
-                raise HDAError(response.text)
-            # check 'dataorder' status
-            order_id = response2.json()['orderId']
-            while not response2.json()['message']:
-                response2 = requests.get(f"{self.service_uri}/dataorder/status/{order_id}",
-                                         headers=self.service_headers)
-                sleep(3)
-
-            # Download file
-            response3 = requests.get(f"{self.service_uri}/dataorder/download/{order_id}",
-                                     headers=self.service_headers, stream=True)
-            with open('s3_test.zip', 'wb') as f:
-                for chunk in response3.iter_content(chunk_size=1024):
-                    if chunk:
-                        f.write(chunk)
-
-        filepaths = ['placeholer']  # TODO: fill variable
-
-        return filepaths
+        return download_urls, next_page_url
 
 
 class HDASession(DependencyProvider):
