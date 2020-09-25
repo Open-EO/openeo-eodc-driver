@@ -33,6 +33,7 @@ class JobService:
 
     name = service_name
     db = DatabaseSession(Base)
+    data_service = RpcProxy("data")
     processes_service = RpcProxy("processes")
     files_service = RpcProxy("files")
     airflow = AirflowRestConnectionProvider()
@@ -237,14 +238,25 @@ class JobService:
             if process_response["status"] == "error":
                 return process_response
             backend_processes = process_response["data"]["processes"]
+
+            # Get filepaths
+            # NB: retrieve collection_id (may be multplie ones) dynamically
+            collection_id, spatial_extent, temporal_extent = self.get_load_collection_properties(process, node_id='dc')
+            data_response = self.data_service.get_filepaths(collection_id, spatial_extent, temporal_extent)
+            if data_response["status"] == "error":
+                return data_response
+            in_filepaths = data_response["data"]
+
             self.dag_writer.write_and_move_job(job_id=job_id,
                                                user_name=user["id"],
+                                               dags_folder=settings.AIRFLOW_DAGS,
                                                process_graph_json=process,
                                                job_data=self.get_job_folder(user["id"], job_id),
                                                vrt_only=vrt_flag,
                                                add_delete_sensor=True,
                                                add_parallel_sensor=add_parallel_sensor,
-                                               process_defs=backend_processes)
+                                               process_defs=backend_processes,
+                                               in_filepaths=in_filepaths)
             self.db.add(job)
             self.db.commit()
             LOGGER.info(f"Dag file created for job {job_id}")
@@ -638,3 +650,19 @@ class JobService:
         Generates a random alpha numeric value.
         """
         return ''.join(random.choices(string.ascii_letters + string.digits, k=k))
+
+    def _get_load_collection_properties(self, process, node_id):
+        """ """
+
+        collection_id = process['process_graph'][node_id]['arguments']['id'].replace('%', 'a')
+
+        spatial_extent = [
+            process['process_graph'][node_id]['arguments']['spatial_extent']['south'],
+            process['process_graph'][node_id]['arguments']['spatial_extent']['west'],
+            process['process_graph'][node_id]['arguments']['spatial_extent']['north'],
+            process['process_graph'][node_id]['arguments']['spatial_extent']['east']
+        ]
+
+        temporal_extent = process['process_graph'][node_id]['arguments']['temporal_extent']
+
+        return collection_id, spatial_extent, temporal_extent
