@@ -13,7 +13,11 @@ environ["OEO_GROUP_PROPERTY"] = "apiso:ParentIdentifier"
 environ["OEO_WHITELIST"] = "s2b_prd_msil1c,s2a_prd_msil1c"
 
 # unused in tests but must be there
-environ["OEO_IS_CSW_SERVER_DC"] = "false"
+environ["OEO_IS_CSW_SERVER_DC"] = "true"
+environ["OEO_CSW_SERVER_DC"] = "https://csw-acube.eodc.eu"
+environ["OEO_DATA_ACCESS_DC"] = "acube"
+environ["OEO_GROUP_PROPERTY_DC"] = "eodc:variable_name"
+environ["OEO_WHITELIST_DC"] = "SIG0"
 
 # unused in tests but must be there
 environ["OEO_IS_HDA_WEKEO"] = "false"

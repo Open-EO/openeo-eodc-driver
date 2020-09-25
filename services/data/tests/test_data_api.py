@@ -155,6 +155,29 @@ filepaths_response = {
     ]
 }
 
+filepaths_response_dc = {
+    "status": "success",
+    "code": 200,
+    "data": [
+        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_050935--_EU010M_E052N015T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_051000--_EU010M_E052N015T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_050935--_EU010M_E052N015T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_051000--_EU010M_E052N015T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050053--_EU010M_E052N015T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050118--_EU010M_E052N015T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050053--_EU010M_E052N015T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050118--_EU010M_E052N015T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_050935--_EU010M_E052N016T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_051000--_EU010M_E052N016T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_050935--_EU010M_E052N016T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_051000--_EU010M_E052N016T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050028--_EU010M_E052N016T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050053--_EU010M_E052N016T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050028--_EU010M_E052N016T1.tif',
+        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050053--_EU010M_E052N016T1.tif'
+    ]
+}
+
 
 def test_get_all_products() -> None:
     data_service = worker_factory(DataService)
@@ -185,9 +208,10 @@ def test_get_product_detail() -> None:
 
 
 def test_get_filepaths() -> None:
-    collection_id = "s2a_prd_msil1c"
     data_service = worker_factory(DataService)
+
     data_service.csw_session.get_filepaths.return_value = filepaths_response
+    collection_id = "s2a_prd_msil1c"
     spatial_extent = [46.464349400461145, 11.279182434082033, 46.522729291844286, 11.406898498535158]
     temporal_extent = ["2018-06-04", "2018-06-23"]
     result = data_service.get_filepaths(collection_id, spatial_extent, temporal_extent)
@@ -195,4 +219,15 @@ def test_get_filepaths() -> None:
         "status": "success",
         "code": 200,
         "data": filepaths_response,
+    }
+
+    data_service.csw_session_dc.get_filepaths.return_value = filepaths_response_dc
+    collection_id = "SIG0"
+    spatial_extent = [48.06, 16.06, 48.35, 16.65]
+    temporal_extent = ["2017-03-01", "2017-03-03"]
+    result = data_service.get_filepaths(collection_id, spatial_extent, temporal_extent)
+    assert result == {
+        "status": "success",
+        "code": 200,
+        "data": filepaths_response_dc,
     }
