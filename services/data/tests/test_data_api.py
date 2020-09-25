@@ -144,6 +144,17 @@ collection_model = Collection(
     )],
 )
 
+filepaths_response = {
+    "status": "success",
+    "code": 200,
+    "data": [
+        '/s2a_prd_msil1c/2018/06/08/S2A_MSIL1C_20180608T101021_N0206_R022_T32TPS_20180608T135059.zip',
+        '/s2a_prd_msil1c/2018/06/11/S2A_MSIL1C_20180611T102021_N0206_R065_T32TPS_20180611T123241.zip',
+        '/s2a_prd_msil1c/2018/06/18/S2A_MSIL1C_20180618T101021_N0206_R022_T32TPS_20180618T135619.zip',
+        '/s2a_prd_msil1c/2018/06/21/S2A_MSIL1C_20180621T102021_N0206_R065_T32TPS_20180621T140615.zip'
+    ]
+}
+
 
 def test_get_all_products() -> None:
     data_service = worker_factory(DataService)
@@ -170,4 +181,18 @@ def test_get_product_detail() -> None:
         "status": "success",
         "code": 200,
         "data": collection_dict,
+    }
+
+
+def test_get_filepaths() -> None:
+    collection_id = "s2a_prd_msil1c"
+    data_service = worker_factory(DataService)
+    data_service.csw_session.get_filepaths.return_value = filepaths_response
+    spatial_extent = [46.464349400461145, 11.279182434082033, 46.522729291844286, 11.406898498535158]
+    temporal_extent = ["2018-06-04", "2018-06-23"]
+    result = data_service.get_filepaths(collection_id, spatial_extent, temporal_extent)
+    assert result == {
+        "status": "success",
+        "code": 200,
+        "data": filepaths_response,
     }
