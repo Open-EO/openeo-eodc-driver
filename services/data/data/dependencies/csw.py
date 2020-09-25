@@ -9,6 +9,8 @@ from typing import List, Tuple
 from defusedxml.minidom import parseString
 from dynaconf import settings
 from nameko.extensions import DependencyProvider
+from owslib.csw import CatalogueServiceWeb
+from owslib.fes import BBox, PropertyIsGreaterThan, PropertyIsLessThan, PropertyIsLike
 from requests import post
 
 from .cache import cache_json, get_cache_path, get_json_cache
@@ -346,6 +348,37 @@ class CSWHandler:
                 out_collections.append(collection)
 
         return out_collections
+
+    def get_filepaths(self, collection_id: str, spatial_extent: List[float], temporal_extent: List[str]
+                      ) -> List[str]:
+        """
+        Retrieves a file list from the a CSW server according to the specified parameters.
+        """
+
+        csw = CatalogueServiceWeb(self.csw_server_uri, timeout=300)
+
+        constraints = []
+        constraints.append(PropertyIsLike(self.group_property, collection_id))
+
+        # Spatial filter
+        constraints.append(BBox(spatial_extent))
+        # Temporal filter
+        constraints.append(PropertyIsGreaterThan('apiso:TempExtent_begin', temporal_extent[0]))
+        constraints.append(PropertyIsLessThan('apiso:TempExtent_end', temporal_extent[1]))
+
+        # Run the query
+        csw.getrecords2(constraints=[constraints], maxrecords=100)
+
+        # Put found records in a variable (dictionary)
+        records0 = csw.records
+
+        # Sort records
+        records = []
+        for record in records0:
+            records.append(records0[record].references[0]['url'])
+        records = sorted(records)
+
+        return records
 
 
 class CSWSession(DependencyProvider):
