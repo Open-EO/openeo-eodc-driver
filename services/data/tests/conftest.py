@@ -20,4 +20,6 @@ environ["OEO_GROUP_PROPERTY_DC"] = "eodc:variable_name"
 environ["OEO_WHITELIST_DC"] = "SIG0"
 
 # unused in tests but must be there
-environ["OEO_IS_HDA_WEKEO"] = "false"
+environ["OEO_IS_HDA_WEKEO"] = "true"
+environ["OEO_WEKEO_API_URL"] = "https://wekeo-broker.apps.mercator.dpi.wekeo.eu/databroker"
+environ["OEO_WHITELIST_WEKEO"] = "EO:ESA:DAT:SENTINEL-5P:TROPOMI:L2__NO2___"
