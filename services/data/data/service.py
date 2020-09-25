@@ -234,8 +234,8 @@ class DataService:
                 filepaths = self.csw_session.get_filepaths(collection_id, spatial_extent, temporal_extent)
             elif settings.IS_CSW_SERVER_DC and collection_id in settings.WHITELIST_DC:
                 filepaths = self.csw_session_dc.get_filepaths(collection_id, spatial_extent, temporal_extent)
-            # elif settings.IS_HDA_WEKEO and collection_id in settings.WHITELIST_WEKEO:
-            #     product_record = self.hda_session.get_product(collection_id)
+            elif settings.IS_HDA_WEKEO and collection_id in settings.WHITELIST_WEKEO:
+                filepaths = self.hda_session.get_filepaths(collection_id, spatial_extent, temporal_extent)
 
             if not filepaths:
                 msg = "No filepaths were found."
