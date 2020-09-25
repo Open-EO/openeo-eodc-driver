@@ -2,7 +2,7 @@
 
 import logging
 from pprint import pformat
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from dynaconf import settings
 from nameko.rpc import rpc
@@ -212,3 +212,39 @@ class DataService:
 
     def get_user_id(self, user: Optional[Dict[str, Any]]) -> Optional[str]:
         return user["id"] if user and "id" in user else None
+
+    @rpc
+    def get_filepaths(self, collection_id: str, spatial_extent: List[float], temporal_extent: List[str],
+                      user: Dict[str, Any] = None) -> Dict:
+        """The request will return a list of filepaths.
+
+        Keyword Arguments:
+            user {Dict[str, Any]} -- The user (default: {None})
+            collecion_id {str} -- identifier of the collection
+            spatial_extent {List[float]} -- bounding box [ymin, xmin, ymax, ymax]
+            temporal_extent {List[str]} -- e.g. ["2018-06-04", "2018-06-23"]
+
+        Returns:
+            dict -- Success message or Exception
+        """
+
+        try:
+            filepaths = []
+            if settings.IS_CSW_SERVER and collection_id in settings.WHITELIST:
+                filepaths = self.csw_session.get_filepaths(collection_id, spatial_extent, temporal_extent)
+            elif settings.IS_CSW_SERVER_DC and collection_id in settings.WHITELIST_DC:
+                filepaths = self.csw_session_dc.get_filepaths(collection_id, spatial_extent, temporal_extent)
+            # elif settings.IS_HDA_WEKEO and collection_id in settings.WHITELIST_WEKEO:
+            #     product_record = self.hda_session.get_product(collection_id)
+
+            if not filepaths:
+                msg = "No filepaths were found."
+                return ServiceException(500, self.get_user_id(user), msg=msg).to_dict()
+
+            return {
+                "status": "success",
+                "code": 200,
+                "data": filepaths,
+            }
+        except Exception as exp:
+            return ServiceException(500, self.get_user_id(user), str(exp), links=[]).to_dict()
