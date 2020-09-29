@@ -36,7 +36,7 @@ class JobService:
     processes_service = RpcProxy("processes")
     """Rpc connection to processes service."""
     files_service = RpcProxy("files")
-    """Rpc connection to files service"""
+    """Rpc connection to files service."""
     airflow = AirflowRestConnectionProvider()
     """Object to connection to Airflow REST endpoints."""
     dag_handler = DagHandlerProvider()

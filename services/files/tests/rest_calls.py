@@ -42,7 +42,7 @@ def get_auth() -> Optional[Dict[str, str]]:
 
 
 def check_files() -> None:
-    """Try to perform simple REST calls to all file service endpoints and print the return status code."""
+    """Try to perform simple REST calls to all job service endpoints and print the return status code."""
     auth_header = get_auth()
     if not auth_header:
         return None
