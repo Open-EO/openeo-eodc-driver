@@ -1,3 +1,8 @@
+"""Provides all schemas definitions used in the main service to serialize and deserialize data.
+
+Schemas are defined to fit request return schemas defined in the `OpenEO API EO Data Discovery`_ and the database
+models defined in :py:mod:`~processes.models`.
+"""
 import re
 from typing import Any, Dict, List, Union
 from uuid import uuid4
@@ -17,85 +22,78 @@ type_map = {
 
 
 class SingleMultipleField:
+    """Allow to swap between one-value list and value itself."""
 
     def _serialize_basic(self, value: List[Any]) -> Union[List[Any], Any]:
-        """
-        Converts one value lists to value itself and returns complete list otherwise.
-        """
+        """Convert one value lists to value itself and returns complete list otherwise."""
         if len(value) == 1:
             return value[0]
         return value
 
     def _desrialize_basic(self, value: Any) -> List[Any]:
-        """
-        Packs non-list values into a list.
-        """
+        """Pack non-list values into a list."""
         if not isinstance(value, list):
             return [value]
         return value
 
 
 class SingleMultipleListField(fields.List, SingleMultipleField):
-    """
-    Handles fields which can be either a schema or a list of schemas.
-    """
+    """Handle fields which can be either a schema or a list of schemas."""
 
     def _serialize(self, value: List[Any], attr: str, obj: Any, **kwargs: dict) -> Union[List[Any], Any]:
-        """
-        Serializes one value list fields to the value itself and returns complete list otherwise.
-        """
+        """Serialize one value list fields to the value itself and returns complete list otherwise."""
         value = super()._serialize(value, attr, obj, **kwargs)
         return super()._serialize_basic(value)
 
     def _deserialize(self, value: Union[List[Any], Any], attr: str, data: Any, **kwargs: dict) -> List[Any]:
-        """
-        Deserializes non-list fields into a list.
-        """
+        """Deserialize non-list fields into a list."""
         value = super()._desrialize_basic(value)
         return super()._deserialize(value, attr, data, **kwargs)
 
 
 class SingleMultiplePluckField(fields.Pluck, SingleMultipleField):
-    """
-    Handles simple fields which can be either a string or a list of strings.
-    """
+    """Handle simple fields which can be either a string or a list of strings."""
 
     def _serialize(self, nested_obj: List[str], attr: str, obj: Any, **kwargs: dict) -> Union[List, Any]:
-        """
-        Serializes one value list fields to the value itself and returns complete list otherwise.
-        """
+        """Serialize one value list fields to the value itself and returns complete list otherwise."""
         value = super()._serialize(nested_obj, attr, obj, **kwargs)
         return super()._serialize_basic(value)
 
     def _deserialize(self, value: Union[str, List[str]], attr: str, data: Any, **kwargs: dict) -> List[str]:
-        """
-        Deserializes non-list fields into a list.
-        """
+        """Deserialize non-list fields into a list."""
         value = super()._desrialize_basic(value)
         return super()._deserialize(value, attr, data, **kwargs)
 
 
 class NestedDict(fields.Nested):
-    """
-    Allows nesting a schema inside a dictionary.
-    This is analogous to nesting schema inside lists but using a dictionary with a given key instead.
+    """Allow nesting a schema inside a dictionary.
+
+    This is analogous to nesting a schema inside a list but using a dictionary with a given key instead.
     """
 
     def __init__(self, nested: Any, key: str, *args: set, **kwargs: dict) -> None:
-        """
-        Initialize nested dictionary field.
-        """
+        """Initialize nested dictionary field."""
         super().__init__(nested, many=True, *args, **kwargs)
         self.key = key
 
     def _serialize(self, nested_obj: List[Any], attr: str, obj: Any, **kwargs: dict) \
             -> Dict[str, Any]:
+        """Convert a list of nested objects into a dictionary of dictionaries using the key.
+
+        input: key: 'foo', nested_obj: [SomeSchema(foo=1, bar=2, baz=3), SomeSchema(foo=4, bar=1, baz=0)]
+        output: {1: {bar: 2, baz: 3}, 4: {bar: 1, baz: 0}}
+        """
         nested_list = super()._serialize(nested_obj, attr, obj)
         nested_dict = {item.pop(self.key): item for item in nested_list}
         return nested_dict
 
     def _deserialize(self, value: Dict[str, Any], attr: str, data: Any, **kwargs: dict) \
             -> List[Any]:
+        """Convert a dictionary of dictionaries into a list of nested objects.
+
+        input: key: foo, value: {1: {bar: 2, baz: 3}, 4: {bar: 1, baz: 0}}
+        output: [SomeSchema(foo=1, bar=2, baz=3), SomeSchema(foo=4, bar=1, baz=0)]
+        """
         raw_list = []
         for key, item in value.items():
             item[self.key] = key
@@ -105,15 +103,25 @@ class NestedDict(fields.Nested):
 
 
 class BaseSchema(Schema):
+    """Base Schema including functionality useful in all other schemas."""
+
     __skip_values__: list = [None, []]
+    """Key value pairs where the value is one of these will not be dumped.
+
+    There is no need to return unset keys and overload returned dictionaries with 'meaningless' key value pairs.
+    """
     __return_anyway__: list = []
+    """These keys will always be returned, also if their value is in __skip_values__.
+
+    Therefore __return_anyway__ overwrites __skip_values__. This is useful if a return key is required by the
+    `OpenEO API`_ but it's value may be in __skip_values__.
+    """
     __model__: Base = None
+    """Database table model corresponding to the schema."""
 
     @post_dump
     def remove_skip_values(self, data: dict, **kwargs: dict) -> dict:
-        """
-        Values defined as __skip_values__ should not be dumped, they are removed from the output dict
-        """
+        """Remove keys where value is in __skip_values__ but key is not in __return_anyway__."""
         return {
             key: value for key, value in data.items()
             if value not in self.__skip_values__ or key in self.__return_anyway__
@@ -121,14 +129,14 @@ class BaseSchema(Schema):
 
     @post_load
     def make_object(self, data: dict, **kwargs: dict) -> Base:
-        """
-        Create a database object from the dict after loading the data.
-        """
+        """Create a database object from the dict after loading the data."""
         if self.__model__:
             return self.__model__(**data)
 
 
 class ParameterSchema(BaseSchema):
+    """Schema for parameters."""
+
     __model__ = Parameter
 
     name = fields.String(required=True)
@@ -142,11 +150,11 @@ class ParameterSchema(BaseSchema):
 
     @pre_load
     def cast_default(self, in_data: dict, **kwargs: dict) -> dict:
-        """
-        Cast the default value to string and add an additional 'default_type' key to store the original type.
+        """Cast the default value to string and add an additional 'default_type' key to store the original type.
 
-        The default value can be of any type, to store it in the database it needs to be casted to string. To later
-        return the default value in the original type also the original type is stored as string in the database
+        The default value can be of any type, but to store it in the database it needs to be casted to string. To later
+        return the default value in the original type also the original type is stored as string in a separate database
+        column.
         """
         if 'default' in in_data:
             in_data['default_type'] = type(in_data['default']).__name__
@@ -155,9 +163,7 @@ class ParameterSchema(BaseSchema):
 
     @post_dump
     def original_default(self, data: dict, **kwargs: dict) -> dict:
-        """
-        Converts the default value from string to its original type.
-        """
+        """Convert the default value from string to its original type."""
         if data['default'] and data['default_type'] in type_map.keys():
             data['default'] = type_map[data.pop('default_type')](data['default'])
         else:
@@ -166,23 +172,30 @@ class ParameterSchema(BaseSchema):
 
 
 class SchemaTypeSchema(BaseSchema):
+    """Schema for schema type."""
+
     __model__ = SchemaType
 
     name = fields.String(required=True)
 
 
 class SchemaEnumSchema(BaseSchema):
+    """Schema for schema enum."""
+
     __model__ = SchemaEnum
 
     name = fields.String(required=True)
 
 
 class SchemaSchema(BaseSchema):
+    """Schema for schema."""
+
     __model__ = DbSchema
     DEFINED_KEYS = ['type', 'subtype', 'parameters', 'pattern', 'enum', 'minimum', 'maximum', 'minItems', 'maxItems',
                     'items']
+    """List of all defined keys in this schema."""
 
-    type = SingleMultiplePluckField(SchemaTypeSchema, 'name', many=True, attribute='types')
+    type_ = SingleMultiplePluckField(SchemaTypeSchema, 'name', many=True, data_key="type", attribute='types')
     subtype = fields.String()
     parameters = fields.List(fields.Nested(ParameterSchema))
     pattern = fields.String()
@@ -196,15 +209,14 @@ class SchemaSchema(BaseSchema):
 
     @pre_load
     def separate_additional_keys(self, in_data: dict, **kwargs: dict) -> dict:
-        """
-        Add any additional (not defined in Schema ) keys
-        """
+        """Add any additional keys - not defined in Schema / :py:attr:`~processes.models.SchemaSchema.DEFINED_KEY."""
         additional_keys = [key for key in in_data.keys() if key not in self.DEFINED_KEYS]
         in_data['additional'] = {key: in_data.pop(key) for key in additional_keys}
         return in_data
 
     @post_dump
     def add_additional_keys(self, data: dict, **kwargs: dict) -> dict:
+        """Add keys stored in the addition keys."""
         data.update(data.pop('additional'))
         if 'additional' in data.keys():
             _ = data.pop('additional')
@@ -212,6 +224,8 @@ class SchemaSchema(BaseSchema):
 
 
 class ReturnSchema(BaseSchema):
+    """Schema for return entity."""
+
     __model__ = Return
 
     description = fields.String(required=False)
@@ -219,12 +233,16 @@ class ReturnSchema(BaseSchema):
 
 
 class CategorySchema(BaseSchema):
+    """Schema for category."""
+
     __model__ = Category
 
     name = fields.String(required=True)
 
 
 class ExceptionSchema(BaseSchema):
+    """Schema for exception."""
+
     __model__ = ExceptionCode
 
     description = fields.String(required=False)
@@ -234,15 +252,19 @@ class ExceptionSchema(BaseSchema):
 
 
 class LinkSchema(BaseSchema):
+    """Schema for link."""
+
     __model__ = Link
 
     rel = fields.String(required=True)
     href = fields.Url(required=True)
-    type = fields.String()
+    type_ = fields.String(attribute="type", data_key="type")
     title = fields.String()
 
 
 class ExampleSchema(BaseSchema):
+    """Schema for example."""
+
     __return_anyway__ = ['returns']
     __model__ = Example
 
@@ -255,6 +277,7 @@ class ExampleSchema(BaseSchema):
 
     @pre_load
     def cast_returns(self, in_data: dict, **kwargs: dict) -> dict:
+        """Cast return value to string and store original type separately."""
         if 'returns' in in_data:
             in_data['return_type'] = type(in_data['returns']).__name__
             in_data['returns'] = str(in_data['returns'])
@@ -262,6 +285,7 @@ class ExampleSchema(BaseSchema):
 
     @post_dump
     def original_returns(self, data: dict, **kwargs: dict) -> dict:
+        """Cast return value back to original type."""
         if data['returns'] and data['return_type'] in type_map.keys():
             data['returns'] = type_map[data.pop('return_type')](data['returns'])
         else:
@@ -270,8 +294,10 @@ class ExampleSchema(BaseSchema):
 
 
 class ProcessGraphShortSchema(BaseSchema):
+    """Schema including basic information about a process graph."""
+
     id_internal = fields.String(attribute='id', load_only=True)
-    id = fields.String(required=True, attribute='id_openeo', validate=validate.Regexp(regex='^\\w+$'))
+    id_ = fields.String(required=True, data_key="id", attribute='id_openeo', validate=validate.Regexp(regex='^\\w+$'))
     summary = fields.String()
     description = fields.String()
     categories = fields.Pluck(CategorySchema, 'name', many=True)
@@ -284,14 +310,15 @@ class ProcessGraphShortSchema(BaseSchema):
 
     @pre_load
     def add_process_graph_id(self, in_data: dict, **kwargs: dict) -> dict:
-        """ Generate an internal process_graph_id. """
+        """Generate and store an internal process_graph_id."""
         if not ('id_internal' in in_data and in_data['id_internal']):
             in_data['id_internal'] = 'pg-' + str(uuid4())
         return in_data
 
     @post_dump
     def fix_old_process_graph_ids(self, data: dict, **kwargs: dict) -> dict:
-        """ Reformat id_openeo to match required regex.
+        """Reformat id_openeo to match required regex.
+
         Due to backward compatibility some process_graph ids may contain '-' which are not allowed.
         '-' are replaced by '_' and the ids are prefixed with 'regex_'
         """
@@ -303,6 +330,8 @@ class ProcessGraphShortSchema(BaseSchema):
 
 
 class ProcessGraphFullSchema(ProcessGraphShortSchema):
+    """Schema including detailed information about a process graph."""
+
     __model__ = ProcessGraph
 
     exceptions = NestedDict(key='error_code', nested=ExceptionSchema)
@@ -312,6 +341,11 @@ class ProcessGraphFullSchema(ProcessGraphShortSchema):
 
 
 class ProcessGraphPredefinedSchema(ProcessGraphShortSchema):
+    """Schema including detailed information of a process graph, but no process graph definition.
+
+    This is used for predefined processes as they do not need to have a process grah attached.
+    """
+
     __return_anyway__ = ['parameters']
     __model__ = ProcessGraph
 

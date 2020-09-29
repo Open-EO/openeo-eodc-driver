@@ -12,7 +12,7 @@ Setup
     pip install sphinx recommonmark sphinx_rtd_theme
 
 3. As all subpackages need to be imported to create the documentation you now need to also install the dependencies of
-  all sub packages, e.g. all microservice.
+all sub packages, e.g. all microservice.
 
 Build documentation
 -------------------

@@ -1,4 +1,4 @@
-""" Process Discovery """
+"""Provide the implementation of the process discovery and management service and service exception."""
 import json
 import logging
 from copy import deepcopy
@@ -21,13 +21,20 @@ initialise_settings()
 
 
 class ServiceException(Exception):
-    """ServiceException raises if an exception occured while processing the
-    request. The ServiceException is mapping any exception to a serializable
-    format for the API gateway.
+    """The ServiceException is mapping any exception to a serializable format for the API gateway.
+
+    Attributes:
+        service: The name of the service as a string.
+        code: An integer holding the error code.
+        user_id: The id of the user as string. (default: None)
+        msg: A string with the error message.
+        internal: A boolean indicating if this is an internal error. (default: True)
+        links: A list of links which can be useful when getting this error. (default: None)
     """
 
     def __init__(self, service: str, code: int, user_id: Optional[str], msg: str, internal: bool = True,
                  links: list = None) -> None:
+        """Initialize service exception."""
         if not links:
             links = []
         self._service = service
@@ -39,12 +46,11 @@ class ServiceException(Exception):
         LOGGER.exception(msg, exc_info=True)
 
     def to_dict(self) -> dict:
-        """Serializes the object to a dict.
+        """Serialize the object to a dict.
 
         Returns:
-            dict -- The serialized exception
+            The serialized exception.
         """
-
         return {
             "status": "error",
             "service": self._service,
@@ -57,20 +63,25 @@ class ServiceException(Exception):
 
 
 class ProcessesService:
-    """Management of stored process graphs.
-    """
+    """Process discovery and management of user-defined process graphs."""
 
     name = service_name
     db = DatabaseSession(Base)
+    """Database connection to processes database."""
     data_service = RpcProxy("data")
+    """Rpc connection to data service."""
 
     @rpc
     def get_user_defined(self, user: Dict[str, Any], process_graph_id: str) -> dict:
-        """The request will ask the back-end to get the process graph using the process_graph_id.
+        """Get the process graph using the provided process_graph_id.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            process_graph_id {str} -- The id of the process graph
+        Args:
+            user: The user object to determine whether the user can access the given process graph.
+            process_graph_id: The id of the process graph.
+
+        Returns:
+            A dictionary containing detailed information about the process graph and the request status or a serialized
+            service exception.
         """
         try:
             process_graph_id = self._back_convert_old_process_graph_ids(process_graph_id)
@@ -93,11 +104,14 @@ class ProcessesService:
 
     @rpc
     def delete(self, user: Dict[str, Any], process_graph_id: str) -> dict:
-        """The request will ask the back-end to delete the process graph with the given process_graph_id.
+        """Delete the process graph with the given process_graph_id from the database.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            process_graph_id {str} -- The id of the process graph
+        Args:
+            user: The user object to determine whether the user can delete the given process graph.
+            process_graph_id: The id of the process graph.
+
+        Returns:
+            A dictionary with the status of the request.
         """
         try:
             process_graph_id = self._back_convert_old_process_graph_ids(process_graph_id)
@@ -121,12 +135,11 @@ class ProcessesService:
 
     @rpc
     def get_all_predefined(self, user: Dict[str, Any] = None) -> dict:
-        """The request asks the back-end for available predefined processes and returns detailed process descriptions.
+        """Return detailed process description of all available predefined processes.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object (default: {None})
+        Args:
+            user: The user object - not used, only given for consistency with all other methods.
         """
-
         try:
             process_graphs = self.db.query(ProcessGraph) \
                 .filter_by(process_definition=ProcessDefinitionEnum.predefined) \
@@ -146,10 +159,10 @@ class ProcessesService:
 
     @rpc
     def get_all_user_defined(self, user: Dict[str, Any]) -> dict:
-        """The request will ask the back-end to get all available process graphs for the given user.
+        """Return all available process graphs for the given user.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
+        Args:
+            user: The user object.
         """
         try:
             process_graphs = self.db.query(ProcessGraph) \
@@ -170,17 +183,13 @@ class ProcessesService:
                                     links=["#tag/Job-Management/paths/~1process_graphs/get"]).to_dict()
 
     @rpc
-    def put_predefined(self, process_name: str, user: Dict[str, Any] = None, **process_args: Any) -> dict:
-        """The request will ask the back-end to add the process from GitHub using the process_name.
+    def put_predefined(self, process_name: str, user: Dict[str, Any] = None) -> dict:
+        """Add the process definition from GitHub using the process_name.
 
-        Arguments:
-            process_name {str} -- The name of the process to create in the database
-
-        Keyword Arguments:
-            user {Dict[str, Any]} -- The user object (default: {None})
+        Args:
+            process_name: The name of the process to get from GitHub and create in the database.
+            user: The user object - not used, only given for consistency with all other methods.
         """
-
-        # TODO how to handle process extensions
         try:
             process_url = f"{settings.PROCESSES_GITHUB_URL}{process_name}.json"
             process_graph_response = requests.get(process_url)
@@ -214,15 +223,17 @@ class ProcessesService:
 
     @rpc
     def put_user_defined(self, user: Dict[str, Any], process_graph_id: str, **process_graph_args: Any) -> dict:
-        """
-        The request will ask the back-end to create a new process graph using the description send in the request body.
+        """Create a new user-defined process graph using the description send in the request body.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            process_graph_id {str} -- The identifier of the process graph
-            process_graph_args {Dict[str, Any]} -- The dictionary containing information needed to create a ProcessGraph
-        """
+        Args:
+            user: The user object who creates the process graph.
+            process_graph_id: The identifier of the process graph. This id overwrites the id in the process_graph_args
+                if one is given.
+            process_graph_args: The dictionary containing information needed to create a ProcessGraph.
 
+        Returns:
+            A dictionary with the status of the request.
+        """
         try:
             response = self._check_not_in_predefined(user["id"], process_graph_id)
             if isinstance(response, ServiceException):
@@ -256,14 +267,16 @@ class ProcessesService:
 
     @rpc
     def validate(self, user: Dict[str, Any], **process: dict) -> dict:
-        """The request will ask the back-end to create a new process using the description send in the request body.
+        """Validate the provided process graph.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            process {dict} -- The process (graph) to validated
+        Args:
+            user: The user object.
+            process: The process graph to validated.
+
+        Returns:
+            A dictionary including the status of the request and validation errors or a serialized service exception.
         """
         # TODO: RESPONSE HEADERS -> OpenEO-Costs
-
         try:
             # Get all processes
             process_response = self.get_all_predefined()
@@ -309,10 +322,10 @@ class ProcessesService:
             -> Optional[ServiceException]:
         """Return Exception if given ProcessGraph does not exist or User is not allowed to access this ProcessGraph.
 
-        Arguments:
-            user_id {str} -- The identifier of the user
-            process_graph_id {str} -- The id of the process graph
-            process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
+        Args:
+            user_id: The identifier of the user.
+            process_graph_id: The id of the process graph.
+            process_graph: The ProcessGraph object for the given process_graph_id.
         """
         exists = self._check_exists(user_id, process_graph_id, process_graph)
         if isinstance(exists, ServiceException):
@@ -328,10 +341,10 @@ class ProcessesService:
             -> Optional[ServiceException]:
         """Return Exception if given ProcessGraph does not exist.
 
-        Arguments:
-            user_id {str} -- The identifier of the user
-            process_graph_id {str} -- The id of the process graph
-            process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
+        Args:
+            user_id The identifier of the user.
+            process_graph_id: The id of the process graph.
+            process_graph. The ProcessGraph object for the given process_graph_id.
         """
         if process_graph is None:
             return ServiceException(ProcessesService.name, 400, user_id,
@@ -343,9 +356,9 @@ class ProcessesService:
     def _authorize(self, user_id: str, process_graph: ProcessGraph) -> Optional[ServiceException]:
         """Return Exception if the User is not allowed to access this ProcessGraph.
 
-        Arguments:
-            user_id {str} -- The identifier of the user
-            process_graph {ProcessGraph} -- The ProcessGraph object for the given process_graph_id
+        Args:
+            user_id: The identifier of the user.
+            process_graph: The ProcessGraph object for the given process_graph_id.
         """
         if not process_graph:
             return None
@@ -357,12 +370,11 @@ class ProcessesService:
         return None
 
     def _check_not_in_predefined(self, user_id: str, process_graph_id: str) -> Optional[ServiceException]:
-        """
-        Return Exception if the process_graph_id is defined as pre-defined process.
+        """Return Exception if the process_graph_id is defined as predefined process.
 
-        Arguments:
-            user_id {str} -- The identifier of the user
-            process_graph_id {str} -- The id of the user-defined process graph
+        Args:
+            user_id: The identifier of the user.
+            process_graph_id: The id of the user-defined process graph.
         """
         predefined = list(map(lambda rec: rec[0],
                               self.db.query(ProcessGraph.id_openeo)
@@ -376,16 +388,16 @@ class ProcessesService:
         return None
 
     def _back_convert_old_process_graph_ids(self, process_graph_id: str) -> str:
-        """
-        Back-Translate reformated process_graph_ids.
-        Due to backward compatibility some process_graph_ids (id_openeo) do not match the required regex (in the
-        database) -> they are converted to match and need to be back converted when using again internally.
-        """
+        """Back-Translate reformated process_graph_ids.
 
+        Due to backward compatibility some process_graph_ids (id_openeo) do not match the required regex (in the
+        database) -> they are converted to match and need to be back converted when used internally.
+        """
         if process_graph_id.startswith("regex_"):
             new = process_graph_id.replace("_", "-")
             return new[6:]
         return process_graph_id
 
     def get_user_id(self, user: Optional[Dict[str, Any]]) -> Optional[str]:
+        """Return the user's id if a user object is given."""
         return user["id"] if user and "id" in user else None

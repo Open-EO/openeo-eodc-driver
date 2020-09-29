@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.abspath('../services/capabilities'))
 sys.path.insert(0, os.path.abspath('../services/data'))
 sys.path.insert(0, os.path.abspath('../services/files'))
 sys.path.insert(0, os.path.abspath('../services/jobs'))
+sys.path.insert(0, os.path.abspath('../services/processes'))
 sys.setrecursionlimit(1500)
 
 

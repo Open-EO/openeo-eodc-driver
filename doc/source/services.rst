@@ -11,3 +11,4 @@ services
    data
    files
    jobs
+   processes
