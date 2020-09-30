@@ -1,6 +1,22 @@
-"""Initialize the Gateway.
+"""Central entry point to the OpenEO API.
 
-All endpoints are added and validated on start up.
+The gateway provides a set of REST endpoints implementing the `OpenEO API`_.
+The gateway is implemented as a :class:`~flask.Flask` app which is connected to a `RabbitMQ`_ which again is connected
+to a set of micro services (see :mod:`~services`) via RPC. This part mainly provides the definition of the endpoint,
+including management of user authentication, parameter validation and response parsing. The actual processing of the
+request (e.g. processing a batch job) happens in the connected services (e.g. the :mod:`~jobs`).
+
+To run a proper setup of the gateway check out the provided docker-compose.yml file. There all volume are mounted
+correctly. Also a set of configuration settings needs to be provided. Settings are excepted to be made available as
+environment variables. All environment variables need to be prefixed with ``OEO_`` (short hand for OpenEO). The full
+list of required environment variables can be found in :py:class:`~gateway.dependencies.settings.SettingKeys`. It should
+be mentioned that NO defaults are defined.
+
+During the initialisation processes all endpoints are added and validated. Also the connection to the `RabbitMQ`_ is
+established.
+
+.. _RabbitMQ: https://www.rabbitmq.com/
+.. _OpenEO API: https://open-eo.github.io/openeo-api
 """
 
 from dynaconf import settings
