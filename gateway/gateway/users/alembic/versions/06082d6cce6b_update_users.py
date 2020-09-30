@@ -1,12 +1,11 @@
-"""update users
+"""update users.
 
 Revision ID: 06082d6cce6b
 Revises: 35a8ea7c28f1
 Create Date: 2020-03-19 12:11:04.463553
-
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 
 # revision identifiers, used by Alembic.
@@ -16,7 +15,13 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
+    """Upgrade DB model.
+
+    1. Add column users.budget - to store the amount of money a user has.
+    2. Create table storage with relationship to users - to store a user's storage restrictions.
+    3. Create a relationship between links and users - so links can be stored per user.
+    """
     op.add_column('users', sa.Column('budget', sa.Integer()))
     op.create_table(
         'storage',
@@ -30,7 +35,13 @@ def upgrade():
     op.create_foreign_key('link_user_fkey', 'links', 'users', ['user_id'], ['id'])
 
 
-def downgrade():
+def downgrade() -> None:
+    """Downgrade DB model.
+
+    1. Drop relationship between users and links.
+    2. Drop table storage and relations.
+    3. Drop column users.budget.
+    """
     op.drop_constraint('link_user_fkey', 'links', type_='foreignkey')
     op.drop_column('links', 'user_id')
     op.drop_constraint('storage_user_fkey', 'storage', type_='foreignkey')

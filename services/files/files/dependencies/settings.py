@@ -22,7 +22,9 @@ class SettingKeys(Enum):
     UPLOAD_TMP_DIR = "UPLOAD_TMP_DIR"
     """The path to a directory where user upload data will be stored temporarily.
 
-    To simplify file upload the file is first stored in a tmp folder and then copied to its final destination. If the
+    To simplify file upload the file is first stored in a tmp folder and then copied to its final destination. The tmp
+    folder needs to be mounted to both the gateway and the files service. That way a file is passed from the gateway
+    to the files service via this folder but the user data folder does not need to be mounted to the gateway. If the
     provided Dockerfile is used do not change this variable from the one suggested in the sample_envs otherwise the
     setup may not work.
     """

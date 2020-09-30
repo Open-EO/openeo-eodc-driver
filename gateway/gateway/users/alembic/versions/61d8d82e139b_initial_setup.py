@@ -1,12 +1,11 @@
-"""initial setup
+"""initial setup.
 
 Revision ID: 61d8d82e139b
-Revises: 
+Revises:
 Create Date: 2019-12-10 14:01:17.068940
-
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 
 # revision identifiers, used by Alembic.
@@ -18,7 +17,11 @@ depends_on = None
 auth_type = sa.Enum('basic', 'oidc', name='authtype')
 
 
-def upgrade():
+def upgrade() -> None:
+    """Upgrade DB model.
+
+    Create initial tables: identity_providers and users related via identity_providers.id ForeignKey.
+    """
     op.create_table(
         'identity_providers',
         sa.Column('id', sa.Integer, primary_key=True),
@@ -41,7 +44,11 @@ def upgrade():
     op.create_foreign_key('fkey_identity_provider_user', 'users', 'identity_providers', ['identity_provider_id'], ['id'])
 
 
-def downgrade():
+def downgrade() -> None:
+    """Downgrade DB model.
+
+    Remove all tables (users, identity_providers) and relationships.
+    """
     op.drop_constraint('fkey_identity_provider_user', 'users', type_='foreignkey')
     op.drop_table('users')
     auth_type.drop(op.get_bind(), checkfirst=False)

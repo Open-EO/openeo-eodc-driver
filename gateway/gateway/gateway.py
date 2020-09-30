@@ -1,28 +1,33 @@
-""" Gateway """
+"""Manage initialisation and creation of API gateway."""
 
 from sys import exit
-from typing import Union, Callable, Tuple
+from typing import Any, Callable, Tuple, Union
 
 from dynaconf import FlaskDynaconf, settings
-from flask import Flask, redirect
+from flask import Flask
 from flask.ctx import AppContext
 from flask.wrappers import Response
 from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
 from flask_sqlalchemy import SQLAlchemy
+from nameko.rpc import MethodProxy
 
-from .dependencies import ResponseParser, OpenAPISpecParser, AuthenticationHandler, APIException, OpenAPISpecException, \
-    GatewayUtils
+from .dependencies.auth import TokenAuthenticationHandler, TokenAuthenticationRequirement as AuthReq
+from .dependencies.response import APIException, ResponseParser
+from .dependencies.specs import OpenAPISpecException, OpenAPISpecParser
+from .dependencies.utils import GatewayUtils
 
 
 class Gateway:
-    """Gateway is the central class to instantiate a RPC based API gateway object based on
-    an OpenAPI v3 specification.
+    """Gateway is the central class to to instantiate a RPC based API gateway object.
+
+    The gateway is configured by a set of environment variables and an OpenAPI v3 specification.
     """
 
     utils = GatewayUtils()
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize gateway and all required connections."""
         self._service = self._init_service()
         self._rpc = self._init_rpc()
         self._res = self._init_response()
@@ -33,68 +38,64 @@ class Gateway:
         # Decorators
         self._validate = self._spec.validate
         self._validate_custom = self._spec.validate_custom
-        self._authenticate = self._auth.validate_token
+        self._authenticate_token = self._auth.validate_token
 
         # Add custom error handler
         self._service.register_error_handler(404, self._parse_error_to_json)
         self._service.register_error_handler(405, self._parse_error_to_json)
 
     def get_service(self) -> Flask:
-        """Returns the Flask service object
-
-        Returns:
-            Flask -- The Flask object
-        """
+        """Return the :class:`~flask.Flask` service object."""
         return self._service
 
     def get_rpc_context(self) -> Tuple[AppContext, FlaskPooledClusterRpcProxy]:
-        """Returns the application context of the Flask application object and the
-        RPC proxy object to create new endpoints.
+        """Return the Flask application context and the RPC proxy object.
 
-        Returns:
-            Union[AppContext, FlaskPooledClusterRpcProxy] -- The app context and RPC proxy
+        The latter can be used to create new endpoints.
         """
-
         ctx = self._service.app_context()
         ctx.push()
 
         return ctx, self._rpc
 
-    def get_user_db(self):
+    def get_user_db(self) -> SQLAlchemy:
+        """Return the user database object."""
         return self._user_db
 
-    def set_cors(self, resources: dict = None):
-        """Initializes the CORS header. The header rules/resources are passed using a dictonary.
-        FOr more information visit: https://flask-cors.readthedocs.io/en/latest/
+    def set_cors(self, resources: dict = None) -> None:
+        """Initializes the CORS header.
 
-        Arguments:
-            resources {dict} -- The resource description (default: {{r"/*": {"origins": "*"}}})
+        The header rules/resources are passed using a dictionary.
+        For more information visit: https://flask-cors.readthedocs.io/en/latest/
+
+        Args:
+            resources: The resource description (default: {{r"/*": {"origins": "*"}}})
         """
         resources = resources if resources else {r"/*": {"origins": "*"}}
         CORS(self._service, resources=resources, vary_header=False, supports_credentials=True)
 
-    def add_endpoint(self, route: str, func: Callable, methods: list = None, auth: bool = False,
-                     role: str = 'user', validate: bool = False, validate_custom: bool = False, rpc: bool = True,
-                     is_async: bool = False, parse_spec: bool = False):
-        """Adds an endpoint to the API, pointing to a Remote Procedure Call (RPC) of a microservice or a
-        local function. Serval decorators can be added to enable authentication, authorization and input
-        validation.
+    def add_endpoint(self, route: str, func: Union[Callable, MethodProxy], methods: list = None,
+                     auth_token: AuthReq = AuthReq.optional, role: str = 'user', validate: bool = False,
+                     validate_custom: bool = False, rpc: bool = True,
+                     is_async: bool = False, parse_spec: bool = False) -> None:
+        """Adds an endpoint to the API.
 
-        Arguments:
-            route {str} -- The endpoint route (e.g. '/')
-            func {Callable} -- The RPC or function, to which the route is pointing.
+        The endpoint can point to a Remote Procedure Call (RPC) of a microservice or a local function. Several
+        decorators can be added to enable authentication, authorization and input validation.
 
-        Keyword Arguments:
-            methods {list} -- The allowed HTTP methods (default: {["GET"]})
-            auth {bool} -- Activate authentication (default: {False})
-            role {str} -- User role, e.g.: admin (default: {user})
-            validate {bool} -- Activate input validation (default: {False})
-            validate_custom {bool} -- Activate custom input validation, enable parameter parsing (default: {False})
-            rpc {bool} -- Setting up a RPC or local function (default: {True})
-            is_async {bool} -- Flags if the function should be executed asynchronously (default: {False})
-            parse_spec {bool} -- Flag if the function should get the openapi specs (default: {False})
+        Args:
+            route: The endpoint route (e.g. '/').
+            func: The RPC or function, to which the route is pointing.
+            methods: The allowed HTTP methods (default: {["GET"]}).
+            auth_token: Activate token authentication.
+            role: User role, e.g.: admin.
+            validate: Activate input validation.
+            validate_custom: Activate custom input validation, enable parameter parsing. Currently this does not
+                validate any parameters but only parses them directly to the destination function.
+            rpc: Setting up a RPC or local function.
+            is_async: Flags if the function should be executed asynchronously.
+            parse_spec: Flag if the function should get the openapi specs as a parameter.
         """
-
         if not methods:
             methods = ["GET"]
         # Method OPTIONS needed for CORS
@@ -104,18 +105,23 @@ class Gateway:
 
         if parse_spec:
             api_spec = self._spec.get()
-            func = self._rpc_wrapper(func, is_async, api_spec=api_spec) if rpc else self._local_wrapper(func, api_spec=api_spec)
+            if rpc:
+                func = self._rpc_wrapper(func, is_async, api_spec=api_spec)
+            else:
+                func = self._local_wrapper(func, api_spec=api_spec)
         else:
             # Use either rpc or local wrapper to handle responses and exceptions
             func = self._rpc_wrapper(func, is_async) if rpc else self._local_wrapper(func)
+
         if validate:
             func = self._validate(func)
         elif validate_custom:
             func = self._validate_custom(func)
-        if auth == 'optional':
-            func = self._authenticate(func, role, optional=True)
-        elif auth:
-            func = self._authenticate(func, role)
+
+        if auth_token == AuthReq.required:
+            func = self._authenticate_token(func, role, required=True)
+        elif auth_token == AuthReq.optional:
+            func = self._authenticate_token(func, role, required=False)
 
         self._service.add_url_rule(
             route,
@@ -124,23 +130,24 @@ class Gateway:
             provide_automatic_options=True,
             methods=methods)
 
-    def validate_api_setup(self):
-        """Validates the setup of the API with respect to the specification in the
-        OpenAPI document. Throws an OpenAPISpecException if the validation fails.
+    def validate_api_setup(self) -> None:
+        """Validate the setup of the API with respect to the specification in the OpenAPI document.
+
+        Raises:
+            :py:class:`~gateway.dependencies.specs.OpenAPISpecException`: if the validation fails
         """
         try:
             self._spec.validate_api(self._service.url_map)
         except OpenAPISpecException as exp:
-            print(" -> API setup is not valid: " + str(exp))
+            self._service.logger.error(f" -> API setup is not valid: {exp}")
             exit(1)
 
     def _init_service(self) -> Flask:
-        """Initializes the Flask application
+        """Initialize the Flask application with configuration management.
 
         Returns:
-            Flask -- The instantiated Flask object
+            The instantiated :class:`~flask.Flask` object.
         """
-
         service = Flask(__name__)
         service.before_request(self.utils.fix_transfer_encoding)
         FlaskDynaconf(service)  # configure - set ENV_FOR_DYNACONF to select dev / prod / test (default: dev)
@@ -148,12 +155,11 @@ class Gateway:
         return service
 
     def _init_rpc(self) -> FlaskPooledClusterRpcProxy:
-        """Initalizes the RPC proxy
+        """Initialize the RPC proxy.
 
         Returns:
-            FlaskPooledClusterRpcProxy -- The instantiated FlaskPooledClusterRpcProxy object
+            The instantiated FlaskPooledClusterRpcProxy object
         """
-
         self._service.config.update({
             "NAMEKO_AMQP_URI":
                 f"pyamqp://{settings.RABBIT_USER}:{settings.RABBIT_PASSWORD}"
@@ -164,57 +170,45 @@ class Gateway:
         return rpc
 
     def _init_response(self) -> ResponseParser:
-        """Initalizes the ResponseParser
-
-        Returns:
-            ResponseParser -- The instantiated ResponseParser object
-        """
-
+        """Initialize and return the ResponseParser."""
         return ResponseParser(self._service.logger)
 
     def _init_specs(self) -> OpenAPISpecParser:
-        """Initalizes the OpenAPISpecParser
-
-        Returns:
-            OpenAPISpecParser -- The instantiated OpenAPISpecParser object
-        """
+        """Initialize and return the OpenAPISpecParser."""
         return OpenAPISpecParser(self._res)
 
-    def _init_auth(self) -> AuthenticationHandler:
-        """Initalizes the AuthenticationHandler
-
-        Returns:
-            AuthenticationHandler -- The instantiated AuthenticationHandler object
-        """
-
-        return AuthenticationHandler(self._res)
+    def _init_auth(self) -> TokenAuthenticationHandler:
+        """Initialize and return the AuthenticationHandler."""
+        return TokenAuthenticationHandler(self._res)
 
     def _init_users_db(self) -> SQLAlchemy:
+        """Initialize user database."""
         self._service.config.update({
             "SQLALCHEMY_DATABASE_URI": f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}"
                                        f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}",
         })
         return SQLAlchemy(self._service)
 
-    def _rpc_wrapper(self, f: Callable, is_async, **kwargs) -> Union[Callable, Response]:
-        """The RPC decorator function handles responses and exception when communicating
-        with the services. This method is a single aggregated endpoint to handle the service
-        communications.
+    def _rpc_wrapper(self, f: MethodProxy, is_async: bool, **kwargs: Any) -> Callable:
+        """The RPC decorator function handles communication with the RPC function.
 
-        Arguments:
-            f {Callable} -- The wrapped function
-            is_async {bool} -- Flags if the function should be executed asynchronously
+        In detail responses and exception when communicating with the services are dealt with. This method is a single
+        aggregated endpoint to handle the service communications.
+
+        Args:
+            f: The wrapped RPC function.
+            is_async: Flags if the function should be executed asynchronously.
 
         Returns:
-            Union[Callable, Response] -- Returns the decorator function or a HTTP error
+            Returns the decorator function or a HTTP error.
         """
-
-        def decorator(**arguments):
+        def decorator(**arguments: Any) -> Response:
             try:
                 rpc_response = f.call_async(**arguments, **kwargs) if is_async else f(**arguments, **kwargs)
 
                 if is_async:
-                    return self._res.parse({"code": 202}) # Fixed, since this currently just applies to POST /jobs/{job_id}/results
+                    # This currently just applies to POST /jobs/{job_id}/results
+                    return self._res.parse({"code": 202})
 
                 if rpc_response["status"] == "error":
                     return self._res.error(rpc_response)
@@ -224,27 +218,27 @@ class Gateway:
                 return self._res.error(exc)
         return decorator
 
-    def _local_wrapper(self, f: Callable, **kwargs) -> Union[Callable, Response]:
+    def _local_wrapper(self, f: Callable, **kwargs: Any) -> Callable:
         """The local decorator function handles responses and exception for non-RPC functions.
 
-        Arguments:
-            f {Callable} -- The wrapped function
+        Args:
+            f: The wrapped local function.
 
         Returns:
-            Union[Callable, Response] -- Returns the decorator function or a HTTP error
+            The decorator function or a HTTP error
         """
-        def local_decorator(**arguments):
+        def local_decorator(**arguments: Any) -> Response:
             try:
                 local_response = f(**arguments, **kwargs)
                 if not isinstance(local_response, dict) and local_response.status_code == 302:
                     # This is a redirect, pass repsonse as it is
-                    # currently used only to redirect "/" to ".well-known/openeo" 
+                    # currently used only to redirect "/" to ".well-known/openeo"
                     return local_response
 
                 if local_response["status"] == "error":
                     return self._res.error(local_response)
                 elif local_response["status"] == "redirect":
-                    return self._res.redirect(local_response["url"])
+                    return self._res.redirect_to(local_response["url"])
                 return self._res.parse(local_response)
 
             except Exception as exc:
@@ -252,54 +246,50 @@ class Gateway:
 
         return local_decorator
 
-    def send_health_check(self) -> dict:
-        """Returns the the sanity check
+    def send_health_check(self, **kwargs: Any) -> dict:
+        """Return the the sanity check.
 
         Returns:
-            Dict -- 200 HTTP code
+            200 HTTP code.
         """
-
         return {
             "status": "success",
             "code": 200,
         }
 
-    def send_openapi(self) -> dict:
-        """Returns the parsed OpenAPI specification as JSON
-
-        Returns:
-            Dict -- JSON object containing the OpenAPI specification
-        """
-
+    def send_openapi(self, **kwargs: Any) -> dict:
+        """Return the parsed OpenAPI specification as JSON."""
         return {
             "status": "success",
             "code": 200,
             "data": self._spec.get(),
         }
 
-    def send_redoc(self) -> dict:
-        """Returns the ReDoc clients
+    def send_redoc(self, **kwargs: Any) -> dict:
+        """Return the ReDoc clients.
 
         Returns:
-            Dict -- The HTML file containing the ReDoc client setup
+            The HTML file containing the ReDoc client setup.
         """
-
         return {
             "status": "success",
             "html": "redoc.html",
         }
 
-    def main_page(self, api_spec: dict) -> dict:
-        """
-        Redirect main page "/" to openeo well known dodument "/.well-known/openeo".
+    def main_page(self, api_spec: dict, **kwargs: Any) -> Response:
+        """Redirect main page "/" to openeo well known document "/.well-known/openeo".
+
+        The well known openeo document must be served on a NOT versioned url.
         """
         base_url = api_spec["servers"][0]["url"]  # Without version - the first one!
-        return redirect(base_url + "/.well-known/openeo")
+        return self._res.redirect_to(base_url + "/.well-known/openeo")
 
-    def _parse_error_to_json(self, exc):
+    def _parse_error_to_json(self, exc: Exception) -> Response:
+        """Serialize APIException to a Response object."""
+        code = exc.code if hasattr(exc, "code") else 500
         return self._res.error(
             APIException(
                 msg=str(exc),
-                code=exc.code,
+                code=code,
                 service="gateway",
                 internal=False))

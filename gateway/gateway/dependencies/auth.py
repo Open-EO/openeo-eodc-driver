@@ -1,40 +1,67 @@
-""" AuthenticationHandler """
-
-from typing import Union, Optional, Callable, Tuple, Any, Dict
+"""Manage user authentication."""
+from enum import Enum
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import requests
 from dynaconf import settings
 from flask import request
 from flask.wrappers import Request, Response
 
-from .response import ResponseParser, APIException
+from .response import APIException, ResponseParser
 
 
-class AuthenticationHandler:
-    """The AuthenticationHandler connects to the user service and verifies if the bearer token
-    send by the user is valid.
+class TokenAuthenticationRequirement(Enum):
+    """Provides possible requirements for bearer token authentication to access an endpoint."""
+
+    required = "required"
+    """Access to this endpoint requires bearer token authentication."""
+    optional = "optional"
+    """This endpoint can be access without bearer token authentication, but more information may be available with."""
+    prohibited = "prohibited"
+    """This endpoint can not be accessed with bearer token authentication."""
+
+
+class TokenAuthenticationHandler:
+    """Authenticates users by validating a token.
+
+    Attributes:
+        response_handler: The ResponseParser to parse an exception if the authentication fails.
     """
 
-    def __init__(self, response_handler: ResponseParser):
+    def __init__(self, response_handler: ResponseParser) -> None:
+        """Initialize AuthenticationHandler."""
         self._res = response_handler
 
-    def validate_token(self, func: Callable, role: str, optional: bool = False) -> Union[Callable, Response]:
-        """
-        Decorator authenticate a user.
+    def validate_token(self, func: Callable, role: str, required: bool = False) -> Callable:
+        """Decorator to authenticate a user by validating its token.
 
-        Arguments:
-            func {Callable} -- The wrapped function
-            role {str} -- The required role to execute the function (user / admin)
-            optional {bool} -- Flag for endpoints which may (not mast) accept a token
+        Args:
+            func: The wrapped function which the user wants to execute.
+            role: The required role to execute the function (e.g.: user / admin).
+            required: Flag for endpoints which only accept authenitcated requests.
 
         Returns:
-            Union[Callable, Response] -- Returns the decorator function or a HTTP error
+            The decorator function.
         """
-        def decorator(*args, **kwargs):
+        def decorator(*args: Any, **kwargs: Any) -> Union[Callable, Response]:
+            """Validate a token and execute the provided function.
+
+            The user object generated from the token is passed to the function as parameter 'user'.
+
+            Returns:
+                 The decorated function with the additional parameter user or a HTTP error
+            """
             try:
-                token = self._parse_auth_header(request, optional=optional)
-                if not token and optional:
-                    return func()
+                token = self._parse_auth_header(request, required=required)
+                if not token:
+                    if not required:
+                        return func()
+                    else:
+                        raise APIException(
+                            msg="Missing required Bearer token.",
+                            code=401,
+                            service="gateway",
+                            internal=False)
                 else:
                     user = self._verify_token(token, role)
                     return func(user=user)
@@ -42,27 +69,30 @@ class AuthenticationHandler:
                 return self._res.error(exc)
         return decorator
 
-    def _parse_auth_header(self, req: Request, optional: bool = False) -> Union[str, Exception]:
-        """Parses and returns the bearer token. Raises an AuthenticationException if the Authorization
-        header in the request is not correct.
+    def _parse_auth_header(self, req: Request, required: bool = False) -> Optional[str]:
+        """Parse an auth header and return the bearer token.
 
-        Arguments:
-            req {Request} -- The Request object
-            optional {bool} -- Flag for endpoints which may (not mast) accept a token
+        Raises an AuthenticationException if the Authorization header in the request is not correct.
+
+        Args:
+            req: The Request object.
+            required: Flag for endpoints only accept authenticated requests.
+
+        Raises:
+            :class:`~gateway.dependencies.AAPIException`: if there is no token or it is not a Bearer token.
 
         Returns:
-            Union[str, Exception] -- Returns the bearer token as string or raises an exception
+            The bearer token as string.
         """
-
         if "Authorization" not in req.headers or not req.headers["Authorization"]:
-            if optional:
-                return
-            else:
+            if required:
                 raise APIException(
                     msg="Missing 'Authorization' header.",
                     code=401,
                     service="gateway",
                     internal=False)
+            else:
+                return None
 
         token_split = req.headers["Authorization"].split(" ")
 
@@ -76,21 +106,19 @@ class AuthenticationHandler:
         return token_split[1]
 
     def _verify_token(self, token: str, role: str) -> Dict[str, Any]:
-        """
-        Verify the supplied token either as basic or OIDC token.
+        """Verify the supplied token either as basic or OIDC token.
 
-        Arguments:
-            token {str} -- The authentication token (basic / OIDC)
-            role: {str} -- The required role to execute the function (user / admin)
+        Args:
+            token: The authentication token (basic / OIDC)
+            role: The required role to execute the function (user / admin)
 
         Raises:
-            APIException -- If the token is not valid or the user does not have the required role or the token is not
-                structured correctly.
+            :class:`~gateway.dependencies.AAPIException`: If the token is not valid or the user does not have the
+                required role or the token is not structured correctly.
 
         Returns:
-            Dict[str, Any] -- The user dict corresponding to the token
+            The user dict corresponding to the token.
         """
-
         try:
             method, provider, token = token.split("/")
         except ValueError:
@@ -111,41 +139,43 @@ class AuthenticationHandler:
                 service="gateway",
                 internal=False)
 
-        if not role == "user":
-            # If "admin" role is required and the user only has the "user" role this will through an exception
-            self._check_user_role(user_entity, role=role)
-
         if not user_entity:
             raise APIException(
                 msg="Invalid token. User could not be authenticated.",
                 code=401,
                 service="gateway",
                 internal=False)
+
+        if not role == "user":
+            # If "admin" role is required and the user only has the "user" role this will through an exception
+            self._check_user_role(user_entity, role=role)
+
         return user_entity
 
     def _verify_basic_token(self, token: str) -> Optional[Dict[str, Any]]:
-        """
-        Verifies a basic token.
+        """Verify a basic token.
 
-        Arguments:
-            token {str} -- The basic authentication token
+        Args:
+            token: The basic authentication token.
 
         Returns:
-            Dict[str, Any] -- The user object corresponding to the token
+            The user object corresponding to the token or None if the token is invalid.
         """
         from gateway.users.service import BasicAuthService
         return BasicAuthService(settings.SECRET_KEY).verify_auth_token(token)
 
     def _verify_oidc_token(self, token: str, provider: str) -> Optional[Dict[str, Any]]:
-        """
-        Verifies OIDC token.
+        """Verify OIDC token.
 
-        Arguments:
-            token {str} -- The OIDC authentication token (currently an ID-token is required)
-            provider {str} -- The used OIDC provider ID (must be supported by backend)
+        Args:
+            token: The OIDC authentication token (of type access-token)
+            provider: The used OIDC provider ID (must be supported by backend)
+
+        Raises:
+            :class:`~gateway.dependencies.AAPIException`: If the token is not valid.
 
         Returns:
-            Dict[str, Any] -- The user object corresponding to the token
+            The user object corresponding to the token
         """
         from gateway.users.repository import get_user_entity_from_email
 
@@ -168,20 +198,18 @@ class AuthenticationHandler:
         return user_entity
 
     def _check_user_role(self, user_entity: Dict[str, Any], role: str) -> bool:
-        """
-        Check user has the given role.
+        """Check user has the required role.
 
-        Arguments:
-            user_entity {Dict[str, Any]} -- The user object
-            role {str} -- The required to role
+        Args:
+            user_entity: The user object.
+            role: The required to role.
 
         Raises:
-            APIException -- If the user does not have the required role
+            :class:`~gateway.dependencies.AAPIException`: If the user does not have the required role.
 
         Returns:
-            bool -- Whether the user has the required role
+            True if the user has the required role.
         """
-
         if not role == user_entity["role"]:
             raise APIException(
                 msg=f"The user {user_entity} is not authorized to perform this operation.",
@@ -191,19 +219,17 @@ class AuthenticationHandler:
         return True
 
     def _check_oidc_issuer_exists(self, id_openeo: str) -> Tuple[bool, str]:
-        """
-        Checks the given issuer_url exists in the database.
+        """Check the given identity provider exists in the database.
 
-        Arguments:
-            id_openeo {str} -- The id to check
+        Args:
+            id_openeo: The id to check.
 
         Raises:
-            APIException -- If the issuer_url is not supported
+            :class:`~gateway.dependencies.AAPIException`: If the issuer_url is not supported.
 
         Returns:
-            Tuple[bool, str] -- Whether the issuer_url is supported and its well-known url
+            True and the issuer's well-known url if the identity provider exists.
         """
-
         from gateway.users.models import db, IdentityProviders
         identity_provider = db.session.query(IdentityProviders).filter(IdentityProviders.id_openeo == id_openeo).first()
         if not identity_provider:

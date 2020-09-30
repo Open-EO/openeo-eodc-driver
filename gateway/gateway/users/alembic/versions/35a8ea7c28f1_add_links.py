@@ -1,12 +1,11 @@
-"""add links
+"""add links.
 
 Revision ID: 35a8ea7c28f1
 Revises: 943d0bb2c339
 Create Date: 2020-03-18 12:54:00.965100
-
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 
 # revision identifiers, used by Alembic.
@@ -16,7 +15,11 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
+    """Upgrade DB model.
+
+    Create table Links related to identity_provider.
+    """
     op.create_table(
         'links',
         sa.Column('id', sa.Integer(), primary_key=True),
@@ -28,5 +31,9 @@ def upgrade():
     )
 
 
-def downgrade():
+def downgrade() -> None:
+    """Downgrade DB model.
+
+    Drop table links.
+    """
     op.drop_table('links')
