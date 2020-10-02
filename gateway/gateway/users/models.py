@@ -4,10 +4,20 @@ This includes all required table definitions and auxiliary data structures.
 """
 import enum
 from datetime import datetime
+from typing import Any
 
 from gateway import gateway
 
-db = gateway.get_user_db()
+try:
+    db = gateway.get_user_db()
+except AttributeError:
+    import sqlalchemy
+    from sqlalchemy.ext.declarative import declarative_base
+    from sqlalchemy.orm import relationship
+    db = sqlalchemy
+    Base: Any = declarative_base()
+    db.Model = Base
+    db.relationship = relationship
 
 
 class AuthType(enum.Enum):
