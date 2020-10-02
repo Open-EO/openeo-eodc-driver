@@ -16,7 +16,8 @@ RUN pip uninstall -y pandas && pip install pandas==0.25
 WORKDIR /tmp
 RUN git clone https://github.com/eodcgmbh/eodc-openeo-bindings.git
 WORKDIR /tmp/eodc-openeo-bindings
-RUN git checkout tags/v2.3.0
+# RUN git checkout tags/v2.3.0
+RUN git checkout wekeo-hda
 RUN /bin/bash -c "python3 setup.py install"
 # Install eoDataReaders
 RUN mkdir /root/.ssh
@@ -27,7 +28,8 @@ RUN ssh-keyscan git.eodc.eu >> /root/.ssh/known_hosts
 WORKDIR /tmp
 RUN git clone git+ssh://git@git.eodc.eu/eodc/eoDataReaders.git
 WORKDIR /tmp/eoDataReaders
-RUN git checkout tags/v2.0.2
+#RUN git checkout tags/v2.0.2
+RUN git checkout S5p-support
 RUN /bin/bash -c "python3 setup.py install"
 
 # Install gevent for sensor worker pool
