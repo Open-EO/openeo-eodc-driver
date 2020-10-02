@@ -239,17 +239,13 @@ class JobService:
                 return process_response
             backend_processes = process_response["data"]["processes"]
 
-            # Get filepaths
-            # NB: retrieve collection_id (may be multplie ones) dynamically
-            collection_id, spatial_extent, temporal_extent = self.get_load_collection_properties(process, node_id='dc')
-            data_response = self.data_service.get_filepaths(collection_id, spatial_extent, temporal_extent)
-            if data_response["status"] == "error":
-                return data_response
-            in_filepaths = data_response["data"]
+            # Get input filepaths
+            in_filepaths = self._get_in_filepaths(process['process_graph'])
 
             self.dag_writer.write_and_move_job(job_id=job_id,
                                                user_name=user["id"],
                                                dags_folder=settings.AIRFLOW_DAGS,
+                                               wekeo_storage = settings.WEKEO_STORAGE,
                                                process_graph_json=process,
                                                job_data=self.get_job_folder(user["id"], job_id),
                                                vrt_only=vrt_flag,
@@ -651,18 +647,35 @@ class JobService:
         """
         return ''.join(random.choices(string.ascii_letters + string.digits, k=k))
 
-    def _get_load_collection_properties(self, process, node_id):
-        """ """
+    def _get_in_filepaths(self, process_graph):
+        """Generates a dictionary storing in_filepaths for any load_collection call
+         in the current job.
 
-        collection_id = process['process_graph'][node_id]['arguments']['id'].replace('%', 'a')
+        Arguments:
+            process_graph {Dit} -- an openEO process graph
 
-        spatial_extent = [
-            process['process_graph'][node_id]['arguments']['spatial_extent']['south'],
-            process['process_graph'][node_id]['arguments']['spatial_extent']['west'],
-            process['process_graph'][node_id]['arguments']['spatial_extent']['north'],
-            process['process_graph'][node_id]['arguments']['spatial_extent']['east']
-        ]
+        Returns:
+            Dict -- Lists of in_filepaths, one for each load_collection node
+        """
 
-        temporal_extent = process['process_graph'][node_id]['arguments']['temporal_extent']
+        in_filepaths = {}
+        for node in process_graph:
+            if process_graph[node]['process_id'] == 'load_collection':
+                in_filepaths[node] = {}
+                collection_id = process_graph[node]['arguments']['id']
 
-        return collection_id, spatial_extent, temporal_extent
+                spatial_extent = [
+                    process_graph[node]['arguments']['spatial_extent']['west'],
+                    process_graph[node]['arguments']['spatial_extent']['south'],
+                    process_graph[node]['arguments']['spatial_extent']['east'],
+                    process_graph[node]['arguments']['spatial_extent']['north']
+                ]
+
+                temporal_extent = process_graph[node]['arguments']['temporal_extent']
+
+                data_response = self.data_service.get_filepaths(collection_id, spatial_extent, temporal_extent)
+                if data_response["status"] == "error":
+                    return data_response
+                in_filepaths[node] = data_response["data"]
+
+        return in_filepaths
