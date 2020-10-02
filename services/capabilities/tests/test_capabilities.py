@@ -1,3 +1,10 @@
+"""Holds the tests for the capabilities service.
+
+Only available rpc methods are tested. For each test a CapabilitiesService is created one rpc method is called and the
+results are compared to reference values. Most tests use a mocked api specification as their return values mostly depend
+only on the specification.
+"""
+
 from nameko.testing.services import worker_factory
 
 from capabilities.service import CapabilitiesService
@@ -5,20 +12,20 @@ from capabilities.service import CapabilitiesService
 MOCKED_API_SPEC = {
     "openapi": "3.0.1",
     "servers":
-        {
-            "url": 'https://openeo.eodc.eu/',
-            "description": 'The URL to the EODC API',
-            "versions": {
-                "v1.0": {
-                    "url": "https://openeo.eodc.eu/v1.0",
-                    "api_version": "1.0.0-rc.2"
-                },
-                "v0.4": {
-                    "url": "https://openeo.eodc.eu/v0.4",
-                    "api_version": "0.4.2"
-                }
+        [
+            {
+                "url": 'https://openeo.eodc.eu/',
+                "description": 'The URL to the EODC API',
+            },
+            {
+                "url": "https://openeo.eodc.eu/v1.0",
+                "description": "API version 1.0.0-rc.2"
+            },
+            {
+                "url": "https://openeo.eodc.eu/v0.4",
+                "description": "API version 0.4.2"
             }
-        },
+        ],
     "info": {
         "title": "EODC API",
         "version": "1.0.0-rc.2",
@@ -135,6 +142,7 @@ MOCKED_API_SPEC = {
 
 
 def test_get_index() -> None:
+    """Tests the index page."""
     service = worker_factory(CapabilitiesService)
     result = service.send_index(MOCKED_API_SPEC)
     assert result == {
@@ -158,6 +166,7 @@ def test_get_index() -> None:
 
 
 def test_get_versions() -> None:
+    """Tests the description of available OpenEO API versions."""
     service = worker_factory(CapabilitiesService)
     result = service.get_versions(MOCKED_API_SPEC)
     assert result == {
@@ -181,6 +190,7 @@ def test_get_versions() -> None:
 
 
 def test_get_file_formats() -> None:
+    """Tests the description of  available file formats."""
     service = worker_factory(CapabilitiesService)
     result = service.get_file_formats(MOCKED_API_SPEC)
     assert result == {
@@ -213,6 +223,7 @@ def test_get_file_formats() -> None:
 
 
 def test_get_udfs() -> None:
+    """Tests the description of available UDF runtime."""
     service = worker_factory(CapabilitiesService)
     result = service.get_udfs(MOCKED_API_SPEC)
     assert result == {
@@ -231,6 +242,7 @@ def test_get_udfs() -> None:
 
 
 def test_get_service_types() -> None:
+    """Tests the description of the available secondary services."""
     service = worker_factory(CapabilitiesService)
     result = service.get_service_types(MOCKED_API_SPEC)
     assert result == {

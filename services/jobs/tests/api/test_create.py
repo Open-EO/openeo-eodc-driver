@@ -1,3 +1,4 @@
+"""Test create jobs."""
 from os.path import isfile
 
 import pytest
@@ -10,8 +11,10 @@ from tests.utils import get_configured_job_service, get_random_user, load_json
 
 @pytest.mark.usefixtures("set_job_data", "dag_folder")
 class TestCreateJob:
+    """Tests the create job method."""
 
     def test_basic(self, db_session: Session) -> None:
+        """Check creating a basic job works as expected."""
         job_service = get_configured_job_service(db_session, files=False)
         user = get_random_user()
 

@@ -1,6 +1,4 @@
-"""Templates used to parse an XML object, that is send to the
-CSW server.
-"""
+"""XML templates used to create CSW queries."""
 
 xml_base = (
     "<?xml version='1.0' encoding='ISO-8859-1' standalone='no'?>"

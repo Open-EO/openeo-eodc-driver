@@ -91,7 +91,7 @@ services:
       - $LOG_DIR:/usr/src/logs
     environment:
       OEO_OPENEO_VERSION: $OPENEO_VERSION
-      LOG_DIR: /usr/src/logs
+      OEO_LOG_DIR: /usr/src/logs
 
   openeo-data:
     build:

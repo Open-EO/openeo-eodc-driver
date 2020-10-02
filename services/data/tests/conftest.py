@@ -1,9 +1,19 @@
+"""Prepares test environment.
+
+Set all environment variables needed. As no fixture are required in this package none are defined here.
+"""
+
 import os
+import sys
+from os.path import abspath, dirname
+
+root_dir = dirname(dirname(abspath(__file__)))
+sys.path.append(root_dir)
+
 
 os.environ["ENV_FOR_DYNACONF"] = "unittest"
 
 os.environ["OEO_CACHE_PATH"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
-os.environ["OEO_DNS_URL"] = "http://0.0.0.0:3000/v1.0"
 
 os.environ["OEO_CSW_SERVER"] = "http://pycsw:8000"
 os.environ["OEO_DATA_ACCESS"] = "public"

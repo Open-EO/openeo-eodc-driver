@@ -1,9 +1,25 @@
+"""A initial version of 'integration tests' for the data service.
+
+To run them at least the gateway, RabbitMQ and the data service need to be up and running.
+
+Also this script needs some environment variable. In detail USERNAME, PASSWORD, BACKEND_URL. To provide them you can
+copy the `sample_auth` file provided in this directory and add a USERNAME PASSWORD combination existing on the backend.
+BACKEND_URL needs points to the public gateway url. Execute the copied script to export the variables.
+
+Then this script can be directly executed with
+>>>python ./rest_calls.py
+
+It will perform calls to all data service endpoints and print the status code. Besides the output no check are
+performed.
+"""
+
 import os
 
 import requests
 
 
 def check_collections() -> None:
+    """Try to perform simple REST calls to all data service endpoints."""
     backend_url = os.environ.get('BACKEND_URL')
     if backend_url is None:
         raise OSError("Environment variable BACKEND_URL needs to be specified!")

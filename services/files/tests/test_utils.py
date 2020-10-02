@@ -1,3 +1,5 @@
+"""Tests to check the utility functions provided by the files service."""
+
 import os
 from typing import Tuple
 
@@ -9,6 +11,7 @@ file_service = worker_factory(FilesService)
 
 
 def test_complete_to_public_path(user_id_folder: Tuple[str, str]) -> None:
+    """Test conversion from file system to public path."""
     user_folder, user_id = user_id_folder
     test_path = os.path.join(user_folder, 'files', 'some-file.txt')
     actual_public_path = file_service.complete_to_public_path(user_id=user_id, complete_path=test_path)
@@ -16,6 +19,7 @@ def test_complete_to_public_path(user_id_folder: Tuple[str, str]) -> None:
 
 
 def test_authorize_file(user_id_folder: Tuple[str, str]) -> None:
+    """Test file can be accessed by user owning the file."""
     user_folder, user_id = user_id_folder
     test_path = 'some-folder/some-file.txt'
     response = file_service.authorize_file(user_id=user_id, path=test_path)
@@ -25,6 +29,7 @@ def test_authorize_file(user_id_folder: Tuple[str, str]) -> None:
 
 
 def test_authorize_file_dir(user_id_folder: Tuple[str, str]) -> None:
+    """Check error is returned if owning user tries to access a directory instead of a file."""
     user_folder, user_id = user_id_folder
     test_folder = 'somefolder.txt'
     ref_folder = os.path.join(user_folder, 'files', test_folder)
@@ -44,6 +49,7 @@ def test_authorize_file_dir(user_id_folder: Tuple[str, str]) -> None:
 
 
 def test_authorize_file_path(user_id_folder: Tuple[str, str]) -> None:
+    """Check that error is returned file name does not comply to regex."""
     user_folder, user_id = user_id_folder
     test_file = 'somefile_without_extension'
 
@@ -60,6 +66,7 @@ def test_authorize_file_path(user_id_folder: Tuple[str, str]) -> None:
 
 
 def test_authorize_existing_file_missing(user_id_folder: Tuple[str, str]) -> None:
+    """Check error is returned if files does not exist."""
     user_folder, user_id = user_id_folder
     test_file = 'somefile.txt'
     response = file_service.authorize_existing_file(user_id=user_id, path=test_file)
@@ -75,6 +82,7 @@ def test_authorize_existing_file_missing(user_id_folder: Tuple[str, str]) -> Non
 
 
 def test_authorize_exsiting_file(user_id_folder: Tuple[str, str]) -> None:
+    """Test user can be authorized to access a file if everything is correct."""
     user_folder, user_id = user_id_folder
     test_file = 'somefile.txt'
     ref_path = os.path.join(user_folder, 'files', test_file)
