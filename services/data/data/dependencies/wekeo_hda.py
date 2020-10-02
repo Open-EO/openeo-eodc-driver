@@ -129,7 +129,7 @@ class HDAHandler:
             tmp_filepaths, next_page_url = self._get_download_urls(next_page_url)
             filepaths.extend(tmp_filepaths)
 
-        return filepaths
+        return filepaths, job_id
 
     def _split_collection_id(self, collection_id: str) -> List:
         """Splits a collection_id into the collection name and variable name, e.g.
@@ -210,11 +210,13 @@ class HDAHandler:
         response = requests.get(url, headers=self.service_headers)
         if not response.ok:
             raise HDAError(response.text)
-        next_page_url = response.json()['nextPage']
-
         download_urls = []
-        for item in response.json()['content']:
-            download_urls.append(item['url'])
+        next_page_url = None
+        if response.json()['content']:
+            next_page_url = response.json()['nextPage']
+
+            for item in response.json()['content']:
+                download_urls.append(item['url'])
 
         return download_urls, next_page_url
 
