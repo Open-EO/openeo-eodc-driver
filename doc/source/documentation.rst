@@ -5,14 +5,24 @@ Setup
 -----
 1. (optional, but recommended) Create virtual environment::
 
-    virtualenv doc -p python3.6
+    cd $HOME
+    virtualenv oeo-doc-env -p python3.6
+    source $HOME/oeo-doc-env/bin/activate
 
 2. Install `Sphinx`_ and other documentation tools::
 
     pip install sphinx recommonmark sphinx_rtd_theme
 
 3. As all subpackages need to be imported to create the documentation you now need to also install the dependencies of
-all sub packages, e.g. all microservice.
+all sub packages::
+
+    pip install -r /path/to/openeo/base/requirements.txt
+    pip install -r /path/to/openeo/gateway/requirements.txt
+    pip install -r /path/to/openeo/services/capabilities/requirements.txt
+    pip install -r /path/to/openeo/services/data/requirements.txt
+    pip install -r /path/to/openeo/services/files/requirements.txt
+    pip install -r /path/to/openeo/services/jobs/requirements.txt
+    pip install -r /path/to/openeo/services/processes/requirements.txt
 
 Build documentation
 -------------------
