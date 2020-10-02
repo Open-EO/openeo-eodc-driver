@@ -229,13 +229,14 @@ class DataService:
         """
 
         try:
-            filepaths = []
+            filepaths = {}
             if settings.IS_CSW_SERVER and collection_id in settings.WHITELIST:
-                filepaths = self.csw_session.get_filepaths(collection_id, spatial_extent, temporal_extent)
+                filepaths['filepaths'] = self.csw_session.get_filepaths(collection_id, spatial_extent, temporal_extent)
             elif settings.IS_CSW_SERVER_DC and collection_id in settings.WHITELIST_DC:
-                filepaths = self.csw_session_dc.get_filepaths(collection_id, spatial_extent, temporal_extent)
+                filepaths['filepaths'] = self.csw_session_dc.get_filepaths(collection_id, spatial_extent, temporal_extent)
             elif settings.IS_HDA_WEKEO and collection_id in settings.WHITELIST_WEKEO:
-                filepaths = self.hda_session.get_filepaths(collection_id, spatial_extent, temporal_extent)
+                filepaths['filepaths'], filepaths['wekeo_job_id'] = \
+                    self.hda_session.get_filepaths(collection_id, spatial_extent, temporal_extent)
 
             if not filepaths:
                 msg = "No filepaths were found."
