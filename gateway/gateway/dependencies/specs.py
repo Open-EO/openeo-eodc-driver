@@ -126,7 +126,7 @@ class OpenAPISpecParser:
                                            f" at endpoint '{status_endpoint}'")
 
     def validate_custom(self, f: Callable) -> Callable:
-        """Parses the **kwargs onward.
+        """Parses the provided parameters onward.
 
         Args:
             f: The function to be wrapped.
