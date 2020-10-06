@@ -1,0 +1,6 @@
+alembic==0.9.9
+dynaconf==2.2.3
+marshmallow>=3.0
+nameko-sqlalchemy==1.4.0
+passlib
+psycopg2==2.7.4
