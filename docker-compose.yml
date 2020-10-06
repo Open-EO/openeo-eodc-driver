@@ -112,7 +112,7 @@ services:
       - ./envs/data.env
     environment:
       OEO_OPENEO_VERSION: $OPENEO_VERSION
-      LOG_DIR: /usr/src/logs
+      OEO_LOG_DIR: /usr/src/logs
     volumes:
       - eo-discovery-cache:/usr/src/cache
       - ./services/data:/usr/src/app
@@ -137,7 +137,7 @@ services:
     environment:
       OPENEO_VERSION: $OPENEO_VERSION
       PROCESS_API_DIR: /usr/src/api
-      LOG_DIR: /usr/src/logs
+      OEO_LOG_DIR: /usr/src/logs
     volumes:
       - process-api-data:/usr/src/api
       - ./services/processes:/usr/src/app
@@ -166,7 +166,7 @@ services:
       OEO_AIRFLOW_DAGS: /usr/src/dags
       OEO_SYNC_RESULTS_FOLDER: /usr/src/sync-results
       AIRFLOW_LOG_DIR: /usr/src/logs/airflow
-      LOG_DIR: /usr/src/logs
+      OEO_LOG_DIR: /usr/src/logs
     volumes:
       - ./services/jobs:/usr/src/app
       - $AIRFLOW_DAGS:/usr/src/dags
@@ -191,7 +191,7 @@ services:
       - ./envs/files.env
     environment:
       OEO_OPENEO_VERSION: $OPENEO_VERSION
-      LOG_DIR: /usr/src/logs
+      OEO_LOG_DIR: /usr/src/logs
     volumes:
       - files-data:/usr/src/files
       - ./services/files:/usr/src/app
