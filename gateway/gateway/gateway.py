@@ -196,6 +196,7 @@ class Gateway:
                     return self._res.parse({"code": 202})
 
                 if rpc_response["status"] == "error":
+                    rpc_response.pop("status")
                     return self._res.error(rpc_response)
 
                 return self._res.parse(rpc_response)
