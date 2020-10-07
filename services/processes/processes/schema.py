@@ -2,6 +2,8 @@
 
 Schemas are defined to fit request return schemas defined in the `OpenEO API EO Data Discovery`_ and the database
 models defined in :py:mod:`~processes.models`.
+
+.. _OpenEO API Batch Jobs: https://open-eo.github.io/openeo-api/#tag/Batch-Jobs
 """
 import re
 from typing import Any, Dict, List, Union

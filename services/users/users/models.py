@@ -52,9 +52,9 @@ class Users(Base):
     """UTC datetime of the last modification of this record."""
 
     storage = relationship('Storage', uselist=False, cascade='all, delete, delete-orphan')
-    """Specification about the user's connected storage :class:`~gateway.users.models.Storage`."""
+    """Specification about the user's connected storage :class:`~users.models.Storage`."""
     links = relationship('Links', cascade='all, delete, delete-orphan')
-    """A list of related :class:`~gateway.users.models.Links`."""
+    """A list of related :class:`~users.models.Links`."""
 
 
 class IdentityProviders(Base):
@@ -76,7 +76,7 @@ class IdentityProviders(Base):
     """A longer description (optional)."""
 
     links = relationship('Links', cascade='all, delete, delete-orphan')
-    """A list of related :class:`~gateway.users.models.Links`."""
+    """A list of related :class:`~users.models.Links`."""
 
 
 class Links(Base):

@@ -14,7 +14,7 @@ from .token_handler import BasicTokenHandler, OidcTokenHandler
 
 
 class AuthRequirement(Enum):
-    """Provides possible requirements for bearer token authentication to access an endpoint."""
+    """Provides possible authentication requirements to access an endpoint."""
 
     token_required = "token_required"  # noqa S105
     """Access to this endpoint requires bearer token authentication."""
@@ -45,7 +45,7 @@ class BaseAuthenticator(ABC):
 
     @abstractmethod
     def validate(self, func: Callable, role: str, required: bool = False) -> Callable:
-        """Decorator to authenticate a user by validating its token.
+        """Decorator to authenticate a user.
 
         Args:
             func: The wrapped function which the user wants to execute.

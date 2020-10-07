@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.abspath('../services/data'))
 sys.path.insert(0, os.path.abspath('../services/files'))
 sys.path.insert(0, os.path.abspath('../services/jobs'))
 sys.path.insert(0, os.path.abspath('../services/processes'))
+sys.path.insert(0, os.path.abspath('../services/users'))
 sys.path.insert(0, os.path.abspath('../gateway'))
 sys.setrecursionlimit(1500)
 
@@ -94,4 +95,7 @@ intersphinx_mapping = {
     'flask': ('https://flask.palletsprojects.com/en/1.1.x/', None),
     'flask_sqlalchemy': ('https://flask-sqlalchemy.palletsprojects.com/en/2.x/', None),
     'flask_cors': ('https://flask-cors.readthedocs.io/en/latest/', None),
+    'sqlalchemy': ('https://docs.sqlalchemy.org/en/13/', None),
+    'marshmallow': ('https://marshmallow.readthedocs.io/en/stable/', None),
+    'werkzeug': ('https://werkzeug.palletsprojects.com/en/1.0.x/', None),
 }
