@@ -245,7 +245,7 @@ class JobService:
             self.dag_writer.write_and_move_job(job_id=job_id,
                                                user_name=user["id"],
                                                dags_folder=settings.AIRFLOW_DAGS,
-                                               wekeo_storage = settings.WEKEO_STORAGE,
+                                               wekeo_storage=settings.WEKEO_STORAGE,
                                                process_graph_json=process,
                                                job_data=self.get_job_folder(user["id"], job_id),
                                                vrt_only=vrt_flag,
