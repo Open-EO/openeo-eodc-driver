@@ -168,6 +168,7 @@ services:
       OEO_SYNC_RESULTS_FOLDER: /usr/src/sync-results
       AIRFLOW_LOG_DIR: /usr/src/logs/airflow
       LOG_DIR: /usr/src/logs
+      OEO_WEKEO_STORAGE: $OEO_WEKEO_STORAGE
     volumes:
       - ./services/jobs:/usr/src/app
       - $AIRFLOW_DAGS:/usr/src/dags
