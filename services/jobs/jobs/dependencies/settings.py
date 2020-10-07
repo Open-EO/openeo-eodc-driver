@@ -142,14 +142,14 @@ def initialise_settings() -> None:
         :class:`~dynaconf.validator.ValidationError`: A setting is not valid.
     """
     not_doc = Validator("ENV_FOR_DYNACONF", is_not_in=["documentation"])
-    not_unittest = Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"])
+    not_doc_unittest = Validator("ENV_FOR_DYNACONF", is_not_in=["documentation", "unittest"])
 
     settings.configure(ENVVAR_PREFIX_FOR_DYNACONF="OEO")
     utils = SettingValidationUtils()
     settings.validators.register(
         Validator(SettingKeys.OPENEO_VERSION.value, must_exist=True, when=not_doc),
         Validator(SettingKeys.AIRFLOW_HOST.value, must_exist=True, condition=utils.check_parse_url,
-                  when=(not_unittest and not_doc)),
+                  when=(not_doc_unittest and not_doc)),
         Validator(SettingKeys.AIRFLOW_OUTPUT.value, must_exist=True, when=not_doc),
         Validator(SettingKeys.AIRFLOW_DAGS.value, must_exist=True, condition=utils.check_create_folder, when=not_doc),
         Validator(SettingKeys.SYNC_DEL_DELAY.value, must_exist=True, is_type_of=int, condition=utils.check_positive_int,
@@ -159,19 +159,19 @@ def initialise_settings() -> None:
         # TODO to be removed once new bindings and api version is done
         Validator(SettingKeys.CSW_SERVER.value, must_exist=True, when=not_doc),
 
-        Validator(SettingKeys.RABBIT_HOST.value, must_exist=True, when=not_doc and not_unittest),
-        Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc and not_unittest),
-        Validator(SettingKeys.RABBIT_USER.value, must_exist=True, when=not_doc and not_unittest),
-        Validator(SettingKeys.RABBIT_PASSWORD.value, must_exist=True, when=not_doc and not_unittest),
+        Validator(SettingKeys.RABBIT_HOST.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc_unittest),
+        Validator(SettingKeys.RABBIT_USER.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.RABBIT_PASSWORD.value, must_exist=True, when=not_doc_unittest),
 
-        Validator(SettingKeys.DB_USER.value, must_exist=True, when=not_doc and not_unittest),
-        Validator(SettingKeys.DB_PASSWORD.value, must_exist=True, when=not_doc and not_unittest),
-        Validator(SettingKeys.DB_HOST.value, must_exist=True, when=not_doc and not_unittest),
-        Validator(SettingKeys.DB_PORT.value, must_exist=True, is_type_of=int, when=not_doc and not_unittest),
-        Validator(SettingKeys.DB_NAME.value, must_exist=True, when=not_doc and not_unittest),
+        Validator(SettingKeys.DB_USER.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.DB_PASSWORD.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.DB_HOST.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.DB_PORT.value, must_exist=True, is_type_of=int, when=not_doc_unittest),
+        Validator(SettingKeys.DB_NAME.value, must_exist=True, when=not_doc_unittest),
 
         Validator(SettingKeys.LOG_DIR.value, must_exist=True, condition=utils.check_create_folder,
-                  when=not_doc and not_unittest),
+                  when=not_doc_unittest),
     )
     settings.validators.validate()
     LOGGER.info("Settings validated")

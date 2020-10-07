@@ -74,7 +74,7 @@ def initialise_settings() -> None:
         :class:`~dynaconf.validator.ValidationError`: A setting is not valid.
     """
     not_doc = Validator("ENV_FOR_DYNACONF", is_not_in=["documentation"])
-    not_unittest = Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"])
+    not_doc_unittest = Validator("ENV_FOR_DYNACONF", is_not_in=["documentation", "unittest"])
 
     settings.configure(ENVVAR_PREFIX_FOR_DYNACONF="OEO")
     utils = SettingValidationUtils()
@@ -83,13 +83,13 @@ def initialise_settings() -> None:
                   when=not_doc),
         Validator(SettingKeys.UPLOAD_TMP_DIR.value, must_exist=True, condition=utils.check_create_folder, when=not_doc),
 
-        Validator(SettingKeys.RABBIT_HOST.value, must_exist=True, when=not_doc and not_unittest),
-        Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc and not_unittest),
-        Validator(SettingKeys.RABBIT_USER.value, must_exist=True, when=not_doc and not_unittest),
-        Validator(SettingKeys.RABBIT_PASSWORD.value, must_exist=True, when=not_doc and not_unittest),
+        Validator(SettingKeys.RABBIT_HOST.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc_unittest),
+        Validator(SettingKeys.RABBIT_USER.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.RABBIT_PASSWORD.value, must_exist=True, when=not_doc_unittest),
 
         Validator(SettingKeys.LOG_DIR.value, must_exist=True, condition=utils.check_create_folder,
-                  when=not_doc and not_unittest),
+                  when=not_doc_unittest),
     )
     settings.validators.validate()
 
