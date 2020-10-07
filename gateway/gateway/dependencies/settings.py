@@ -46,18 +46,6 @@ class SettingKeys(Enum):
     RABBIT_PASSWORD = "RABBIT_PASSWORD"  # noqa S105
     """The password to authenticate with the given user on the RabbitMQ."""
 
-    # User DB
-    DB_USER = "DB_USER"
-    """Database user name for the users database."""
-    DB_PASSWORD = "DB_PASSWORD"  # noqa S105 - not a hardcoded password only the parameter name!
-    """Database user password for the users database matching the provided user name."""
-    DB_HOST = "DB_HOST"
-    """Host where the users database is running."""
-    DB_PORT = "DB_PORT"
-    """Port where the users database is running."""
-    DB_NAME = "DB_NAME"
-    """Database name of the users database."""
-
 
 class SettingValidationUtils:
     """Provides a set of utility functions to validated settings."""
@@ -90,11 +78,5 @@ def initialise_settings() -> None:
         Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc),
         Validator(SettingKeys.RABBIT_USER.value, must_exist=True, when=not_doc),
         Validator(SettingKeys.RABBIT_PASSWORD.value, must_exist=True, when=not_doc),
-
-        Validator(SettingKeys.DB_USER.value, must_exist=True, when=not_doc),
-        Validator(SettingKeys.DB_PASSWORD.value, must_exist=True, when=not_doc),
-        Validator(SettingKeys.DB_HOST.value, must_exist=True, when=not_doc),
-        Validator(SettingKeys.DB_PORT.value, must_exist=True, is_type_of=int, when=not_doc),
-        Validator(SettingKeys.DB_NAME.value, must_exist=True, when=not_doc),
     )
     settings.validators.validate()

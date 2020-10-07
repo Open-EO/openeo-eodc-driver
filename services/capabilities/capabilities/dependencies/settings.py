@@ -2,8 +2,10 @@
 
 import logging
 from enum import Enum
+from os import makedirs
+from os.path import isdir
 
-from dynaconf import settings
+from dynaconf import Validator, settings
 
 LOGGER = logging.getLogger('standardlog')
 
@@ -37,6 +39,16 @@ class SettingKeys(Enum):
     """
 
 
+class SettingValidationUtils:
+    """Provides a set of utility functions to validated settings."""
+
+    def check_create_folder(self, folder_path: str) -> bool:
+        """Create the given folder path if it does not exist, always returns True."""
+        if not isdir(folder_path):
+            makedirs(folder_path)
+        return True
+
+
 def initialise_settings() -> None:
     """Configures and validates settings.
 
@@ -46,8 +58,20 @@ def initialise_settings() -> None:
     Raises:
         :py:class:`~dynaconf.validator.ValidationError`: A setting is not valid.
     """
+    not_doc = Validator("ENV_FOR_DYNACONF", is_not_in=["documentation"])
+    not_unittest = Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"])
     settings.configure(ENVVAR_PREFIX_FOR_DYNACONF="OEO")
-    settings.validators.register()
+    utils = SettingValidationUtils()
+
+    settings.validators.register(
+        Validator(SettingKeys.RABBIT_HOST.value, must_exist=True, when=not_doc and not_unittest),
+        Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc and not_unittest),
+        Validator(SettingKeys.RABBIT_USER.value, must_exist=True, when=not_doc and not_unittest),
+        Validator(SettingKeys.RABBIT_PASSWORD.value, must_exist=True, when=not_doc and not_unittest),
+
+        Validator(SettingKeys.LOG_DIR.value, must_exist=True, condition=utils.check_create_folder,
+                  when=not_doc and not_unittest),
+    )
     settings.validators.validate()
 
     LOGGER.info("Settings validated")

@@ -6,11 +6,13 @@ from nameko.rpc import rpc
 from nameko_sqlalchemy import DatabaseSession
 
 import users.dependencies.repository as rep
+from users.dependencies.settings import initialise_settings
 from users.models import AuthType, Base, IdentityProviders, Profiles, Users
 from users.schema import IdentityProviderSchema, ProfileSchema, UserSchema
 
 service_name = "users"
 LOGGER = logging.getLogger("standardlog")
+initialise_settings()
 
 
 class ServiceException(Exception):
