@@ -81,6 +81,28 @@ services:
     ports:
       - $GATEWAY_PORT:3000
 
+  openeo-users:
+    image: oeo-users-$OPENEO_VERSION
+    build:
+      context: ./services/users
+      args:
+      OPENEO_VERSION: $OPENEO_VERSION
+    container_name: oeo-users-$OPENEO_VERSION
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - openeo-gateway
+      - openeo-base
+    env_file:
+      - ./envs/rabbitmq.env
+      - ./envs/users.env
+    volumes:
+      - ./services/users:/usr/src/app
+      - $LOG_DIR:/usr/src/log
+    environment:
+      OEO_OPENEO_VERSION: $OPENEO_VERSION
+      OEO_LOG_DIR: /usr/src/log
+
   openeo-capabilities:
     build:
       context: ./services/capabilities
