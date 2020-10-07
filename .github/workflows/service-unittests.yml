@@ -100,3 +100,21 @@ jobs:
         run: pip install nox==2020.5.24
       - name: Test with nox
         run: cd services/jobs && nox
+
+  users:
+    name: Users-Service
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+    - name: Install nox
+      run: pip install nox==2020.5.24
+    - name: Test with nox
+      run: cd services/users && nox
