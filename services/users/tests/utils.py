@@ -2,7 +2,7 @@
 import random
 import string
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from uuid import uuid4
 
 from nameko.testing.services import worker_factory
@@ -168,3 +168,22 @@ class InputDictGenerator:
 def get_user_service(db_session: Session) -> UsersService:
     """Return a mocked user service."""
     return worker_factory(UsersService, db=db_session)
+
+
+def get_ref_user(user: Users, profile: Profiles) -> Dict[str, Any]:
+    """Return user dict from user database object."""
+    return {
+        "id": user.id,
+        "role": user.role,
+        "auth_type": str(user.auth_type),
+        "username": user.username,
+        "password_hash": user.password_hash,
+        "email": user.email,
+        "profile": {
+            "name": profile.name,
+            "data_access": profile.data_access.split(","),
+        },
+        "budget": user.budget,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at,
+    }

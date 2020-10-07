@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from flask import jsonify, make_response, redirect, request, send_file
 from flask.wrappers import Response
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 
 class APIException(Exception):
@@ -173,7 +174,7 @@ class ResponseParser:
 
         return make_response(jsonify(error_dict), error_dict["code"])
 
-    def redirect_to(self, url: str) -> Response:
+    def redirect_to(self, url: str) -> WerkzeugResponse:
         """Redirect to another URL.
 
         Args:

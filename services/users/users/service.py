@@ -1,6 +1,6 @@
 """Provides the implementation of the user management service and service exception."""
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from nameko.rpc import rpc
 from nameko_sqlalchemy import DatabaseSession
@@ -104,8 +104,8 @@ class UsersService:
                 user_args['auth_type'] = AuthType.oidc
                 existing = rep.get_user_by_email(self.db, user_args['email'])
 
-                user_args['identity_provider_id'] = rep.get_identity_provider_id(self.db,
-                                                                                 user_args.pop('identity_provider'))
+                user_args['identity_provider_id'] =\
+                    rep.get_identity_provider_id(self.db, user_args.pop('identity_provider'))
                 if not user_args['identity_provider_id']:
                     return ServiceException(service_name, 400, 'The given identity provider is not supported') \
                         .to_dict()
@@ -231,7 +231,7 @@ class UsersService:
             return ServiceException(service_name, 500, str(exp)).to_dict()
 
     @rpc
-    def get_oidc_providers(self) -> dict:
+    def get_oidc_providers(self, user: Dict[str, Any] = None) -> dict:
         """Return all available openID connect providers as dictionary."""
         try:
             identity_providers = self.db.query(IdentityProviders).all()
@@ -303,9 +303,31 @@ class UsersService:
         except Exception as exp:
             return ServiceException(service_name, 500, str(exp)).to_dict()
 
-    @rpc
     def _get_user_id(self, user: Optional[Dict[str, Any]]) -> Optional[str]:
         """Return the user_id if a user object is given."""
         if user and "id" in user:
             return user["id"]
         return None
+
+    @rpc
+    def get_user_entity_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Return the user dict from user_id."""
+        return rep.get_user_entity(self.db, rep.get_user_by_id, **{"user_id": user_id})
+
+    @rpc
+    def get_user_entity_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """Return the user dict from its email."""
+        return rep.get_user_entity(self.db, rep.get_user_by_email, **{"email": email})
+
+    @rpc
+    def get_user_entity_by_username(self, username: str) -> Optional[Dict[str, Any]]:
+        """Return the user dict from its username."""
+        return rep.get_user_entity(self.db, rep.get_user_by_username, **{"username": username})
+
+    @rpc
+    def check_oidc_issuer_exists(self, identity_provider_id_openo: str) -> Tuple[bool, Optional[str]]:
+        """Check the given identity provider exists in the database."""
+        identity_provider = self.db.query(IdentityProviders).filter_by(id_openeo=identity_provider_id_openo).first()
+        if identity_provider:
+            return True, identity_provider.issuer_url
+        return False, None

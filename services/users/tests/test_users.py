@@ -5,8 +5,8 @@ import pytest
 from sqlalchemy import Column
 from sqlalchemy.orm import Session
 
-from users.models import AuthType, Users
-from .utils import InputDictGenerator, RandomDbAdder, get_user_service
+from users.models import AuthType, Profiles, Users
+from .utils import InputDictGenerator, RandomDbAdder, get_ref_user, get_user_service
 
 
 class TestUser:
@@ -91,18 +91,24 @@ class TestUser:
         }
         assert len(db_session.query(Users).filter(db_column == getattr(user, attribute)).all()) == 0
 
-    @pytest.mark.parametrize("get_user",
-                             (RandomDbAdder().random_basic_user, RandomDbAdder().random_oidc_user))
-    def test_get(self, db_session: Session, get_user: Callable) -> None:
+    @pytest.mark.parametrize(("get_user", "attribute", "db_column"), (
+        (RandomDbAdder().random_basic_user, "username", Users.username),
+        (RandomDbAdder().random_oidc_user, "email", Users.email)
+    ))
+    def test_get(self, db_session: Session, get_user: Callable, attribute: str, db_column: Column) -> None:
         """Check basic and oidc user are returned in the correct format.
 
         Args:
             db_session: Database session used to connected to the database.
             get_user: Function to add and retrieve a user (basic or oidc) to the database.
+            attribute: Name of the unique identifier key for the user. Either username for basic users or email for
+                oidc users.
+            db_column: Equivalent to the attribute key but the corresponding database column.
+                (Users.username or Users.email)
         """
         user_service = get_user_service(db_session)
         user = get_user(db_session)
-        assert db_session.query(Users).filter_by(email=user.email).one()
+        assert db_session.query(Users).filter(db_column == getattr(user, attribute)).one()
 
         response = user_service.get_user_info({"id": user.id})
 
@@ -113,3 +119,41 @@ class TestUser:
                 "user_id": user.id,
             },
         }
+
+    @pytest.mark.parametrize(("get_user", "attribute", "db_column", "entity_attr", "entity_column"), (
+        (RandomDbAdder().random_basic_user, "username", Users.username, "id", Users.id),
+        (RandomDbAdder().random_oidc_user, "email", Users.email, "id", Users.id),
+        (RandomDbAdder().random_basic_user, "username", Users.username, "email", Users.email),
+        (RandomDbAdder().random_oidc_user, "email", Users.email, "email", Users.email),
+        (RandomDbAdder().random_basic_user, "username", Users.username, "username", Users.username),
+        (RandomDbAdder().random_oidc_user, "email", Users.email, "username", Users.username),
+    ))
+    def test_user_entity_by(self, db_session: Session, get_user: Callable, attribute: str, db_column: Column,
+                            entity_attr: str, entity_column: Column) -> None:
+        """Check the get_entity_by rpc functions all return a correct user entity dict.
+
+        Args:
+            db_session: Database session to connect to the DB.
+            get_user: Function from the .utils which inserts (into the DB) and returns a new user.
+            attribute: Name of the unique identifier key for the user. Either username for basic users or email for
+                oidc users.
+            db_column: Equivalent to the attribute key but the corresponding database column.
+                (Users.username or Users.email)
+            entity_attr: Name of the key used to get the user entity. (id, username, email)
+            entity_column: Equivalent to the entity_attr to the corresponding database column.
+                (Users.id, Users.email, Users.username)
+        """
+        user_service = get_user_service(db_session)
+        user = get_user(db_session)
+        profile = db_session.query(Profiles).filter_by(id=user.profile_id).first()
+        assert db_session.query(Users).filter(db_column == getattr(user, attribute)).one()
+
+        entity_func_map = {
+            "id": user_service.get_user_entity_by_id,
+            "email": user_service.get_user_entity_by_email,
+            "username": user_service.get_user_entity_by_username,
+        }
+
+        response = entity_func_map[entity_attr](getattr(user, entity_attr))
+
+        assert response == get_ref_user(user, profile)
