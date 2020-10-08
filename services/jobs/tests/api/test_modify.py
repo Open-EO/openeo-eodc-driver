@@ -27,8 +27,6 @@ class TestModifyJob(BaseCase):
         job_service = get_configured_job_service(db_session)
         user = get_random_user()
         job_id = add_job(job_service, user=user)
-        initial_dag_file_time = getmtime(
-            self.dag_handler.get_dag_path_from_id(self.dag_handler.get_preparation_dag_id(job_id=job_id)))
 
         job_args = {
             'title': 'New title',
@@ -38,10 +36,6 @@ class TestModifyJob(BaseCase):
         }
         result = job_service.modify(user=user, job_id=job_id, **job_args)
         assert result == {'code': 204, 'status': 'success'}
-        # Check dag file was not modified
-        dag_path = self.dag_handler.get_dag_path_from_id(self.dag_handler.get_preparation_dag_id(job_id=job_id))
-        assert isfile(dag_path)
-        assert initial_dag_file_time == getmtime(dag_path)
 
         job_args.update({'status': 'created'})
         result = job_service.get(user=user, job_id=job_id)
@@ -58,16 +52,10 @@ class TestModifyJob(BaseCase):
         job_service = get_configured_job_service(db_session)
         user = get_random_user()
         job_id = add_job(job_service, user=user)
-        initial_dag_file_time = getmtime(
-            self.dag_handler.get_dag_path_from_id(self.dag_handler.get_preparation_dag_id(job_id=job_id)))
 
         job_args: dict = {'process': {'process_graph': {}}}
         result = job_service.modify(user=user, job_id=job_id, **job_args)
         assert result == {'code': 204, 'status': 'success'}
-        # Check dag file was updated
-        dag_path = self.dag_handler.get_dag_path_from_id(self.dag_handler.get_preparation_dag_id(job_id=job_id))
-        assert isfile(dag_path)
-        assert initial_dag_file_time < getmtime(dag_path)
 
         result = job_service.get(user=user, job_id=job_id)
         assert result['status'] == 'success'

@@ -3,7 +3,7 @@ import enum
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Column, DateTime, Enum, Integer, JSON, String
+from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, JSON, String
 from sqlalchemy.ext.declarative import declarative_base
 
 Base: Any = declarative_base()
@@ -59,6 +59,10 @@ class Job(Base):
     """Maximum amount of costs the request is allowed to produce in cent."""
     current_costs = Column(Integer, nullable=True)
     """The current costs of the job in cent."""
+    vrt_flag = Column(Boolean, nullable=False, default=True)
+    """Flag whether only vrt files should be created in a first run - used to parallelize dag later."""
+    add_parallel_sensor = Column(Boolean, nullable=False, default=True)
+    """Flag whether the job should be parallelized."""
     logs = Column(String)
     """Already produced logs - currently not filled."""
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

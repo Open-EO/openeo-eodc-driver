@@ -30,14 +30,9 @@ class TestCreateJob:
         assert results_job_id == result['headers']['Location'][5:]
         assert db_session.query(Job).filter(Job.user_id == user["id"]).filter(Job.id == results_job_id).count() == 1
         dag_handler = DagHandler()
-        assert isfile(dag_handler.get_dag_path_from_id(
-            dag_handler.get_preparation_dag_id(job_id=result['headers']['OpenEO-Identifier'])))
 
         job_service.processes_service.put_user_defined.assert_called_once_with(
             user=user, process_graph_id="pg_id", **job_data["process"]
         )
-        job_service.files_service.setup_jobs_result_folder.assert_called_once_with(
-            user_id=user["id"], job_id=results_job_id)
-        job_service.processes_service.get_all_predefined.assert_called_once()
 
 # TODO invalid PG

@@ -115,20 +115,6 @@ class JobService:
                     return process_response
                 job.process_graph_id = process_graph_id
 
-                # Get all processes
-                process_response = self.processes_service.get_all_predefined()
-                if process_response["status"] == "error":
-                    return process_response
-                backend_processes = process_response["data"]["processes"]
-
-                # handle dag file (remove and recreate it) - only needs to be updated if process graph changes
-                self.dag_handler.remove_all_dags(job_id)
-                self.dag_writer.write_and_move_job(job_id=job_id, user_name=user["id"],
-                                                   process_graph_json=process_graph_args,
-                                                   job_data=self.get_job_folder(user["id"], job_id),
-                                                   vrt_only=True, add_delete_sensor=True,
-                                                   process_defs=backend_processes)
-
             # Maybe there is a better option to do this update? e.g. using marshmallow schemas?
             job.title = job_args.get("title", job.title)
             job.description = job_args.get("description", job.description)
@@ -237,12 +223,6 @@ class JobService:
         """
         try:
             LOGGER.debug("Start creating job...")
-            vrt_flag = True
-            add_parallel_sensor = True
-            if 'vrt_flag' in job_args.keys():
-                vrt_flag = job_args.pop("vrt_flag")
-            if 'add_parallel_sensor' in job_args.keys():
-                add_parallel_sensor = job_args.pop("add_parallel_sensor")
             process = job_args.pop("process")
             process_graph_id = process["id"] if "id" in process else self.generate_alphanumeric_id()
             process_response = self.processes_service.put_user_defined(
@@ -258,21 +238,6 @@ class JobService:
             self.db.commit()
             job_id = str(job.id)
 
-            _ = self.files_service.setup_jobs_result_folder(user_id=user["id"], job_id=job_id)
-
-            # Get all processes
-            process_response = self.processes_service.get_all_predefined()
-            if process_response["status"] == "error":
-                return process_response
-            backend_processes = process_response["data"]["processes"]
-            self.dag_writer.write_and_move_job(job_id=job_id,
-                                               user_name=user["id"],
-                                               process_graph_json=process,
-                                               job_data=self.get_job_folder(user["id"], job_id),
-                                               vrt_only=vrt_flag,
-                                               add_delete_sensor=True,
-                                               add_parallel_sensor=add_parallel_sensor,
-                                               process_defs=backend_processes)
             self.db.add(job)
             self.db.commit()
             LOGGER.info(f"Dag file created for job {job_id}")
@@ -313,6 +278,26 @@ class JobService:
             if job.status in [JobStatus.queued, JobStatus.running]:
                 return ServiceException(400, user["id"], f"Job {job_id} is already {job.status}. Processing must be "
                                                          f"canceled before restart.", links=[]).to_dict()
+
+            self.files_service.setup_jobs_result_folder(user_id=user["id"], job_id=job_id)
+            # Get all processes
+            process_response = self.processes_service.get_all_predefined()
+            if process_response["status"] == "error":
+                return process_response
+            backend_processes = process_response["data"]["processes"]
+            # Get process graph
+            process_graph_response = self.processes_service.get_user_defined(user, job.process_graph_id)
+            if process_graph_response["status"] == "error":
+                return process_graph_response
+            process_graph = process_graph_response["data"]["process_graph"]
+            self.dag_writer.write_and_move_job(job_id=job_id,
+                                               user_name=user["id"],
+                                               process_graph_json={"process_graph": process_graph},
+                                               job_data=self.get_new_job_folder(user["id"], job_id),
+                                               vrt_only=job.vrt_flag,
+                                               add_delete_sensor=True,
+                                               add_parallel_sensor=job.add_parallel_sensor,
+                                               process_defs=backend_processes)
 
             trigger_worked = self.airflow.trigger_dag(dag_id=self.dag_handler.get_preparation_dag_id(job_id))
             if not trigger_worked:
@@ -629,8 +614,8 @@ class JobService:
             self.db.commit()
         LOGGER.debug(f"Job Status of job {job_id} is {job.status}")
 
-    def get_job_folder(self, user_id: str, job_id: str) -> str:
-        """Get absolute path to specific job folder of a user.
+    def get_new_job_folder(self, user_id: str, job_id: str) -> str:
+        """Get absolute path to new job_run folder of a user.
 
         Args:
             user_id: The identifier of the user.
@@ -639,7 +624,21 @@ class JobService:
         Returns:
             The complete path to the specific job folder on the file system.
         """
-        return os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id)
+        return os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id,
+                            self.files_service.get_new_job_run_folder_name())
+
+    def get_latest_job_folder(self, user_id: str, job_id: str) -> str:
+        """Get absolute path to latest job_run folder of a user.
+
+        Args:
+            user_id: The identifier of the user.
+            job_id: The id of the job.
+
+        Returns:
+            The complete path to the specific job folder on the file system.
+        """
+        return os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id,
+                            self.files_service.get_latest_job_run_folder_name())
 
     def _stop_airflow_job(self, user_id: str, job_id: str) -> None:
         """Trigger the airflow observer to set all running task to failed.

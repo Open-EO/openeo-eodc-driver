@@ -243,6 +243,9 @@ class MockedFilesService(MagicMock):
         """Return just settings.JOB_FOLDER."""
         return settings.JOB_FOLDER
 
+    def get_new_job_run_folder_name(self) -> str:
+        return datetime.utcnow().strftime("%Y%m%dT%H%M%S%f")
+
 
 class MockedDagHandler(MagicMock):
     """Mocked DagHandler."""
