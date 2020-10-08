@@ -1,0 +1,41 @@
+name: Micorservice Unittests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  capabilities:
+    name: Capabilities-Service
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+
+    - name: Copy env vars
+      run: cp -r sample-envs envs && cp sample.env .env
+    - name: Create local folders
+      run: source .env && setup_scripsts/create_local_dirs.sh
+    - name: Create docker network
+      run: docker network create openeo-v1.0
+    - name: Bring up docker-compose
+      run: docker-compose up
+
+    - name: Export Setup env variables
+      run: source setup_scripts/sample-auth.sh
+    - name: Initialise databases
+      run: setup_scripts/init_dbs.sh
+    - name: Add initial database users
+      run: setup_scripts/add_init_users.sh
+    - name: Fill processes and collections
+      run: python scripts/add_collections_and_processes.py
+

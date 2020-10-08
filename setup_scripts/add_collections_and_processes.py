@@ -1,9 +1,11 @@
 import os
 import json
+from typing import Dict
+
 import requests
 
 
-def get_headers(backend_url, username, password):
+def get_headers(backend_url: str, username: str, password: str) -> Dict[str, str]:
     # Get token with Basic auth
     response = requests.get(backend_url + "/credentials/basic", auth=(username, password))
     if "v0.4" in backend_url:
@@ -12,14 +14,14 @@ def get_headers(backend_url, username, password):
         headers = {'Authorization': 'Bearer basic//' + response.json()['access_token']}
 
     return headers
-    
 
-def add_processes(backend_url, auth_header):
-    
+
+def add_processes(backend_url: str, auth_header: Dict[str, str]) -> None:
+
     # Load process list supported
     processes = json.load(open("supported_processes.json"))["processes"]
     processes_to_add = {process_name:{} for process_name in processes}
-    
+
     if "v0.4" in backend_url:
         response = requests.post(backend_url + "/processes", json=processes_to_add, headers=auth_header)
         if response.ok:
@@ -27,7 +29,7 @@ def add_processes(backend_url, auth_header):
             print(response.headers['Location'])
         else:
             print(response.text)
-    else:    
+    else:
         for process_name in processes:
             response = requests.put(backend_url + "/processes/" + process_name, headers=auth_header)
             if response.ok:
@@ -37,25 +39,25 @@ def add_processes(backend_url, auth_header):
                 print(response.text)
                 print('\n')
 
-        
-def add_collections(backend_url, auth_header):
-    
+
+def add_collections(backend_url: str, auth_header: Dict[str, str]) -> None:
+
     response = requests.post(backend_url + "/collections", headers=auth_header)
     print(response.text)
 
 
 if __name__ == '__main__':
-    
+
     # Get env variables
-    backend_url = os.environ['BACKEND_URL']
-    username = os.environ['USER_BASIC_ADMIN']  # user MUST have admin rights
-    password = os.environ['PASSWORD_BASIC_ADMIN']
-    
+    backend_url_ = os.environ['BACKEND_URL']
+    username_ = os.environ['USER_BASIC_ADMIN']  # user MUST have admin rights
+    password_ = os.environ['PASSWORD_BASIC_ADMIN']
+
     # Generate auth headers
-    auth_header = get_headers(backend_url, username, password)
-    
+    auth_header_ = get_headers(backend_url_, username_, password_)
+
     # Add processes
-    add_processes(backend_url, auth_header)
-    
+    add_processes(backend_url_, auth_header_)
+
     # Add collections
-    add_collections(backend_url, auth_header)
+    add_collections(backend_url_, auth_header_)

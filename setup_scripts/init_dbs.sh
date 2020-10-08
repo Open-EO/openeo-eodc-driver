@@ -10,7 +10,7 @@ check_container () {
         docker run ${1}
       fi
   fi
-} 
+}
 
 # Init users database
 check_container oeo-users-v1.0 && docker exec oeo-users-v1.0 /bin/sh -c alembic upgrade head && echo "### Done. ###"
