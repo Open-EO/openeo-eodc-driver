@@ -13,7 +13,7 @@ check_container () {
 }
 
 # Init users database
-check_container oeo-users-v1.0 && docker exec oeo-users-v1.0 /bin/sh -c alembic upgrade head && echo "### Done. ###"
+check_container oeo-users-v1.0 && docker exec oeo-users-v1.0 alembic upgrade head && echo "### Done. ###"
 
 # Init process graphs database
 check_container oeo-processes-v1.0 && docker exec oeo-processes-v1.0 alembic upgrade head && echo "### Done. ###"

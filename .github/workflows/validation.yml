@@ -7,8 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  capabilities:
-    name: Capabilities-Service
+  backend_setup:
+    name: Setup complete Backend
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -24,7 +24,9 @@ jobs:
     - name: Copy env vars
       run: cp -r sample-envs envs && cp sample.env .env
     - name: Create local folders
-      run: source .env && setup_scripsts/create_local_dirs.sh
+      run: source .env && setup_scripts/create_local_dirs.sh
+    - name: Copy openapi.yml
+      run: cp gateway/sample_openapi.yaml gateway/openapi.yaml
     - name: Create docker network
       run: docker network create openeo-v1.0
     - name: Bring up docker-compose

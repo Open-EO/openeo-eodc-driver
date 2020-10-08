@@ -1,10 +1,10 @@
 openapi: 3.0.1
 servers:
-  - url: https://openeo.sample.com
+  - url: http://localhost:3000
     description: A short description
-  - url: https://openeo.sample.com/v1.0
-    description: API version 1.0.0 (description has to end with exact api_version!)
-  - url: https://openeo.sample.com/v0.4
+  - url: http://localhost:3000/v1.0
+    description: (description has to end with exact api_version!) API version 1.0.0
+  - url: http://localhost:3000/v0.4
     description: API version 0.4.2
 
 info:
