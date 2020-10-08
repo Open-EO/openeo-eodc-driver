@@ -1,3 +1,6 @@
 mkdir -p $SYNC_RESULTS_FOLDER
+chmod 777 $SYNC_RESULTS_FOLDER
 mkdir -p $DATA_FOLDER
+chmod 777 $DATA_FOLDER
 mkdir -p $LOG_DIR
+chmod 777 $LOG_DIR
