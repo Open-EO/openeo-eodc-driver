@@ -647,18 +647,18 @@ class JobService:
         """
         return ''.join(random.choices(string.ascii_letters + string.digits, k=k))
 
-    def _get_in_filepaths(self, process_graph):
+    def _get_in_filepaths(self, process_graph: dict) -> dict:
         """Generates a dictionary storing in_filepaths for any load_collection call
          in the current job.
 
         Arguments:
-            process_graph {Dit} -- an openEO process graph
+            process_graph {dict} -- an openEO process graph
 
         Returns:
-            Dict -- Lists of in_filepaths, one for each load_collection node
+            in_filepaths -- dict storing lists of in_filepaths, one for each load_collection node
         """
 
-        in_filepaths = {}
+        in_filepaths: dict = {}
         for node in process_graph:
             if process_graph[node]['process_id'] == 'load_collection':
                 in_filepaths[node] = {}
