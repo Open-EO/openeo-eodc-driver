@@ -31,10 +31,10 @@ jobs:
       run: docker network create openeo-v1.0
     - name: Bring up docker-compose
       run: docker-compose up -d
-    - name: Wait 5 minutes for the docker-compose
+    - name: Wait 1 minute for the docker-compose
       uses: jakejarvis/wait-action@master
       with:
-        time: '300s'
+        time: '60s'
     - name: Check containers are running
       run: docker ps
 
