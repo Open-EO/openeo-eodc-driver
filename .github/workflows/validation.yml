@@ -29,8 +29,8 @@ jobs:
       run: cp gateway/sample_openapi.yaml gateway/openapi.yaml
     - name: Create docker network
       run: docker network create openeo-v1.0
-    - name: Bring up docker-compose -d
-      run: docker-compose up
+    - name: Bring up docker-compose
+      run: docker-compose up -d
     - name: Wait 5 minutes for the docker-compose
       uses: jakejarvis/wait-action@master
       with:
