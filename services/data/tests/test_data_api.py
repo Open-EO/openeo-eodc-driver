@@ -144,44 +144,35 @@ collection_model = Collection(
     )],
 )
 
-filepaths_response = {
-    "status": "success",
-    "code": 200,
-    "data": [
-        '/s2a_prd_msil1c/2018/06/08/S2A_MSIL1C_20180608T101021_N0206_R022_T32TPS_20180608T135059.zip',
-        '/s2a_prd_msil1c/2018/06/11/S2A_MSIL1C_20180611T102021_N0206_R065_T32TPS_20180611T123241.zip',
-        '/s2a_prd_msil1c/2018/06/18/S2A_MSIL1C_20180618T101021_N0206_R022_T32TPS_20180618T135619.zip',
-        '/s2a_prd_msil1c/2018/06/21/S2A_MSIL1C_20180621T102021_N0206_R065_T32TPS_20180621T140615.zip'
-    ]
-}
+filepaths_response = [
+    '/s2a_prd_msil1c/2018/06/08/S2A_MSIL1C_20180608T101021_N0206_R022_T32TPS_20180608T135059.zip',
+    '/s2a_prd_msil1c/2018/06/11/S2A_MSIL1C_20180611T102021_N0206_R065_T32TPS_20180611T123241.zip',
+    '/s2a_prd_msil1c/2018/06/18/S2A_MSIL1C_20180618T101021_N0206_R022_T32TPS_20180618T135619.zip',
+    '/s2a_prd_msil1c/2018/06/21/S2A_MSIL1C_20180621T102021_N0206_R065_T32TPS_20180621T140615.zip'
+]
 
-filepaths_response_dc = {
-    "status": "success",
-    "code": 200,
-    "data": [
-        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_050935--_EU010M_E052N015T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_051000--_EU010M_E052N015T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_050935--_EU010M_E052N015T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_051000--_EU010M_E052N015T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050053--_EU010M_E052N015T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050118--_EU010M_E052N015T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050053--_EU010M_E052N015T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050118--_EU010M_E052N015T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_050935--_EU010M_E052N016T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_051000--_EU010M_E052N016T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_050935--_EU010M_E052N016T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_051000--_EU010M_E052N016T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050028--_EU010M_E052N016T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050053--_EU010M_E052N016T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050028--_EU010M_E052N016T1.tif',
-        '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050053--_EU010M_E052N016T1.tif'
-    ]
-}
 
-filepaths_response_wekeo = {
-    "status": "success",
-    "code": 200,
-    "data": [
+filepaths_response_dc = [
+    '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_050935--_EU010M_E052N015T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_051000--_EU010M_E052N015T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_050935--_EU010M_E052N015T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_051000--_EU010M_E052N015T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050053--_EU010M_E052N015T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050118--_EU010M_E052N015T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050053--_EU010M_E052N015T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050118--_EU010M_E052N015T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_050935--_EU010M_E052N016T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VHD_20170301_051000--_EU010M_E052N016T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_050935--_EU010M_E052N016T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1A_IWGRDH1VVD_20170301_051000--_EU010M_E052N016T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050028--_EU010M_E052N016T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VHD_20170302_050053--_EU010M_E052N016T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050028--_EU010M_E052N016T1.tif',
+    '/sig0/SIG0-----_SGRTA01_S1B_IWGRDH1VVD_20170302_050053--_EU010M_E052N016T1.tif'
+]
+
+filepaths_response_wekeo = (
+    [
         'S5P_OFFL_L2__NO2____20200905T001020_20200905T015149_15005_01_010302_20200906T171544',
         'S5P_OFFL_L2__NO2____20200904T222850_20200905T001020_15004_01_010302_20200906T145821',
         'S5P_OFFL_L2__NO2____20200904T204721_20200904T222850_15003_01_010302_20200906T140158',
@@ -198,8 +189,9 @@ filepaths_response_wekeo = {
         'S5P_OFFL_L2__NO2____20200904T035226_20200904T053356_14993_01_010302_20200905T205023',
         'S5P_OFFL_L2__NO2____20200904T021057_20200904T035226_14992_01_010302_20200905T185314',
         'S5P_OFFL_L2__NO2____20200904T002927_20200904T021057_14991_01_010302_20200905T165828'
-    ]
-}
+    ],
+    'xxxyyyzzz'
+)
 
 
 def test_get_all_products() -> None:
@@ -241,7 +233,9 @@ def test_get_filepaths() -> None:
     assert result == {
         "status": "success",
         "code": 200,
-        "data": filepaths_response,
+        "data": {
+            "filepaths": filepaths_response
+        }
     }
 
     data_service.csw_session_dc.get_filepaths.return_value = filepaths_response_dc
@@ -252,7 +246,9 @@ def test_get_filepaths() -> None:
     assert result == {
         "status": "success",
         "code": 200,
-        "data": filepaths_response_dc,
+        "data": {
+            "filepaths": filepaths_response_dc
+        }
     }
 
     data_service.hda_session.get_filepaths.return_value = filepaths_response_wekeo
@@ -263,5 +259,8 @@ def test_get_filepaths() -> None:
     assert result == {
         "status": "success",
         "code": 200,
-        "data": filepaths_response_wekeo,
+        "data": {
+            "filepaths": filepaths_response_wekeo[0],
+            "wekeo_job_id": filepaths_response_wekeo[1]
+        }
     }

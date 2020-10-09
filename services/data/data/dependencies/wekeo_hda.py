@@ -105,7 +105,7 @@ class HDAHandler:
 
         return collection
 
-    def get_filepaths(self, collection_id: str, spatial_extent: Dict, temporal_extent: List) -> List[str]:
+    def get_filepaths(self, collection_id: str, spatial_extent: Dict, temporal_extent: List) -> Tuple[List, str]:
         """Retrieves a URL list from the WEkEO HDA according to the specified parameters.
 
         Arguments:
