@@ -9,10 +9,11 @@ from flask.ctx import AppContext
 from flask.wrappers import Response
 from flask_cors import CORS
 from flask_nameko import FlaskPooledClusterRpcProxy
-from flask_sqlalchemy import SQLAlchemy
 from nameko.rpc import MethodProxy
+from werkzeug.utils import redirect
+from werkzeug.wrappers import Response as WerkzeugResponse
 
-from .dependencies.auth import TokenAuthenticationHandler, TokenAuthenticationRequirement as AuthReq
+from .dependencies.auth import AuthRequirement as AuthReq, AuthenticationHandler
 from .dependencies.response import APIException, ResponseParser
 from .dependencies.specs import OpenAPISpecException, OpenAPISpecParser
 from .dependencies.utils import GatewayUtils
@@ -33,12 +34,11 @@ class Gateway:
         self._res = self._init_response()
         self._spec = self._init_specs()
         self._auth = self._init_auth()
-        self._user_db = self._init_users_db()
 
         # Decorators
         self._validate = self._spec.validate
         self._validate_custom = self._spec.validate_custom
-        self._authenticate_token = self._auth.validate_token
+        self._authenticate = self._auth.authenticate
 
         # Add custom error handler
         self._service.register_error_handler(404, self._parse_error_to_json)
@@ -58,10 +58,6 @@ class Gateway:
 
         return ctx, self._rpc
 
-    def get_user_db(self) -> SQLAlchemy:
-        """Return the user database object."""
-        return self._user_db
-
     def set_cors(self, resources: dict = None) -> None:
         """Initializes the CORS header.
 
@@ -75,7 +71,7 @@ class Gateway:
         CORS(self._service, resources=resources, vary_header=False, supports_credentials=True)
 
     def add_endpoint(self, route: str, func: Union[Callable, MethodProxy], methods: list = None,
-                     auth_token: AuthReq = AuthReq.optional, role: str = 'user', validate: bool = False,
+                     auth: AuthReq = AuthReq.token_optional, role: str = 'user', validate: bool = False,
                      validate_custom: bool = False, rpc: bool = True,
                      is_async: bool = False, parse_spec: bool = False) -> None:
         """Adds an endpoint to the API.
@@ -87,7 +83,7 @@ class Gateway:
             route: The endpoint route (e.g. '/').
             func: The RPC or function, to which the route is pointing.
             methods: The allowed HTTP methods (default: {["GET"]}).
-            auth_token: Activate token authentication.
+            auth: Activate authentication (token / password, required / optional).
             role: User role, e.g.: admin.
             validate: Activate input validation.
             validate_custom: Activate custom input validation, enable parameter parsing. Currently this does not
@@ -118,10 +114,7 @@ class Gateway:
         elif validate_custom:
             func = self._validate_custom(func)
 
-        if auth_token == AuthReq.required:
-            func = self._authenticate_token(func, role, required=True)
-        elif auth_token == AuthReq.optional:
-            func = self._authenticate_token(func, role, required=False)
+        func = self._authenticate(auth=auth, func=func, role=role)
 
         self._service.add_url_rule(
             route,
@@ -177,17 +170,9 @@ class Gateway:
         """Initialize and return the OpenAPISpecParser."""
         return OpenAPISpecParser(self._res)
 
-    def _init_auth(self) -> TokenAuthenticationHandler:
+    def _init_auth(self) -> AuthenticationHandler:
         """Initialize and return the AuthenticationHandler."""
-        return TokenAuthenticationHandler(self._res)
-
-    def _init_users_db(self) -> SQLAlchemy:
-        """Initialize user database."""
-        self._service.config.update({
-            "SQLALCHEMY_DATABASE_URI": f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}"
-                                       f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}",
-        })
-        return SQLAlchemy(self._service)
+        return AuthenticationHandler(self._rpc, self._res)
 
     def _rpc_wrapper(self, f: MethodProxy, is_async: bool, **kwargs: Any) -> Callable:
         """The RPC decorator function handles communication with the RPC function.
@@ -211,6 +196,7 @@ class Gateway:
                     return self._res.parse({"code": 202})
 
                 if rpc_response["status"] == "error":
+                    rpc_response.pop("status")
                     return self._res.error(rpc_response)
 
                 return self._res.parse(rpc_response)
@@ -227,7 +213,7 @@ class Gateway:
         Returns:
             The decorator function or a HTTP error
         """
-        def local_decorator(**arguments: Any) -> Response:
+        def local_decorator(**arguments: Any) -> Union[Response, WerkzeugResponse]:
             try:
                 local_response = f(**arguments, **kwargs)
                 if not isinstance(local_response, dict) and local_response.status_code == 302:
@@ -276,13 +262,13 @@ class Gateway:
             "html": "redoc.html",
         }
 
-    def main_page(self, api_spec: dict, **kwargs: Any) -> Response:
+    def main_page(self, api_spec: dict, **kwargs: Any) -> WerkzeugResponse:
         """Redirect main page "/" to openeo well known document "/.well-known/openeo".
 
         The well known openeo document must be served on a NOT versioned url.
         """
         base_url = api_spec["servers"][0]["url"]  # Without version - the first one!
-        return self._res.redirect_to(base_url + "/.well-known/openeo")
+        return redirect(base_url + "/.well-known/openeo")
 
     def _parse_error_to_json(self, exc: Exception) -> Response:
         """Serialize APIException to a Response object."""

@@ -1,6 +1,5 @@
 DB_URIS:
-    !env_var "processes:Base": postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
-    !env_var "process_graphs:Base": postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+    !env_var "processes:Base": postgresql://${OEO_DB_USER}:${OEO_DB_PASSWORD}@${OEO_DB_HOST}:${OEO_DB_PORT}/${OEO_DB_NAME}
 
 AMQP_URI: !env_var "pyamqp://${OEO_RABBIT_USER}:${OEO_RABBIT_PASSWORD}@${OEO_RABBIT_HOST}:${OEO_RABBIT_PORT}"
 
@@ -12,7 +11,7 @@ LOGGING:
       formatter: default
     filelogger:
       class: logging.handlers.RotatingFileHandler
-      filename: !env_var "${LOG_DIR}/processes.log"
+      filename: !env_var "${OEO_LOG_DIR}/processes.log"
       backupCount: 3
       maxBytes: 1000000
       formatter: default

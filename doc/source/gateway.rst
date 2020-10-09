@@ -21,4 +21,3 @@ Subpackages
    :maxdepth: 4
 
    gateway.dependencies
-   gateway.users

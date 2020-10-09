@@ -37,7 +37,7 @@ If you created ``html`` documentation as in the command above you will see a ``h
 documentation.
 
 Extend API Documentation
----------------------
+------------------------
 `Sphinx`_ comes with some handy commands - one of them setting up the basic files to create API documentation of your
 code. To e.g. add API documentation of on of the capabilities microservices do the following::
 

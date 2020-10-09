@@ -1,7 +1,7 @@
 """Provide a set of utility functions for the user service."""
 from typing import Any, Dict
 
-from .models import Profiles, Users
+from users.models import Profiles, Users
 
 
 def db_to_dict_user(db_user: Users, db_profile: Profiles) -> Dict[str, Any]:
@@ -11,6 +11,7 @@ def db_to_dict_user(db_user: Users, db_profile: Profiles) -> Dict[str, Any]:
         "role": db_user.role,
         "auth_type": str(db_user.auth_type),
         "username": db_user.username,
+        "password_hash": db_user.password_hash,
         "email": db_user.email,
         "profile": {
             "name": db_profile.name,
