@@ -2,11 +2,10 @@
 
 
 import logging
-from time import sleep
 from typing import Dict, List, Tuple
 
-import requests
 from dynaconf import settings
+from eodc_openeo_bindings.wekeo_utils import get_collection_metadata, get_filepaths
 from nameko.extensions import DependencyProvider
 
 from .links import LinkHandler
@@ -31,25 +30,14 @@ class HDAHandler:
         self.service_uri = service_uri
         self.service_user = service_user
         self.service_password = service_password
-        self.service_headers = {
-            'Authorization': None,
-            'Accept': 'application/json'
-        }
-        self._set_headers()
+        # self.service_headers = {
+        #     'Authorization': None,
+        #     'Accept': 'application/json'
+        # }
+        # self._set_headers()
         self.link_handler = LinkHandler(service_uri)
 
         LOGGER.debug("Initialized %s", self)
-
-    def _set_headers(self) -> None:
-        response = requests.get(self.service_uri + "/gettoken",
-                                auth=(self.service_user, self.service_password)
-                                )
-        if not response.ok:
-            LOGGER.debug("Error while retrieving WEkEO API KEY.")
-            raise HDAError(response.text)
-
-        access_token = response.json()['access_token']
-        self.service_headers['Authorization'] = f'Bearer {access_token}'
 
     def get_all_products(self) -> Collections:
         """Returns all products available at the back-end.
@@ -77,13 +65,9 @@ class HDAHandler:
             dict -- The product data
         """
 
-        # temp_var = data_id.split(':')
-        # wekeo_data_id = ':'.join(temp_var[:-1])
         wekeo_data_id, _ = self._split_collection_id(data_id)
-        response = requests.get(f"{self.service_uri}/querymetadata/{wekeo_data_id}",
-                                headers=self.service_headers)
-        if not response.ok:
-            raise HDAError(response.text)
+        response = get_collection_metadata(self.service_uri, self.service_user, self.service_password,
+                                           wekeo_data_id)
 
         data = response.json()
         data["id"] = data_id
@@ -118,16 +102,9 @@ class HDAHandler:
         """
 
         # Create Data Descriptor
-        data_descriptor = self.create_data_descriptor(collection_id, spatial_extent, temporal_extent)
-
-        # Create a Data Request job
-        job_id = self._create_datarequest(data_descriptor)
-
-        # Get URLs for individual files
-        filepaths, next_page_url = self._get_download_urls(f"{self.service_uri}/datarequest/jobs/{job_id}/result")
-        while next_page_url:
-            tmp_filepaths, next_page_url = self._get_download_urls(next_page_url)
-            filepaths.extend(tmp_filepaths)
+        wekeo_data_id, wekeo_var_id = self._split_collection_id(collection_id)
+        filepaths, job_id = get_filepaths(self.service_uri, self.service_user, self.service_password,
+                                          wekeo_data_id, wekeo_var_id, spatial_extent, temporal_extent)
 
         return filepaths, job_id
 
@@ -148,77 +125,6 @@ class HDAHandler:
         wekeo_var_id = temp_var[-1]
 
         return [wekeo_data_id, wekeo_var_id]
-
-    def create_data_descriptor(self, collection_id: str, spatial_extent: Dict, temporal_extent: List) -> Dict:
-        """ """
-
-        wekeo_data_id, wekeo_var_id = self._split_collection_id(collection_id)
-
-        # Create WEkEO 'data descriptor'
-        data_descriptor = {
-            "datasetId": wekeo_data_id,
-            "boundingBoxValues": [
-                {
-                    "name": "bbox",
-                    "bbox": spatial_extent
-                }
-            ],
-            "dateRangeSelectValues": [
-                {
-                    "name": "position",
-                    "start": temporal_extent[0],
-                    "end": temporal_extent[1]
-                }
-            ],
-            "stringChoiceValues": [
-                {
-                    "name": "processingLevel",
-                    "value": "LEVEL2"
-                },
-                {
-                    "name": "productType",
-                    "value": wekeo_var_id
-                }
-            ]
-        }
-
-        return data_descriptor
-
-    def _create_datarequest(self, data_descriptor: Dict) -> str:
-        """ """
-
-        # Create a WEkEO 'datarequest'
-        response = requests.post(f"{self.service_uri}/datarequest",
-                                 json=data_descriptor,
-                                 headers=self.service_headers)
-        if not response.ok:
-            raise HDAError(response.text)
-        # Check 'datarequest' status
-        job_id = response.json()['jobId']
-        while not response.json()['message']:
-            response = requests.get(f"{self.service_uri}/datarequest/status/{job_id}",
-                                    headers=self.service_headers)
-            sleep(1)
-        if not response.ok:
-            raise HDAError(response.text)
-
-        return job_id
-
-    def _get_download_urls(self, url: str) -> Tuple:
-        """ """
-
-        response = requests.get(url, headers=self.service_headers)
-        if not response.ok:
-            raise HDAError(response.text)
-        download_urls = []
-        next_page_url = None
-        if response.json()['content']:
-            next_page_url = response.json()['nextPage']
-
-            for item in response.json()['content']:
-                download_urls.append(item['url'])
-
-        return download_urls, next_page_url
 
 
 class HDASession(DependencyProvider):
