@@ -44,6 +44,7 @@ os.environ["OEO_CSW_SERVER"] = "http://localhost:8000"
 os.environ["OEO_JOB_FOLDER"] = get_test_job_folder()
 os.environ["OEO_WEKEO_STORAGE"] = "/usr/local/airflow/wekeo_storage"
 
+
 @pytest.fixture()
 def dag_folder(request: FixtureRequest) -> None:
     """Create dag folder and add finalizer to remove it again after running the test."""
