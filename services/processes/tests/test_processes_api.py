@@ -1,3 +1,4 @@
+"""Unittests for processes service api functions."""
 import json
 import os
 from typing import Any, Dict
@@ -11,20 +12,17 @@ from processes.service import ProcessesService
 
 
 def load_json(filename: str) -> dict:
-    """
-    Helper function to load JSON files in the ./data folder.
-    """
-
+    """Load JSON files in from the tests data folder."""
     json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", filename)
     with open(json_path) as f:
         return json.load(f)
 
 
 def mock_processes_service(db_session: Session, add_processes: bool = False) -> ProcessesService:
-    """
-    Mock processes service.
-    """
+    """Return a mocked processes service.
 
+    If requested a set of predefined processes is added.
+    """
     processes_service = worker_factory(ProcessesService, db=db_session)
 
     if add_processes:
@@ -47,6 +45,7 @@ def mock_processes_service(db_session: Session, add_processes: bool = False) -> 
 
 @pytest.mark.parametrize("process", load_json("process_list.json"))
 def test_put_pre_defined(db_session: Session, process: str) -> None:
+    """Test a predefined process can be added."""
     processes_service = mock_processes_service(db_session)
     result = processes_service.put_predefined(process_name=process)
 
@@ -61,6 +60,7 @@ def test_put_pre_defined(db_session: Session, process: str) -> None:
 
 
 def test_get_all_predefined(db_session: Session) -> None:
+    """Test predefined processes are returned properly."""
     processes_service = mock_processes_service(db_session, add_processes=True)
 
     result = processes_service.get_all_predefined()
@@ -69,6 +69,7 @@ def test_get_all_predefined(db_session: Session) -> None:
 
 
 def test_get_all_user_defined(db_session: Session, user: Dict[str, Any]) -> None:
+    """Add and return a user_defined processes and check they are formatted correctly."""
     processes_service = mock_processes_service(db_session, add_processes=True)
     processes_service.data_service.get_all_products.return_value = load_json("collections.json")
 
@@ -83,6 +84,11 @@ def test_get_all_user_defined(db_session: Session, user: Dict[str, Any]) -> None
 
 
 def test_put_get_user_defined(db_session: Session, user: Dict[str, Any]) -> None:
+    """More extensive test for putting and getting a user_defined process.
+
+    Check reinstering the same process graph twice has no effect.
+    Check the modify process graph method.
+    """
     processes_service = mock_processes_service(db_session, add_processes=True)
 
     processes_service.data_service.get_all_products.return_value = load_json("collections.json")
@@ -116,6 +122,7 @@ def test_put_get_user_defined(db_session: Session, user: Dict[str, Any]) -> None
 
 
 def test_put_user_defined_predefined(db_session: Session, user: Dict[str, Any]) -> None:
+    """Test a user can not create a process graph with the same name as a predefined process."""
     processes_service = mock_processes_service(db_session, add_processes=True)
 
     pg = load_json("process_graph.json")
@@ -129,6 +136,7 @@ def test_put_user_defined_predefined(db_session: Session, user: Dict[str, Any]) 
 
 
 def test_get_user_defined_non_existing(db_session: Session, user: Dict[str, Any]) -> None:
+    """Test the error msg when the user tries to access a none-existing process graph."""
     processes_service = mock_processes_service(db_session)
     assert db_session.query(ProcessGraph).filter(ProcessGraph.id_openeo == "test_pg").count() == 0
 
@@ -139,6 +147,7 @@ def test_get_user_defined_non_existing(db_session: Session, user: Dict[str, Any]
 
 
 def test_delete(db_session: Session, user: Dict[str, Any]) -> None:
+    """Test the delete process graph method."""
     processes_service = mock_processes_service(db_session, add_processes=True)
 
     processes_service.data_service.get_all_products.return_value = load_json("collections.json")
@@ -155,6 +164,7 @@ def test_delete(db_session: Session, user: Dict[str, Any]) -> None:
 
 
 def test_delete_non_existing(db_session: Session, user: Dict[str, Any]) -> None:
+    """Test the error msg when the user tries to delete a none-existing process graph."""
     processes_service = mock_processes_service(db_session)
     assert db_session.query(ProcessGraph).filter(ProcessGraph.id_openeo == "test_pg").count() == 0
 

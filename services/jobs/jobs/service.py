@@ -1,4 +1,4 @@
-""" Job Management """
+"""Provide the implementation of the main job management service and service exception."""
 import json
 import logging
 import os
@@ -28,26 +28,38 @@ initialise_settings()
 
 
 class JobService:
-    """Management of batch processing tasks (jobs) and their results.
-    """
+    """Management of batch processing tasks (jobs) and their results."""
 
     name = service_name
     db = DatabaseSession(Base)
     data_service = RpcProxy("data")
+    """Database connection to jobs database."""
     processes_service = RpcProxy("processes")
+    """Rpc connection to processes service."""
     files_service = RpcProxy("files")
+    """Rpc connection to files service."""
     airflow = AirflowRestConnectionProvider()
+    """Object to connection to Airflow REST endpoints."""
     dag_handler = DagHandlerProvider()
     dag_writer = AirflowDagWriter(DagIdExtensions().to_dict())
-    check_stop_interval = 5  # should be similar or smaller than Airflow sensor's poke interval
+    """Object to write Airflow dags."""
+    check_stop_interval = 5
+    """Time interval in seconds to check whether a job was stopped.
+
+    Should be similar or smaller than Airflow sensor's poke interval
+    """
 
     @rpc
     def get(self, user: Dict[str, Any], job_id: str) -> dict:
-        """The request will ask the back-end to get the job using the job_id.
+        """Get all information about the job using the job_id.
 
-        Arguments:
-            user_id {Dict[str, Any]} -- The user object
-            job_id {str} -- The id of the job
+        Args:
+            user: The user object to determine whether the user has access to the given job.
+            job_id: The id of the job to retrieve.
+
+        Returns:
+            A dictionary containing detailed information about the job and the request status or a serialized service
+            exception.
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
@@ -71,12 +83,15 @@ class JobService:
 
     @rpc
     def modify(self, user: Dict[str, Any], job_id: str, **job_args: Any) -> dict:
-        """The request will ask the back-end to modify the job with the given job_id.
+        """Modify the job with the given job_id.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            job_id {str} -- The id of the job
-            job_args {Dict[str, Any]} -- The job arguments to be moified
+        Args:
+            user: The user object to determine access rights.
+            job_id: The id of the job to modify.
+            job_args: A dictionary of new job arguments - where key: argument name / value: new value.
+
+        Returns:
+            A dictionary with the status of the request.
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
@@ -134,12 +149,18 @@ class JobService:
 
     @rpc
     def delete(self, user: Dict[str, Any], job_id: str, delayed: bool = False) -> dict:
-        """The request will ask the back-end to completely delete the job with the given job_id.
+        """Completely delete the job with the given job_id.
+
         This will stop the job if it is currently queued or running, remove the job itself and all results.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            job_id {str} -- The id of the process graph
+        Args:
+            user: The user object, to determine access rights.
+            job_id: The id of the job.
+            delayed: Whether this should happen directly or it should be delayed for some seconds. This can be used for
+                synchronous where results need to be returned and then deleted.
+
+        Returns:
+            A dictionary with the status of the request.
         """
         # TODO handle costs (stop it)
         try:
@@ -177,10 +198,13 @@ class JobService:
 
     @rpc
     def get_all(self, user: Dict[str, Any]) -> dict:
-        """The request will ask the back-end to get all available jobs for the given user.
+        """Get general information about all available jobs of a given user.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
+        Args:
+            user: The user object.
+
+        Returns:
+            A dictionary including all available jobs and the status of the request or a serialized exception.
         """
         try:
             jobs = self.db.query(Job.id).filter_by(user_id=user["id"]).order_by(Job.created_at).all()
@@ -202,11 +226,15 @@ class JobService:
 
     @rpc
     def create(self, user: Dict[str, Any], **job_args: Any) -> dict:
-        """The request will ask the back-end to create a new job using the description send in the request body.
+        """Create a new job using the provided description (job_args).
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            job_args {Dict[str, Any]} -- The information needed to create a job
+        Args:
+            user: The user who wants to add the new job.
+            job_args: Details about the job as dictionary - e.g. the process graph.
+
+        Returns:
+            A dictionary with the id of the newly created job and the status of the request or a serialized service
+            exception.
         """
         try:
             LOGGER.debug("Start creating job...")
@@ -272,12 +300,16 @@ class JobService:
 
     @rpc
     def process(self, user: Dict[str, Any], job_id: str) -> dict:
-        """The request will ask the back-end to start the processing of the given job.
-        The job needs to exist on the back-end and must not already be queued or running.
+        """Start the processing of the given job.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            job_id {str} -- The id of the job
+        The job needs to exist on the backend and must not already be queued or running.
+
+        Args:
+            user: The user who wants to start the job, also has to own the job.
+            job_id: The id of the job which should be started.
+
+        Returns:
+            A dictionary with the status of the request.
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
@@ -305,14 +337,22 @@ class JobService:
 
     @rpc
     def process_sync(self, user: Dict[str, Any], **job_args: Any) -> dict:
-        """The request will ask the back-end to start the processing of the given job.
-        The job needs to exist on the back-end and must not already be queued or running.
+        """Execute a provided job synchronously.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            job_args {dict} -- The information needed to create a job
+        This method MUST ONLY be used for SMALL jobs!
+        It creates a job from the provided job_args, starts it, waits until it is finished and returns the location of
+        the resulting file.
+
+        Currently the 'size' of the job is not check - needs to be improved in the future!
+
+        Args:
+            user: The user who processes the job.
+            job_args: Details about the job including e.g. the process graph.
+
+        Returns:
+            A dictionary containing the status of the request and the filepath to the output of the job. If an error
+            occurs a serialized service exception is returned.
         """
-
         TypeMap = namedtuple('TypeMap', 'file_extension content_type')
         type_map = {
             'Gtiff': TypeMap('tif', 'image/tiff'),
@@ -377,16 +417,17 @@ class JobService:
 
     @rpc
     def estimate(self, user: Dict[str, Any], job_id: str) -> dict:
-        """
-        Basic function to return default information about processing costs on back-end.
+        """Return a cost estimation for a given job - currently a default value of 0 is returned.
 
-        Arguments:
-            user_id {Dict[str, Any]} -- The user object
-            job_id {str} -- The id of the job
-        """
+        Args:
+            user: The user object, to determine access rights.
+            job_id: The id of the job to check.
 
+        Returns:
+            A dictionary including the status of the request and estimated costs or a serialized service exception.
+        """
         default_out = {
-            "costs": 0,  # for now no costs are calculated
+            "costs": 0,
         }
 
         LOGGER.info("Costs estimated.")
@@ -398,13 +439,17 @@ class JobService:
 
     @rpc
     def cancel_processing(self, user: Dict[str, Any], job_id: str) -> dict:
-        """The request will ask the back-end to cancel the processing of the given job.
-        This will stop the processing if the job is currently queued or running and remove all not persistent result.
-        The job itself and results are kept.
+        """Cancel the processing of the given job.
 
-        Arguments:
-            user_id {Dict[str, Any]} -- The user object
-            job_id {str} -- The id of the job
+        This will stop the processing if the job is currently queued or running and remove all not persistent result.
+        The job definition and already processed results are kept.
+
+        Args:
+            user: The user object to determine access rights.
+            job_id: The id of the job which should be canceled.
+
+        Returns:
+            The status of the request.
         """
         try:
             # TODO handle costs (stop it)
@@ -439,13 +484,18 @@ class JobService:
 
     @rpc
     def get_results(self, user: Dict[str, Any], job_id: str, api_spec: dict) -> dict:
-        """The request will ask the back-end to get the location where the results of the given job can be retrieved.
-        This only works if the job is in state finished.
+        """Get the location (filepath) where the results of the given job can be retrieved.
 
-        Arguments:
-            user {Dict[str, Any]} -- The user object
-            job_id {str} -- The id of the job
-            api_spec {dict} -- OpenAPI Specification (needed for STAC Version)
+        This only works if the job is in state 'finished'.
+
+        Args:
+            user: The user object.
+            job_id: The id of the job.
+            api_spec: OpenAPI Specification (needed for STAC Version).
+
+        Returns:
+            A dictionary containing the some metadata about the job, filepaths to result files and the status of the
+            request. In case an error occurs a serialized service exception is returned.
         """
         try:
             job = self.db.query(Job).filter_by(id=job_id).first()
@@ -476,7 +526,7 @@ class JobService:
                 metadata = json.load(f)
 
             job.assets = [{
-                "href": self._get_download_url(f),
+                "href": self._get_download_url(api_spec["servers"][0]["url"], f),
                 "name": os.path.basename(f)
             } for f in file_list]
 
@@ -503,31 +553,26 @@ class JobService:
         except Exception as exp:
             return ServiceException(500, user["id"], str(exp), links=[]).to_dict()
 
-    def _get_download_url(self, public_path: str) -> str:
-        """ This will create the public url where result data can be downloaded
+    def _get_download_url(self, base_url: str, public_path: str) -> str:
+        """Create the download url from the public filepath of a result file.
 
-        Arguments:
-            public_path {str} -- local result path
+        Args:
+            base_url: The base URI visible from the outside e.g. https://openeo.eodc.eu or http://localhost:3000.
+            public_path: A public filepath (NOT the complete path on the file system!).
 
         Returns:
-            str -- Complete url path
+            Complete url from where the file can be downloaded.
         """
-
-        if settings.ENV_FOR_DYNACONF.lower() == "development":
-            download_url = os.path.join(settings.GATEWAY_URL, settings.OPENEO_VERSION, "downloads", public_path)
-        else:
-            download_url = os.path.join(settings.DNS_URL, "downloads", public_path)
-
-        return download_url
+        return os.path.join(base_url, settings.OPENEO_VERSION, "downloads", public_path)
 
     @staticmethod
-    def authorize(user_id: str, job_id: str, job: Job) -> Optional[ServiceException]:
+    def authorize(user_id: str, job_id: str, job: Optional[Job]) -> Optional[ServiceException]:
         """Return Exception if given Job does not exist or User is not allowed to access this Job.
 
         Arguments:
-            user_id {str} -- The identifier of the user
-            job_id {str} -- The id of the job
-            job {ProcessGraph} -- The Job object for the given job_id
+            user_id: The identifier of the user.
+            job_id: The id of the job.
+            job: The Job object for the given job_id.
         """
         if job is None:
             return ServiceException(400, user_id, f"The job with id '{job_id}' does not exist.",
@@ -549,13 +594,16 @@ class JobService:
         LOGGER.debug(f"Job Status of job {job_id} is {job.status}")
 
     def _update_job_status(self, job_id: str) -> None:
-        """Updates the job status.
+        """Update the job status.
 
         Whenever the job status is updated this method should be used to ensure the status_updated_at column is properly
         set! The new status is retrieved from airflow.
 
-        Arguments:
-            job_id {str} -- The id of the job
+        One job creates two dags, one to create the processing instructions as vrt files and one which executes the
+        commands in parallel. Therefore always the status of the "newer" dag is used.
+
+        Args:
+            job_id: The id of the job.
         """
         job = self.db.query(Job).filter_by(id=job_id).first()
         dag_ids = self.dag_handler.get_all_dag_ids(job_id)
@@ -590,24 +638,25 @@ class JobService:
         LOGGER.debug(f"Job Status of job {job_id} is {job.status}")
 
     def get_job_folder(self, user_id: str, job_id: str) -> str:
-        """Get path to specific job folder of a user.
+        """Get absolute path to specific job folder of a user.
 
-        Arguments:
-            user_id {str} -- The identifier of the user
-            job_id {str} -- The id of the job
+        Args:
+            user_id: The identifier of the user.
+            job_id: The id of the job.
 
         Returns:
-            str -- The complete path to the job folder on the file system
+            The complete path to the specific job folder on the file system.
         """
-        return os.path.join(settings.JOB_DATA, user_id, "jobs", job_id)
+        return os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id)
 
     def _stop_airflow_job(self, user_id: str, job_id: str) -> None:
-        """This triggers the airflow observer to set all running task to failed.
+        """Trigger the airflow observer to set all running task to failed.
+
         This will stop any successor tasks to start but it will not stop the currently running task.
 
-        Arguments:
-            user_id {str} -- The identifier of the user
-            job_id {str} -- The id of the job
+        Args:
+            user_id: The identifier of the user.
+            job_id: The id of the job.
         """
         self.files_service.upload_stop_job_file(user_id, job_id)
 
@@ -620,6 +669,7 @@ class JobService:
 
     @staticmethod
     def map_output_format(output_format: str) -> str:
+        """Map synonyms to a defined output format."""
         out_map = [(['Gtiff', 'GTiff', 'tif', 'tiff'], 'Gtiff'),
                    (['jpg', 'jpeg'], 'jpeg'),
                    (['png'], 'png')
@@ -630,11 +680,13 @@ class JobService:
         raise ValueError('{} is not a supported output format'.format(output_format))
 
     def _delayed_delete(self, user: Dict[str, Any], job_id: str) -> None:
-        """Deletes a folder corresponding to a job, after having waiting for a sufficient amount of time.
+        """Wait for some time and then delete a complete folder structure corresponding to a job.
 
-        Arguments:
+        This is used for the sync processing to ensure result data is downloaded before it is deleted.
+
+        Args:
+            folder_path {str} -- The full path to the folder to be deleted
         """
-
         # Wait n minutes (allow for enough time to stream file(s) to user)
         sleep(settings.SYNC_DEL_DELAY)
         # Delete data on file system
@@ -642,9 +694,7 @@ class JobService:
         LOGGER.info(f"Deleted data on filesystem for job_id:{job_id}.")
 
     def generate_alphanumeric_id(self, k: int = 16) -> str:
-        """
-        Generates a random alpha numeric value.
-        """
+        """Generate a random alpha numeric value."""
         return ''.join(random.choices(string.ascii_letters + string.digits, k=k))
 
     def _get_in_filepaths(self, process_graph: dict) -> dict:

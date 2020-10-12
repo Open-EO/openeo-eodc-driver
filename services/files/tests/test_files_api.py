@@ -1,3 +1,4 @@
+"""Unittests for file service api."""
 import os
 import shutil
 from datetime import datetime
@@ -16,8 +17,11 @@ file_service = worker_factory(FilesService)
     'ref_path',
     ['final.txt', 'folder1/folder2/final.txt']
 )
-def test_upload_path(user_id_folder: Tuple[str, str], tmp_folder: str, upload_file: str,
-                     ref_path: str) -> None:
+def test_upload_path(user_id_folder: Tuple[str, str], tmp_folder: str, upload_file: str, ref_path: str) -> None:
+    """Upload file to a given path.
+
+    Test a simple and a more complex path - file inside several folders.
+    """
     user_folder, user_id = user_id_folder
     user = create_user(user_id)
     tmp_path = os.path.join(tmp_folder, 'upload.txt')
@@ -39,8 +43,8 @@ def test_upload_path(user_id_folder: Tuple[str, str], tmp_folder: str, upload_fi
 @pytest.mark.parametrize(
     'folders_only',
     ['', 'folder1/folder2'])
-def test_delete(user_id_folder: Tuple[str, str], upload_file: str, folders_only: str) \
-        -> None:
+def test_delete(user_id_folder: Tuple[str, str], upload_file: str, folders_only: str) -> None:
+    """Test upload and delete of file in the main or inside another folder."""
     user_folder, user_id = user_id_folder
     user = create_user(user_id)
     folders_path = os.path.join(user_folder, 'files', folders_only)
@@ -56,6 +60,7 @@ def test_delete(user_id_folder: Tuple[str, str], upload_file: str, folders_only:
 
 
 def test_get_all(user_id_folder: Tuple[str, str], upload_file: str) -> None:
+    """Upload and then retrieve several files and check the sorted response."""
     user_folder, user_id = user_id_folder
     user = create_user(user_id)
 
@@ -85,6 +90,7 @@ def test_get_all(user_id_folder: Tuple[str, str], upload_file: str) -> None:
 
 
 def test_download(user_id_folder: Tuple[str, str], upload_file: str) -> None:
+    """Test upload and download of file."""
     user_folder, user_id = user_id_folder
     user = create_user(user_id)
 

@@ -71,6 +71,28 @@ services:
     ports:
       - $GATEWAY_PORT:3000
 
+  openeo-users:
+    build:
+      context: ./services/users
+      args:
+        OPENEO_VERSION: $OPENEO_VERSION
+    image: oeo-users-$OPENEO_VERSION
+    container_name: oeo-users-$OPENEO_VERSION
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+      - openeo-gateway
+      - openeo-base
+    env_file:
+      - ./envs/rabbitmq.env
+      - ./envs/users.env
+    volumes:
+      - ./services/users:/usr/src/app
+      - $LOG_DIR:/usr/src/log
+    environment:
+      OEO_OPENEO_VERSION: $OPENEO_VERSION
+      OEO_LOG_DIR: /usr/src/log
+
   openeo-capabilities:
     build:
       context: ./services/capabilities
@@ -91,7 +113,7 @@ services:
       - $LOG_DIR:/usr/src/logs
     environment:
       OEO_OPENEO_VERSION: $OPENEO_VERSION
-      LOG_DIR: /usr/src/logs
+      OEO_LOG_DIR: /usr/src/logs
 
   openeo-data:
     build:
@@ -113,7 +135,7 @@ services:
       - ./envs/data.env
     environment:
       OEO_OPENEO_VERSION: $OPENEO_VERSION
-      LOG_DIR: /usr/src/logs
+      OEO_LOG_DIR: /usr/src/logs
     volumes:
       - eo-discovery-cache:/usr/src/cache
       - ./services/data:/usr/src/app
@@ -138,7 +160,7 @@ services:
     environment:
       OPENEO_VERSION: $OPENEO_VERSION
       PROCESS_API_DIR: /usr/src/api
-      LOG_DIR: /usr/src/logs
+      OEO_LOG_DIR: /usr/src/logs
     volumes:
       - process-api-data:/usr/src/api
       - ./services/processes:/usr/src/app
@@ -167,7 +189,7 @@ services:
       OEO_AIRFLOW_DAGS: /usr/src/dags
       OEO_SYNC_RESULTS_FOLDER: /usr/src/sync-results
       AIRFLOW_LOG_DIR: /usr/src/logs/airflow
-      LOG_DIR: /usr/src/logs
+      OEO_LOG_DIR: /usr/src/logs
       OEO_WEKEO_STORAGE: $OEO_WEKEO_STORAGE
     volumes:
       - ./services/jobs:/usr/src/app
@@ -193,7 +215,7 @@ services:
       - ./envs/files.env
     environment:
       OEO_OPENEO_VERSION: $OPENEO_VERSION
-      LOG_DIR: /usr/src/logs
+      OEO_LOG_DIR: /usr/src/logs
     volumes:
       - files-data:/usr/src/files
       - ./services/files:/usr/src/app

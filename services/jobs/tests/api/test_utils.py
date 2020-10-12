@@ -1,3 +1,4 @@
+"""Test utility functions."""
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
@@ -10,6 +11,7 @@ from tests.utils import add_job, get_configured_job_service, get_random_user
 
 @pytest.mark.usefixtures("set_job_data", "dag_folder")
 class TestUtils:
+    """Test the utility function of the job service."""
 
     @pytest.mark.parametrize(("dag_status_prep", "dag_status_parallel", "ref_job_status"), (
         ((JobStatus.created, datetime.now()), (None, datetime.min), JobStatus.created),
@@ -26,8 +28,13 @@ class TestUtils:
                                     dag_status_prep: Tuple[Optional[JobStatus], Optional[datetime]],
                                     dag_status_parallel: Tuple[Optional[JobStatus], Optional[datetime]],
                                     ref_job_status: JobStatus) -> None:
+        """Test the update_status method.
+
+        Different combinations for the two dags are provided and tested.
+        """
 
         def check_dag_status_mock(dag_id: str) -> Tuple[Optional[JobStatus], Optional[datetime]]:
+            """Return the dag_status depending on the dag_id."""
             if dag_id.endswith("prep"):
                 return dag_status_prep
             if dag_id.endswith("parallel"):

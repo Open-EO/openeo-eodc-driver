@@ -8,7 +8,7 @@ LOGGING:
       formatter: default
     filelogger:
       class: logging.handlers.RotatingFileHandler
-      filename: !env_var "${LOG_DIR}/files.log"
+      filename: !env_var "${OEO_LOG_DIR}/files.log"
       backupCount: 3
       maxBytes: 1000000
       formatter: default

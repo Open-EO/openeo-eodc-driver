@@ -1,43 +1,7 @@
-# from flask_script import Manager
-# from unittest import TestLoader, TextTestRunner
+"""WSGI entrypoint to gateway.
+
+Used in run.sh to run the gateway service.
+"""
 from gateway import gateway
 
 app = gateway.get_service()
-
-# manager = Manager(gateway.get_service())
-
-# @manager.option('-b', '--bind', dest='bind', default='127.0.0.1:8000')
-# @manager.option('-w', '--workers', dest='workers', type=int, default=3)
-# @manager.option('-t', '--timeout', dest='timeout', type=int, default=30)
-# def prod(bind, workers, timeout):
-#     """Start the Server with Gunicorn"""
-#     from gunicorn.app.base import Application
-
-#     class FlaskApplication(Application):
-#         def init(self, parser, opts, args):
-#             return {
-#                 'bind': bind,
-#                 'workers': workers,
-#                 'timeout': timeout,
-#                 'worker_class': 'gthread',
-#             }
-
-#         def load(self):
-#             return gateway.get_service()
-
-#     application = FlaskApplication()
-#     return application.run()
-
-# @manager.command
-# def test():
-#     ''' Runs Unit tests. '''
-
-#     tests = TestLoader().discover('tests', pattern='test*.py')
-#     result = TextTestRunner(verbosity=2).run(tests)
-
-#     if result.wasSuccessful():
-#         return 0
-#     return 1
-
-# if __name__ == '__main__':
-#     manager.run()

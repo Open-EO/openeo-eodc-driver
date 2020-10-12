@@ -1,23 +1,30 @@
-""" ResponseParser, APIException """
-
+"""Provide ResponseParser and APIException."""
+import logging
 from typing import Union
 from uuid import uuid4
 
-from flask import make_response, jsonify, send_file, request, redirect
+from flask import jsonify, make_response, redirect, request, send_file
 from flask.wrappers import Response
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 
 class APIException(Exception):
-    """APIException if a Exception in the API gateway or one of the services raises
-    or a HTTP error is send back by one of the services.
+    """Returned if an Exception is raised in the gateway or one of the services.
+
+    Attributes:
+        msg: The error message.
+        code: HTTP error code.
+        service: Name of the service where the error occurred.
+        user_id: The identifier of the user who triggered the error.
+        internal: Flag an internal error.
+        links: A list of links related to this error - currently not filled.
     """
     # TODO: links -> To exact Reference
     # TODO: links -> Retrieve own host name
 
-    def __init__(self, msg: str = None, code: int = 500, service: str = None,
-                 user_id: str = None, internal: bool = True,
-                 links: list = None, **args):
-
+    def __init__(self, msg: str = None, code: int = 500, service: str = None, user_id: str = None,
+                 internal: bool = True, links: list = None) -> None:
+        """Initialize APIExcepetion."""
         links = links if links else [""]
         self._id = uuid4()
         self._service = service
@@ -27,17 +34,14 @@ class APIException(Exception):
         self._internal = internal
         self._links = [request.host_url + "redoc" + (link[1:] if link.startswith("/") else link) for link in links]
 
-    def to_dict(self):
-        """Returns a dict representation of the APIException object.
-        """
-
+    def to_dict(self) -> dict:
+        """Return a dict representation of the APIException object."""
         if self._msg:
             msg = self._msg
         elif self._internal:
             msg = "The request can't be fulfilled due to an error at the back-end."
         else:
             msg = "Something went wrong, but it's not clear what."
-
         return {
             "id": self._id,
             "code": self._code,
@@ -46,95 +50,87 @@ class APIException(Exception):
             "service": self._service
         }
 
-    def __str__(self):
-        """Returns a string representation of the APIException object.
-        """
-
+    def __str__(self) -> str:
+        """Returns a string representation of the APIException object."""
         return "(code: {0}, service: {1}, uid: {2}) - Error {3}: {4}"\
                .format(self._code, self._service, self._user_id, self._id, self._msg)
 
 
 class ResponseParser:
-    """The ResponseParser is responsible for generating and sending the response back
-    to the user. Furthermore, it is responsible for aggregated logging.
-    """
+    """Responsible for generating and sending the response back to the user."""
 
-    def __init__(self, logger):
+    def __init__(self, logger: logging.Logger) -> None:
+        """Initialize ResponseParser."""
         self._logger = logger
 
     def _code(self, code: int) -> Response:
-        """Returns a HTTP code response without a message.
+        """Return a HTTP code response without a message.
 
-        Arguments:
-            code {int} -- The HTTP code
+        Args:
+            code: The HTTP code.
 
         Returns:
-            Response -- The Response object
+            The Response object
         """
-
         return make_response("", code)
 
     def _string(self, code: int, msg: str) -> Response:
-        """Returns a message response back to the user.
+        """Return a message response back to the user.
 
-        Arguments:
-            code {int} -- The HTTP code
-            msg {str} -- The message
+        Args:
+            code: The HTTP code.
+            msg: The message.
 
         Returns:
-            Response -- The Response object
+            The Response object.
         """
-
         return make_response(str(msg), code)
 
     def _data(self, code: int, data: dict) -> Response:
-        """Returns a JSON response back to the user.
+        """Return a JSON response back to the user.
 
-        Arguments:
-            code {int} -- The HTTP code
-            data {dict} -- The data to be parsed as JSON
+        Args:
+            code: The HTTP code.
+            data: The data to be parsed as JSON.
 
         Returns:
-            Response -- The Response object
+            The Response object.
         """
-
         return make_response(jsonify(data), code)
 
     def _html(self, file_name: str) -> Response:
-        """Returns a HTML page back to the user. The HTML file needs to be in the
-        '/html' folder.
+        """Return a HTML page back to the user.
 
-        Arguments:
-            file_name {str} -- The file name of the HTML file
+        The HTML file needs to be in the '/html' folder.
+
+        Args:
+            file_name: The file name of the HTML file.
 
         Returns:
-            Response -- The Response object
+            The Response object.
         """
-
         return send_file("html/" + file_name)
 
     def _file(self, filepath: str) -> Response:
-        """Returns a file back to the user.
+        """Return a file back to the user.
 
-        Arguments:
-            filepath {str} -- The file requested from the user
+        Args:
+            filepath: The absolute filepath of the file requested by the user.
 
         Returns:
-            Response -- The Response object
+            The Response object.
         """
         return send_file(filepath)
 
     def parse(self, payload: dict) -> Response:
-        """Maps and parses the responses that are returned from the single
-        endpoints.
+        """Map and parse the responses that are returned from the single endpoints.
 
-        Arguments:
-            payload {dict} -- The payload object
+        Args:
+            payload: The payload object returned by the endpoints.
 
         Returns:
-            Response -- The parsed response
+            The parsed response.
         """
-
         if "html" in payload:
             response = self._html(payload["html"])
         elif "msg" in payload:
@@ -155,15 +151,16 @@ class ResponseParser:
         return response
 
     def error(self, exc: Union[dict, Exception]) -> Response:
-        """Returns a error response back to the user. The input can be either be a dict response
-        of a service, a APIExcption object or a general Exception object. The error is logged
-        using standard Flask logging.
+        """Return an error response back to the user.
 
-        Arguments:
-            exc {Union[dict, Exception]} -- The input exception
+        The input can be either be a dict response of a service, an APIExcption object or a general Exception object.
+        The error is logged using standard Flask logging.
+
+        Args:
+            exc: The input exception to return to the user.
 
         Returns:
-            Response -- The Response object
+            The Response object.
         """
         if isinstance(exc, dict):
             error = APIException(**exc)
@@ -177,14 +174,13 @@ class ResponseParser:
 
         return make_response(jsonify(error_dict), error_dict["code"])
 
-    def redirect(self, url: str) -> Response:
-        """Redirects to another URL
+    def redirect_to(self, url: str) -> WerkzeugResponse:
+        """Redirect to another URL.
 
-        Arguments:
-            url {str} -- The URL to redirect to
+        Args:
+            url: The URL to redirect to.
 
         Returns:
-            Response -- The Response object
+            The Response object.
         """
-
-        return redirect(url, code=303)
+        return redirect(url, code=300)

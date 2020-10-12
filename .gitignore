@@ -3,6 +3,7 @@
 .vscode
 envs
 .init
+gateway/openapi.yaml
 airflow/deploy-key
 airflow/deploy.key
 *__pycache__*
@@ -27,3 +28,5 @@ dev_openeo
 services/*/.mypy_cache/
 services/*/.coverage
 service/*/.nox/
+
+doc/_build
