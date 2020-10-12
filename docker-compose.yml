@@ -130,6 +130,7 @@ services:
     env_file:
       - ./envs/rabbitmq.env
       - ./envs/csw.env
+      - ./envs/wekeo_hda.env
       - ./envs/gateway.env
       - ./envs/data.env
     environment:

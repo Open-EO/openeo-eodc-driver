@@ -5,20 +5,21 @@ data service.
 """
 
 import ast
-import json
 import logging
-import os
 from json import dumps
 from os import makedirs, path
-from typing import Any, Dict, List, Tuple
+from typing import List, Tuple
 
 from defusedxml.minidom import parseString
 from dynaconf import settings
 from nameko.extensions import DependencyProvider
+from owslib.csw import CatalogueServiceWeb
+from owslib.fes import BBox, PropertyIsGreaterThan, PropertyIsLessThan, PropertyIsLike
 from requests import post
 
 from .cache import cache_json, get_cache_path, get_json_cache
 from .links import LinkHandler
+from .stac_utils import add_non_csw_info
 from .xml_templates import xml_and, xml_base, xml_bbox, xml_begin, xml_end, xml_product, xml_series
 from ..models import Collection, Collections, Extent, SpatialExtent, TemporalExtent
 
@@ -26,7 +27,7 @@ LOGGER = logging.getLogger("standardlog")
 
 
 class CSWError(Exception):
-    """CWSError raises if a error occurs while querying the CSW server."""
+    """CWSError raises if an error occurs while querying the CSW server."""
 
     def __init__(self, msg: str = "") -> None:
         """Initialise CSWError class."""
@@ -154,26 +155,6 @@ class CSWHandler:
             _ = self._get_records(
                 collection["id"], series=True, use_cache=use_cache)[0]
 
-    def _add_non_csw_info(self, records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        for record in records:
-            record.update(self._get_non_csw_info_single_record(record["id"]))
-        return records
-
-    def _get_non_csw_info_single_record(self, collection_id: str) -> Dict[str, Any]:
-        # Add cube:dimensions and summaries
-        json_file = os.path.join(
-            os.path.dirname(__file__),
-            "jsons",
-            collection_id + ".json",
-        )
-        response = {}
-        if os.path.isfile(json_file):
-            with open(json_file) as file_json:
-                json_data = json.load(file_json)
-                for key in json_data.keys():
-                    response[key] = json_data[key]
-        return response
-
     def _get_records(
             self,
             product: str = None,
@@ -230,7 +211,7 @@ class CSWHandler:
                 all_records += records
             # additionally add the links, cube:dimensions, summaries to each record and collection
             all_records = self.link_handler.get_links(all_records)
-            all_records = self._add_non_csw_info(all_records)
+            all_records = add_non_csw_info(all_records)
             cache_json(all_records, path_to_cache)
         else:
             all_records = get_json_cache(path_to_cache)
@@ -379,6 +360,43 @@ class CSWHandler:
                 out_collections.append(collection)
 
         return out_collections
+
+    def get_filepaths(self, collection_id: str, spatial_extent: List[float], temporal_extent: List[str]
+                      ) -> List[str]:
+        """Retrieve a file list from the a CSW server according to the specified parameters.
+
+        Arguments:
+            collecion_id {str} -- identifier of the collection
+            spatial_extent {List[float]} -- bounding box [ymin, xmin, ymax, ymax]
+            temporal_extent {List[str]} -- e.g. ["2018-06-04", "2018-06-23"]
+
+        Returns:
+            list -- list of filepaths
+        """
+        csw = CatalogueServiceWeb(self.csw_server_uri, timeout=300)
+
+        constraints = []
+        constraints.append(PropertyIsLike(self.group_property, collection_id))
+
+        # Spatial filter
+        constraints.append(BBox(spatial_extent))
+        # Temporal filter
+        constraints.append(PropertyIsGreaterThan('apiso:TempExtent_begin', temporal_extent[0]))
+        constraints.append(PropertyIsLessThan('apiso:TempExtent_end', temporal_extent[1]))
+
+        # Run the query
+        csw.getrecords2(constraints=[constraints], maxrecords=100)
+
+        # Put found records in a variable (dictionary)
+        records0 = csw.records
+
+        # Sort records
+        records = []
+        for record in records0:
+            records.append(records0[record].references[0]['url'])
+        records = sorted(records)
+
+        return records
 
 
 class CSWSession(DependencyProvider):

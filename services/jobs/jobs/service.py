@@ -32,6 +32,7 @@ class JobService:
 
     name = service_name
     db = DatabaseSession(Base)
+    data_service = RpcProxy("data")
     """Database connection to jobs database."""
     processes_service = RpcProxy("processes")
     """Rpc connection to processes service."""
@@ -281,25 +282,35 @@ class JobService:
                                         f" restart.", links=[], internal=False).to_dict()
 
             self.files_service.setup_jobs_result_folder(user_id=user["id"], job_id=job_id)
+
             # Get all processes
             process_response = self.processes_service.get_all_predefined()
             if process_response["status"] == "error":
                 return process_response
             backend_processes = process_response["data"]["processes"]
+
+
             # Get process graph
             process_graph_response = self.processes_service.get_user_defined(user, job.process_graph_id)
             if process_graph_response["status"] == "error":
                 return process_graph_response
             process_graph = process_graph_response["data"]["process_graph"]
+
+            # Get input filepaths
+            in_filepaths = self._get_in_filepaths(process_graph)
+
             self.dag_writer.write_and_move_job(
                 job_id=job_id,
                 user_name=user["id"],
+                dags_folder=settings.AIRFLOW_DAGS,
+                wekeo_storage=settings.WEKEO_STORAGE,
                 process_graph_json={"process_graph": process_graph},
                 job_data=self.get_latest_job_folder(user['id'], job_id),
                 vrt_only=job.vrt_flag,
                 add_delete_sensor=True,
                 add_parallel_sensor=job.add_parallel_sensor,
                 process_defs=backend_processes,
+                in_filepaths=in_filepaths,
             )
 
             trigger_worked = self.airflow.trigger_dag(dag_id=self.dag_handler.get_preparation_dag_id(job_id))
@@ -685,3 +696,37 @@ class JobService:
     def generate_alphanumeric_id(self, k: int = 16) -> str:
         """Generate a random alpha numeric value."""
         return ''.join(random.choices(string.ascii_letters + string.digits, k=k))
+
+    def _get_in_filepaths(self, process_graph: dict) -> dict:
+        """Return filepaths for current process_graph.
+
+        Generate a dictionary storing in_filepaths, one for any load_collection
+        call in the current process graph.
+
+        Arguments:
+            process_graph {dict} -- an openEO process graph
+
+        Returns:
+            in_filepaths -- dict storing lists of in_filepaths, one for each load_collection node
+        """
+        in_filepaths: dict = {}
+        for node in process_graph:
+            if process_graph[node]['process_id'] == 'load_collection':
+                in_filepaths[node] = {}
+                collection_id = process_graph[node]['arguments']['id']
+
+                spatial_extent = [
+                    process_graph[node]['arguments']['spatial_extent']['west'],
+                    process_graph[node]['arguments']['spatial_extent']['south'],
+                    process_graph[node]['arguments']['spatial_extent']['east'],
+                    process_graph[node]['arguments']['spatial_extent']['north']
+                ]
+
+                temporal_extent = process_graph[node]['arguments']['temporal_extent']
+
+                data_response = self.data_service.get_filepaths(collection_id, spatial_extent, temporal_extent)
+                if data_response["status"] == "error":
+                    return data_response
+                in_filepaths[node] = data_response["data"]
+
+        return in_filepaths
