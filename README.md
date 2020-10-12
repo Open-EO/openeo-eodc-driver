@@ -1,5 +1,7 @@
 # openEO EODC Driver
 
+![microservice unittest badge](https://github.com/Open-EO/openeo-eodc-driver/workflows/Micorservice%20Unittests/badge.svg)
+
 - openEO version: 1.0.x (currently in development)
 - openEO version: 0.4.2 (legacy, see openeo-openshift-driver [tag v1.1.2](https://github.com/Open-EO/openeo-openshift-driver/releases/tag/v1.1.2))
 
@@ -83,7 +85,7 @@ docker exec -it openeo-users-db bash
 Once in the container, connect to the database:
 
 ```
-psql -U $DB_USER -p $DB_PORT -h localhost $DB_NAME
+psql -U $OEO_DB_USER -p $OEO_DB_PORT -h localhost $OEO_DB_NAME
 ```
 
 Before adding user, user profiles must be inserted as well as identity providers (for OpenIDConnect).
@@ -108,7 +110,7 @@ from passlib.apps import custom_app_context as pwd_context
 print(pwd_context.encrypt("my-secure-password"))
 ```
 
-Then back on the databse command line, run the following replacing `hash-password-goes-here` with the output of the previous command (leave it wrapped in single quotes):
+Then back on the database command line, run the following replacing `hash-password-goes-here` with the output of the previous command (leave it wrapped in single quotes):
 
 ```
 insert into users (id, auth_type, role, username, password_hash, profile_id, created_at, updated_at) values ('us-3eb63b58-9a04-4098-84d7-xxxxxxxxxxxx', 'basic', 'admin', 'my-username', 'hash-password-goes-here', 'pr-c36177bf-b544-473f-a9ee-56de7cece055', '2019-12-18 10:45:18.000000', '2019-12-18 10:45:18.000000');

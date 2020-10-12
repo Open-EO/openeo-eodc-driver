@@ -18,6 +18,8 @@ from _pytest.fixtures import FixtureRequest
 root_dir = dirname(dirname(abspath(__file__)))
 sys.path.append(root_dir)
 
+os.environ["ENV_FOR_DYNACONF"] = "unittest"
+
 
 def get_data_folder() -> str:
     """Get path to data folder for tests."""

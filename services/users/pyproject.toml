@@ -1,0 +1,9 @@
+[tool.coverage.paths]
+source = ["users", "*/site-packages"]
+
+[tool.coverage.run]
+branch = true
+source = ["users"]
+
+[tool.coverage.report]
+show_missing = true

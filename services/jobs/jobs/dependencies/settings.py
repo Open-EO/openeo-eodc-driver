@@ -59,6 +59,43 @@ class SettingKeys(Enum):
     If you are running in docker and also have a CSW server in the same docker network it could be http://pycsw:8000
     """
 
+    # Connection to RabbitMQ
+    RABBIT_HOST = "RABBIT_HOST"
+    """The host name of the RabbitMQ - e.g. `rabbitmq`.
+
+    If you are running in docker this is the hostname of the container!
+    """
+    RABBIT_PORT = "RABBIT_PORT"
+    """The port on which the RabbitMQ is running - e.g. `5672`.
+
+    If you are running in docker and the capabilities container is in the same network as the RabbitMQ this is the port
+    inside the docker network NOT the exposed one!
+    """
+    RABBIT_USER = "RABBIT_USER"
+    """The username to authenticate on the RabbitMQ - e.g. `rabbitmq`."""
+    RABBIT_PASSWORD = "RABBIT_PASSWORD"  # noqa S105
+    """The password to authenticate with the given user on the RabbitMQ."""
+
+    # Jobs Database
+    DB_USER = "DB_USER"
+    """Database username for the jobs database."""
+    DB_PASSWORD = "DB_PASSWORD"  # noqa S105 - not a hardcoded password only the parameter name!
+    """Database user password for the jobs database matching the provided user name."""
+    DB_HOST = "DB_HOST"
+    """Host where the jobs database is running."""
+    DB_PORT = "DB_PORT"
+    """Port where the jobs database is running."""
+    DB_NAME = "DB_NAME"
+    """Database name of the jobs database."""
+
+    # Additional
+    LOG_DIR = "LOG_DIR"
+    """The path to the directory where log files should be saved.
+
+    If you are running in docker this is the path inside the docker container! E.g. `/usr/src/logs`
+    In case you want to persist the logs a volume or a local folder needs to be mounted into the specified location.
+    """
+
 
 class SettingValidationUtils:
     """Provides a set of utility functions to validated settings."""
@@ -105,14 +142,14 @@ def initialise_settings() -> None:
         :class:`~dynaconf.validator.ValidationError`: A setting is not valid.
     """
     not_doc = Validator("ENV_FOR_DYNACONF", is_not_in=["documentation"])
-    not_unittest = Validator("ENV_FOR_DYNACONF", is_not_in=["unittest"])
+    not_doc_unittest = Validator("ENV_FOR_DYNACONF", is_not_in=["documentation", "unittest"])
 
     settings.configure(ENVVAR_PREFIX_FOR_DYNACONF="OEO")
     utils = SettingValidationUtils()
     settings.validators.register(
         Validator(SettingKeys.OPENEO_VERSION.value, must_exist=True, when=not_doc),
         Validator(SettingKeys.AIRFLOW_HOST.value, must_exist=True, condition=utils.check_parse_url,
-                  when=(not_unittest and not_doc)),
+                  when=(not_doc_unittest and not_doc)),
         Validator(SettingKeys.AIRFLOW_OUTPUT.value, must_exist=True, when=not_doc),
         Validator(SettingKeys.AIRFLOW_DAGS.value, must_exist=True, condition=utils.check_create_folder, when=not_doc),
         Validator(SettingKeys.SYNC_DEL_DELAY.value, must_exist=True, is_type_of=int, condition=utils.check_positive_int,
@@ -121,6 +158,20 @@ def initialise_settings() -> None:
                   when=not_doc),
         # TODO to be removed once new bindings and api version is done
         Validator(SettingKeys.CSW_SERVER.value, must_exist=True, when=not_doc),
+
+        Validator(SettingKeys.RABBIT_HOST.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc_unittest),
+        Validator(SettingKeys.RABBIT_USER.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.RABBIT_PASSWORD.value, must_exist=True, when=not_doc_unittest),
+
+        Validator(SettingKeys.DB_USER.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.DB_PASSWORD.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.DB_HOST.value, must_exist=True, when=not_doc_unittest),
+        Validator(SettingKeys.DB_PORT.value, must_exist=True, is_type_of=int, when=not_doc_unittest),
+        Validator(SettingKeys.DB_NAME.value, must_exist=True, when=not_doc_unittest),
+
+        Validator(SettingKeys.LOG_DIR.value, must_exist=True, condition=utils.check_create_folder,
+                  when=not_doc_unittest),
     )
     settings.validators.validate()
     LOGGER.info("Settings validated")
