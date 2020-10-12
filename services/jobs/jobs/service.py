@@ -8,7 +8,7 @@ import threading
 from collections import namedtuple
 from datetime import datetime
 from time import sleep
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from dynaconf import settings
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
@@ -308,6 +308,9 @@ class JobService:
 
             self._update_job_status(job_id=job_id)
             LOGGER.info(f"Processing successfully started for job {job_id}")
+
+            self.files_service.delete_old_job_runs(user["id"], job_id)
+
             return {
                 "status": "success",
                 "code": 202,
@@ -627,8 +630,13 @@ class JobService:
         Returns:
             The complete path to the specific job folder on the file system.
         """
-        return os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id,
-                            self.files_service.get_latest_job_run_folder_name(user_id, job_id))
+        latest_job_run = self.files_service.get_latest_job_run_folder_name(user_id, job_id)
+        return os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id, latest_job_run)
+
+    def _get_old_job_folders(self, user_id: str, job_id: str) -> List[str]:
+        """Get absolute path to all job_runs but the latest one."""
+        old_job_runs = self.files_service.get_old_job_run_folder_names()
+        return [os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id, job_run) for job_run in old_job_runs]
 
     def _stop_airflow_job(self, user_id: str, job_id: str) -> None:
         """Trigger the airflow observer to set all running task to failed.

@@ -1,6 +1,7 @@
 """Mocks and auxiliary data used in the tests."""
 import glob
 import os
+import shutil
 from datetime import datetime
 from os.path import dirname, join
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
@@ -261,6 +262,12 @@ class MockedFilesService(MagicMock):
         """Return newest job_run folder name."""
         latest_job_run = sorted(glob.glob(settings.JOB_FOLDER + '/*'))[-1]
         return latest_job_run.split(os.sep)[-1]
+
+    def delete_old_job_runs(self, user_id: str, job_id: str) -> None:
+        """Delete all job runs of a job but the latest."""
+        job_runs = sorted(glob.glob(settings.JOB_FOLDER + '/*'))[:-1]
+        for job_run in job_runs:
+            shutil.rmtree(job_run)
 
 
 class MockedDagHandler(MagicMock):

@@ -48,14 +48,13 @@ class TestProcessJob(BaseCase):
         job_id = add_job(job_service, user=user)
         dag_handler = DagHandler()
         job_service.airflow.check_dag_status.return_value = (job_status, datetime.now())
-        num_runs = 5
 
-        results = [job_service.process(user=user, job_id=job_id) for _ in range(num_runs)]
+        results = [job_service.process(user=user, job_id=job_id) for _ in range(5)]
 
         assert all([res == {'code': 202, 'status': 'success'} for res in results])
         assert isfile(dag_handler.get_dag_path_from_id(dag_handler.get_preparation_dag_id(job_id=job_id)))
-        # there should be a job run folder for each job run
-        assert len([d for d in listdir(settings.JOB_FOLDER) if isdir(join(settings.JOB_FOLDER, d))]) == num_runs
+        # there should always only be one job run
+        assert len([d for d in listdir(settings.JOB_FOLDER) if isdir(join(settings.JOB_FOLDER, d))]) == 1
 
     @pytest.mark.parametrize("job_status", (JobStatus.queued, JobStatus.running))
     def test_multiple_job_runs_exception(self, db_session: Session, job_status: JobStatus) -> None:

@@ -495,6 +495,20 @@ class FilesService:
 
         return os.listdir(job_result_folder) != 0
 
+    def delete_job_run(self, user_id: str, job_id: str, job_run: str) -> None:
+        """Delete a given job run."""
+        job_id_folder = self.get_job_id_folder(user_id, job_id)
+        job_run_folder = os.path.join(job_id_folder, job_run)
+        shutil.rmtree(job_run_folder)
+        LOGGER.info(f"Job run {job_run} of Job ID {job_id} successfully deleted.")
+
+    @rpc
+    def delete_old_job_runs(self, user_id: str, job_id: str) -> None:
+        """Delete all job runs of a job but the latest."""
+        job_runs = self.get_old_job_run_folder_names(user_id, job_id)
+        for job_run in job_runs:
+            self.delete_job_run(user_id, job_id, job_run)
+
     def get_job_id_folder(self, user_id: str, job_id: str) -> str:
         """Create and return the complete path to a specific job folder.
 
@@ -562,6 +576,12 @@ class FilesService:
         job_id_folder = self.get_job_id_folder(user_id, job_id)
         latest_job_run = sorted(glob.glob(job_id_folder + '/*'))[-1]
         return latest_job_run.split(os.sep)[-1]
+
+    def get_old_job_run_folder_names(self, user_id: str, job_id: str) -> List[str]:
+        """Return a list of all job_run folder names but the latest one."""
+        job_id_folder = self.get_job_id_folder(user_id, job_id)
+        job_runs_folder_paths = sorted(glob.glob(job_id_folder + '/*'))[:-1]
+        return [folder_path.split(os.sep)[-1] for folder_path in job_runs_folder_paths]
 
     def get_job_run_from_job_results_folder(self, job_results_path: str) -> str:
         """Get the job_run identifier from the absolute filepath to a results folder.

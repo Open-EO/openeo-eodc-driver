@@ -1,6 +1,6 @@
 """Test utilities provided by files service but used by the jobs service."""
 import shutil
-from os import listdir, makedirs
+from os import listdir, makedirs, sep
 from os.path import isdir, isfile, join
 from typing import Tuple
 
@@ -106,3 +106,24 @@ def test_delete_job_without_results(user_id_folder: Tuple[str, str], upload_file
     assert not isfile(file1)
     assert not isfile(file2)
     assert isfile(file_results)
+
+
+def test_delete_old_job_runs(user_id_folder: Tuple[str, str]) -> None:
+    """Check all old job runs are deleted correctly."""
+    user_folder, user_id = user_id_folder
+    job_id_folder = join(user_folder, 'jobs', 'test-job')
+
+    def create_job_run_folder() -> str:
+        file_service.setup_jobs_result_folder(user_id=user_id, job_id='test-job')
+        result_folder = join(job_id_folder, file_service.get_latest_job_run_folder_name(user_id, 'test-job'), 'result')
+        assert isdir(result_folder)
+        return result_folder
+
+    created_dirs = [create_job_run_folder() for _ in range(5)]
+    latest = created_dirs[-1].split(sep)[-2]
+
+    file_service.delete_old_job_runs(user_id, 'test-job')
+
+    existing_dirs = [d for d in listdir(job_id_folder) if isdir(join(job_id_folder, d))]
+    assert len(existing_dirs) == 1
+    assert existing_dirs[0] == latest
