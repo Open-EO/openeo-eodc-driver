@@ -27,7 +27,7 @@ LOGGER = logging.getLogger("standardlog")
 
 
 class CSWError(Exception):
-    """CWSError raises if a error occurs while querying the CSW server."""
+    """CWSError raises if an error occurs while querying the CSW server."""
 
     def __init__(self, msg: str = "") -> None:
         """Initialise CSWError class."""
@@ -363,7 +363,7 @@ class CSWHandler:
 
     def get_filepaths(self, collection_id: str, spatial_extent: List[float], temporal_extent: List[str]
                       ) -> List[str]:
-        """Retrieves a file list from the a CSW server according to the specified parameters.
+        """Retrieve a file list from the a CSW server according to the specified parameters.
 
         Arguments:
             collecion_id {str} -- identifier of the collection
@@ -373,7 +373,6 @@ class CSWHandler:
         Returns:
             list -- list of filepaths
         """
-
         csw = CatalogueServiceWeb(self.csw_server_uri, timeout=300)
 
         constraints = []

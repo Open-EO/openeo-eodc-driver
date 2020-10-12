@@ -227,6 +227,7 @@ def test_get_product_detail() -> None:
 
 
 def test_get_filepaths() -> None:
+    """Test get filepaths for a given configuration."""
     data_service = worker_factory(DataService)
 
     data_service.csw_session.get_filepaths.return_value = filepaths_response

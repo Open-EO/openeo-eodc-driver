@@ -1,6 +1,4 @@
-"""
-
-"""
+"""List of functions to add STAC fields to metadata."""
 
 
 import json
@@ -9,12 +7,14 @@ from typing import Any, Dict, List
 
 
 def add_non_csw_info(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Add STAC metadata to collections."""
     for record in records:
         record.update(get_non_csw_info_single_record(record["id"]))
     return records
 
 
 def get_non_csw_info_single_record(collection_id: str) -> Dict[str, Any]:
+    """Add STAC metadata to individual collection."""
     # Add cube:dimensions and summaries
     json_file = os.path.join(
         os.path.dirname(__file__),

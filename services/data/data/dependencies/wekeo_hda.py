@@ -1,4 +1,4 @@
-""" WEkEO Harmonized Data Access Session """
+"""WEkEO Harmonized Data Access Session."""
 
 
 import logging
@@ -16,36 +16,31 @@ LOGGER = logging.getLogger("standardlog")
 
 
 class HDAError(Exception):
-    """ HDAError raises if a error occurs while querying the WEkEO HDA API. """
+    """HDAError raises if an error occurs while querying the WEkEO HDA API."""
 
     def __init__(self, msg: str = "") -> None:
+        """Initialise HDAError class."""
         super(HDAError, self).__init__(msg)
 
 
 class HDAHandler:
-    """
-    """
+    """Handles communication with WEkEO's Harmonized Data Access API."""
 
     def __init__(self, service_uri: str, service_user: str, service_password: str) -> None:
+        """Initialise HDAHandler."""
         self.service_uri = service_uri
         self.service_user = service_user
         self.service_password = service_password
-        # self.service_headers = {
-        #     'Authorization': None,
-        #     'Accept': 'application/json'
-        # }
-        # self._set_headers()
-        self.link_handler = LinkHandler(service_uri)
+        self.link_handler = LinkHandler()
 
         LOGGER.debug("Initialized %s", self)
 
     def get_all_products(self) -> Collections:
-        """Returns all products available at the back-end.
+        """Return all products available at the back-end.
 
         Returns:
             list -- The list containing information about available products
         """
-
         collection_list = []
         for data_id in settings.WHITELIST_WEKEO:
             collection_list.append(self.get_product(data_id))
@@ -56,7 +51,7 @@ class HDAHandler:
         return collections
 
     def get_product(self, data_id: str) -> Collection:
-        """Returns information about a specific product.
+        """Return information about a specific product.
 
         Arguments:
             data_id {str} -- The identifier of the product
@@ -64,7 +59,6 @@ class HDAHandler:
         Returns:
             dict -- The product data
         """
-
         wekeo_data_id, _ = self._split_collection_id(data_id)
         response = get_collection_metadata(self.service_uri, self.service_user, self.service_password,
                                            wekeo_data_id)
@@ -76,9 +70,9 @@ class HDAHandler:
 
         collection = Collection(
             stac_version=data["stac_version"],
-            id=data["id"],
+            id_=data["id"],
             description=data["description"],
-            license=data["userTerms"]["termsId"],
+            license_=data["userTerms"]["termsId"],
             extent=data["extent"],
             links=data["links"],
             title=data["title"],
@@ -90,7 +84,7 @@ class HDAHandler:
         return collection
 
     def get_filepaths(self, collection_id: str, spatial_extent: Dict, temporal_extent: List) -> Tuple[List, str]:
-        """Retrieves a URL list from the WEkEO HDA according to the specified parameters.
+        """Retrieve a URL list from the WEkEO HDA according to the specified parameters.
 
         Arguments:
             collecion_id {str} -- identifier of the collection
@@ -100,7 +94,6 @@ class HDAHandler:
         Returns:
             list -- list of URLs / filepaths
         """
-
         # Create Data Descriptor
         wekeo_data_id, wekeo_var_id = self._split_collection_id(collection_id)
         filepaths, job_id = get_filepaths(self.service_uri, self.service_user, self.service_password,
@@ -109,9 +102,11 @@ class HDAHandler:
         return filepaths, job_id
 
     def _split_collection_id(self, collection_id: str) -> List:
-        """Splits a collection_id into the collection name and variable name, e.g.
-        EO:ESA:DAT:SENTINEL-5P:TROPOMI:L2__NO2___ into:
-        EO:ESA:DAT:SENTINEL-5P:TROPOMI and L2__NO2___.
+        """Separate collection and variable id.
+
+        Splits a collection_id into the collection name and variable name,
+        e.g. 'EO:ESA:DAT:SENTINEL-5P:TROPOMI:L2__NO2___' into:
+        'EO:ESA:DAT:SENTINEL-5P:TROPOMI' and 'L2__NO2___'.
 
         Arguments:
             collecion_id {str} -- identifier of the collection
@@ -119,7 +114,6 @@ class HDAHandler:
         Returns:
             list -- list with two strings
         """
-
         temp_var = collection_id.split(':')
         wekeo_data_id = ':'.join(temp_var[:-1])
         wekeo_var_id = temp_var[-1]
@@ -128,10 +122,10 @@ class HDAHandler:
 
 
 class HDASession(DependencyProvider):
-    """ The HDASession is the DependencyProvider of the HDAHandler. """
+    """The HDASession is the DependencyProvider of the HDAHandler."""
+
     def get_dependency(self, worker_ctx: object) -> HDAHandler:
-        """Return the instantiated object that is injected to a
-        service worker
+        """Return the instantiated object that is injected to a service worker.
 
         Arguments:
             worker_ctx {object} -- The service worker
@@ -139,7 +133,6 @@ class HDASession(DependencyProvider):
         Returns:
             HDAHandler -- The instantiated HDAHandler object
         """
-
         return HDAHandler(
             service_uri=settings.WEKEO_API_URL,
             service_user=settings.WEKEO_USER,

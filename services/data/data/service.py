@@ -5,7 +5,7 @@ This is the main entry point to the EO data discovery.
 
 import logging
 from pprint import pformat
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from dynaconf import settings
 from nameko.rpc import rpc
@@ -171,7 +171,7 @@ class DataService:
             if error_code:
                 return ServiceException(
                     error_code,
-                    self.get_user_id(user),
+                    self._get_user_id(user),
                     error_msg,
                     internal=False,
                     links=[],
@@ -217,7 +217,7 @@ class DataService:
     @rpc
     def get_filepaths(self, collection_id: str, spatial_extent: List[float], temporal_extent: List[str],
                       user: Dict[str, Any] = None) -> Dict:
-        """The request will return a list of filepaths.
+        """Return a list of filepaths.
 
         Keyword Arguments:
             user {Dict[str, Any]} -- The user (default: {None})
@@ -228,7 +228,6 @@ class DataService:
         Returns:
             dict -- Success message or Exception
         """
-
         try:
             filepaths = {}
             if settings.IS_CSW_SERVER and collection_id in settings.WHITELIST:
@@ -241,7 +240,7 @@ class DataService:
 
             if not filepaths:
                 msg = "No filepaths were found."
-                return ServiceException(500, self.get_user_id(user), msg=msg).to_dict()
+                return ServiceException(500, self._get_user_id(user), msg=msg).to_dict()
 
             return {
                 "status": "success",
@@ -249,4 +248,4 @@ class DataService:
                 "data": filepaths,
             }
         except Exception as exp:
-            return ServiceException(500, self.get_user_id(user), str(exp), links=[]).to_dict()
+            return ServiceException(500, self._get_user_id(user), str(exp), links=[]).to_dict()

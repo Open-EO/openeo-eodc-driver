@@ -149,7 +149,7 @@ def initialise_settings() -> None:
                   must_exist=True, when=Validator("IS_CSW_SERVER_DC", eq="True") and not_doc),
 
         Validator("IS_HDA_WEKEO", default=False),
-        Validator("WEKEO_API_URL", "WEKEO_USER", "WEKEO_PASSWORD", "WEKEO_DATA_FOLDER",
+        Validator("WEKEO_API_URL", "WEKEO_USER", "WEKEO_PASSWORD", "WEKEO_STORAGE",
                   "DATA_ACCESS_WEKEO", "WHITELIST_WEKEO",
                   must_exist=True, when=Validator("IS_HDA_WEKEO", eq="True") and not_doc),
 
