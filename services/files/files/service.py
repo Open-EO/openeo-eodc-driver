@@ -446,8 +446,10 @@ class FilesService:
             job_id: The identifier of the job.
         """
         job_folder = self.get_job_id_folder(user_id, job_id)
-        open(os.path.join(job_folder, 'STOP'), 'a').close()
-        LOGGER.info(f"STOP file added to job folder {job_folder}.")
+        latest_job_run = self.get_latest_job_run_folder_name(user_id, job_id)
+        stop_file = os.path.join(job_folder, latest_job_run, 'STOP')
+        open(stop_file, 'a').close()
+        LOGGER.info(f"STOP file added at {stop_file}.")
 
     @rpc
     def delete_complete_job(self, user_id: str, job_id: str) -> None:
