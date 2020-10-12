@@ -7,7 +7,6 @@ from uuid import uuid4
 from nameko.testing.services import worker_factory
 from nameko_sqlalchemy.database_session import Session
 
-from jobs.dependencies.dag_handler import DagHandler
 from jobs.models import Job
 from jobs.service import JobService
 from .mocks import MockedAirflowConnection, MockedDagHandler, MockedDagWriter, MockedFilesService, \

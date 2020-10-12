@@ -1,6 +1,8 @@
 """Mocks and auxiliary data used in the tests."""
+import glob
 import os
 from datetime import datetime
+from os.path import dirname, join
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 from unittest.mock import MagicMock
 
@@ -227,7 +229,7 @@ class MockedFilesService(MagicMock):
     def get_job_output(self, user_id: str, job_id: str, internal: bool = False) -> Dict[str, Any]:
         """Return success with sample-output paths."""
         # TODO update structure to reflect latest version of method
-        job_folder = self.setup_jobs_result_folder(user_id, job_id)
+        job_folder = settings.JOB_FOLDER
         return {
             "status": "success",
             "code": 200,
@@ -239,12 +241,26 @@ class MockedFilesService(MagicMock):
             }
         }
 
-    def setup_jobs_result_folder(self, user_id: str, job_id: str) -> str:
-        """Return just settings.JOB_FOLDER."""
-        return settings.JOB_FOLDER
+    def setup_jobs_result_folder(self, user_id: str, job_id: str, job_run: Optional[str] = None) -> str:
+        """Set up a new job run with results folder and return the path."""
+        folder_name = self.get_new_job_run_folder_name()
+        to_create = join(settings.JOB_FOLDER, folder_name)
+        if not os.path.exists(to_create):
+            os.makedirs(to_create)
+        return to_create
+
+    def get_job_run_folder_from_results(self, job_result_folder: str) -> str:
+        """Get the absolute path to the job run folder form its results folder."""
+        return dirname(job_result_folder)
 
     def get_new_job_run_folder_name(self) -> str:
-        return datetime.utcnow().strftime("%Y%m%dT%H%M%S%f")
+        """Return folder name of new job run folder."""
+        return f"jr-{datetime.utcnow().strftime('%Y%m%dT%H%M%S%f')}"
+
+    def get_latest_job_run_folder_name(self, user_id: str, job_id: str) -> str:
+        """Return newest job_run folder name."""
+        latest_job_run = sorted(glob.glob(settings.JOB_FOLDER + '/*'))[-1]
+        return latest_job_run.split(os.sep)[-1]
 
 
 class MockedDagHandler(MagicMock):

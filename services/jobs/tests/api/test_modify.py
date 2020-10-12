@@ -1,10 +1,8 @@
 """Test modify job."""
 from datetime import datetime
-from os.path import getmtime, isfile
 
 import pytest
 from nameko_sqlalchemy.database_session import Session
-
 
 from jobs.models import JobStatus
 from tests.mocks import PG_OLD_REF
@@ -13,7 +11,7 @@ from .base import BaseCase
 from .exceptions import get_job_locked_exception
 
 
-@pytest.mark.usefixtures("set_job_data", "dag_folder")
+@pytest.mark.usefixtures("job_folder", "dag_folder")
 class TestModifyJob(BaseCase):
     """Test modify methode."""
 

@@ -63,12 +63,31 @@ def model_base() -> Base:
 
 
 @pytest.fixture()
-def set_job_data(request: FixtureRequest) -> None:
-    """Create sync-results and airflow-output folder and add finalizer to remove the folders after running the test."""
+def sync_result(request: FixtureRequest) -> None:
+    """Create sync-results and add finalizer to remove the folders after running the test."""
     # For sync job test
     if not os.path.isdir(settings.SYNC_RESULTS_FOLDER):
         os.makedirs(settings.SYNC_RESULTS_FOLDER)
-    # this env var is used in the mocked files service
+
+    def fin() -> None:
+        shutil.rmtree(settings.SYNC_RESULTS_FOLDER)
+    request.addfinalizer(fin)
+
+
+@pytest.fixture()
+def job_folder(request: FixtureRequest) -> None:
+    """Create job folder and add finalizer to remove the folders after running the test."""
+    if not os.path.isdir(settings.JOB_FOLDER):
+        os.makedirs(settings.JOB_FOLDER)
+
+    def fin() -> None:
+        shutil.rmtree(settings.JOB_FOLDER)
+    request.addfinalizer(fin)
+
+
+@pytest.fixture()
+def job_output(request: FixtureRequest) -> None:
+    """Create job folder with output and add finalizer to remove the folders after running the test."""
     job_results = os.path.join(settings.JOB_FOLDER, "result")
     if not os.path.isdir(job_results):
         os.makedirs(job_results)
@@ -81,5 +100,4 @@ def set_job_data(request: FixtureRequest) -> None:
 
     def fin() -> None:
         shutil.rmtree(settings.JOB_FOLDER)
-        shutil.rmtree(settings.SYNC_RESULTS_FOLDER)
     request.addfinalizer(fin)

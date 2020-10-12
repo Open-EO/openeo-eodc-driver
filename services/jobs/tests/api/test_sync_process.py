@@ -5,7 +5,7 @@ from nameko_sqlalchemy.database_session import Session
 from tests.utils import get_configured_job_service, get_random_user, load_json
 
 
-@pytest.mark.usefixtures("set_job_data", "dag_folder")
+@pytest.mark.usefixtures("sync_result", "dag_folder")
 class TestSyncJob:
     """Test the process_sync job method."""
 
