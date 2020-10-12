@@ -147,6 +147,7 @@ def initialise_settings() -> None:
     settings.configure(ENVVAR_PREFIX_FOR_DYNACONF="OEO")
     utils = SettingValidationUtils()
     settings.validators.register(
+
         Validator(SettingKeys.OPENEO_VERSION.value, must_exist=True, when=not_doc),
         Validator(SettingKeys.AIRFLOW_HOST.value, must_exist=True, condition=utils.check_parse_url,
                   when=(not_doc_unittest and not_doc)),

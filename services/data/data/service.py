@@ -5,12 +5,15 @@ This is the main entry point to the EO data discovery.
 
 import logging
 from pprint import pformat
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
+from dynaconf import settings
 from nameko.rpc import rpc
 
 from .dependencies.csw import CSWSession, CSWSessionDC
 from .dependencies.settings import initialise_settings
+from .dependencies.wekeo_hda import HDASession
+from .models import Collections
 from .schema import CollectionSchema, CollectionsSchema
 
 service_name = "data"
@@ -63,13 +66,18 @@ class DataService:
     """Discovery of Earth observation datasets that are available at the backend."""
 
     name = service_name
-    csw_session = CSWSession()
-    """CSWHandler dependency injected into the service."""
-    csw_session_dc = CSWSessionDC()
-    """Second CSWHandler dependency also injected into the service.
+    if settings.IS_CSW_SERVER:
+        csw_session = CSWSession()
+        """CSWHandler dependency injected into the service."""
+    if settings.IS_CSW_SERVER_DC:
+        csw_session_dc = CSWSessionDC()
+        """Second CSWHandler dependency also injected into the service.
 
-    This is only a midterm solution to support two CSW servers.
-    """
+        This is only a midterm solution to support two CSW servers.
+        """
+    if settings.IS_HDA_WEKEO:
+        hda_session = HDASession()
+        """HDAHandler dependency injected into the service."""
 
     def __init__(self) -> None:
         """Initialize Data Service."""
@@ -97,13 +105,23 @@ class DataService:
         LOGGER.info("All products requested")
         LOGGER.debug("user_id requesting %s", self._get_user_id(user))
         try:
-            product_records = self.csw_session.get_all_products()
-            if user and self.csw_session_dc.data_access in user["profile"]["data_access"]:
+            all_collections = Collections(collections=[], links=[])
+            if settings.IS_CSW_SERVER:
+                csw_collections = self.csw_session.get_all_products()
+                for col in csw_collections[0]:
+                    all_collections[0].append(col)
+            if settings.IS_CSW_SERVER_DC and \
+               user and \
+               self.csw_session_dc.data_access in user["profile"]["data_access"]:
                 acube_collections = self.csw_session_dc.get_all_products()
                 for col in acube_collections[0]:
-                    product_records[0].append(col)
+                    all_collections[0].append(col)
+            if settings.IS_HDA_WEKEO:
+                wekeo_collections = self.hda_session.get_all_products()
+                for col in wekeo_collections[0]:
+                    all_collections[0].append(col)
 
-            response = CollectionsSchema().dump(product_records)
+            response = CollectionsSchema().dump(all_collections)
 
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
@@ -132,25 +150,32 @@ class DataService:
         """
         try:
             LOGGER.info("%s product requested", collection_id)
-            product_record = self.csw_session.get_product(collection_id)
 
-            if collection_id in ('TUW_SIG0_S1'):
-                # Check user permission
-                error_code = None
-                if not user:
-                    error_code = 401  # Unauthorized
-                    error_msg = "This collection is not publicly accessible."
-                if user and self.csw_session_dc.data_access not in user["profile"]["data_access"]:
-                    error_code = 403  # Forbidden (dpes not have permissions)
-                    error_msg = "User is not authorized to access this collection."
-                if error_code:
-                    return ServiceException(
-                        error_code,
-                        self._get_user_id(user),
-                        error_msg,
-                        internal=False,
-                        links=[],
-                    ).to_dict()
+            if settings.IS_CSW_SERVER and collection_id in settings.WHITELIST:
+                product_record = self.csw_session.get_product(collection_id)
+            elif settings.IS_CSW_SERVER_DC and collection_id in settings.WHITELIST_DC:
+                product_record = self.csw_session_dc.get_product(collection_id)
+            elif settings.IS_HDA_WEKEO and collection_id in settings.WHITELIST_WEKEO:
+                product_record = self.hda_session.get_product(collection_id)
+
+            # Check user permission
+            # TODO: implement better logc for checking user permissions
+            error_code = None
+            if collection_id in ('TUW_SIG0_S1') and not user:
+                error_code = 401  # Unauthorized
+                error_msg = "This collection is not publicly accessible."
+            elif collection_id in ('TUW_SIG0_S1') and \
+                    user and self.csw_session_dc.data_access not in user["profile"]["data_access"]:
+                error_code = 403  # Forbidden (dpes not have permissions)
+                error_msg = "User is not authorized to access this collection."
+            if error_code:
+                return ServiceException(
+                    error_code,
+                    self._get_user_id(user),
+                    error_msg,
+                    internal=False,
+                    links=[],
+                ).to_dict()
 
             response = CollectionSchema().dump(product_record)
 
@@ -172,8 +197,10 @@ class DataService:
         """
         try:
             LOGGER.info("Refresh cache requested")
-            self.csw_session.refresh_cache(use_cache)
-            self.csw_session_dc.refresh_cache(use_cache)
+            if settings.IS_CSW_SERVER:
+                self.csw_session.refresh_cache(use_cache)
+            if settings.IS_CSW_SERVER_DC:
+                self.csw_session_dc.refresh_cache(use_cache)
 
             return {
                 "status": "success",
@@ -186,3 +213,39 @@ class DataService:
     def _get_user_id(self, user: Optional[Dict[str, Any]]) -> Optional[str]:
         """Return the user_id if user object is set."""
         return user["id"] if user and "id" in user else None
+
+    @rpc
+    def get_filepaths(self, collection_id: str, spatial_extent: List[float], temporal_extent: List[str],
+                      user: Dict[str, Any] = None) -> Dict:
+        """Return a list of filepaths.
+
+        Keyword Arguments:
+            user {Dict[str, Any]} -- The user (default: {None})
+            collecion_id {str} -- identifier of the collection
+            spatial_extent {List[float]} -- bounding box [ymin, xmin, ymax, ymax]
+            temporal_extent {List[str]} -- e.g. ["2018-06-04", "2018-06-23"]
+
+        Returns:
+            dict -- Success message or Exception
+        """
+        try:
+            filepaths = {}
+            if settings.IS_CSW_SERVER and collection_id in settings.WHITELIST:
+                filepaths['filepaths'] = self.csw_session.get_filepaths(collection_id, spatial_extent, temporal_extent)
+            elif settings.IS_CSW_SERVER_DC and collection_id in settings.WHITELIST_DC:
+                filepaths['filepaths'] = self.csw_session_dc.get_filepaths(collection_id, spatial_extent, temporal_extent)
+            elif settings.IS_HDA_WEKEO and collection_id in settings.WHITELIST_WEKEO:
+                filepaths['filepaths'], filepaths['wekeo_job_id'] = \
+                    self.hda_session.get_filepaths(collection_id, spatial_extent, temporal_extent)
+
+            if not filepaths:
+                msg = "No filepaths were found."
+                return ServiceException(500, self._get_user_id(user), msg=msg).to_dict()
+
+            return {
+                "status": "success",
+                "code": 200,
+                "data": filepaths,
+            }
+        except Exception as exp:
+            return ServiceException(500, self._get_user_id(user), str(exp), links=[]).to_dict()

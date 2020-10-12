@@ -128,6 +128,7 @@ services:
         volumes:
             - $PLUGINS:/usr/local/airflow/plugins
             - $AIRFLOW_DAGS:/usr/local/airflow/dags
+            - $WEKEO_STORAGE:/usr/local/airflow/wekeo_storage
             - $HOST_INPUT:$CONTAINER_INPUT
             - files-data:$CONTAINER_OUTPUT
             - $LOG_DIR_AIRFLOW:/usr/local/airflow/logs
