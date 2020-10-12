@@ -21,6 +21,12 @@ class SettingKeys(Enum):
 
     If you are running in docker the path needs to be inside the container.
     """
+
+    IS_CSW_SERVER = "IS_CSW_SERVER"
+    """The flag for a CSW server.
+
+    It flags if to expect the environment variables related to CSW_SERVER.
+    """
     CSW_SERVER = "CSW_SERVER"
     """The url to a running CSW server.
 
@@ -46,6 +52,11 @@ class SettingKeys(Enum):
     There are scenarios where not all collections available on a CSW server are meaningful in the context of OpenEO.
     """
 
+    IS_CSW_SERVER_DC = "IS_CSW_SERVER_DC"
+    """The flag for a second CSW server.
+
+    It flags if to expect the environment variables related to CSW_SERVER_DC.
+    """
     CSW_SERVER_DC = "CSW_SERVER_DC"
     """The url to a second running CSW server.
 
@@ -62,6 +73,32 @@ class SettingKeys(Enum):
     :attr:`~data.dependencies.settings.SettingKeys.CSW_SERVER_DC`.
     """
     WHITELIST_DC = "WHITELIST_DC"
+    """See :attr:`~data.dependencies.settings.SettingKeys.WHITELIST` and description in
+    :attr:`~data.dependencies.settings.SettingKeys.CSW_SERVER_DC`.
+    """
+
+    IS_HDA_WEKEO = "IS_HDA_WEKEO"
+    """The flag for the connection to WEkEO's HDA API.
+
+    It flags if to expect the environment variables related to WEKEO_API_URL.
+    """
+    WEKEO_API_URL = "WEKEO_API_URL"
+    """The url to WEkEO's HDA API.
+    """
+    WEKEO_USER = "WEKEO_USER"  # noqa S105
+    """The username for a WEkEO instance.
+    """
+    WEKEO_PASSWORD = "WEKEO_PASSWORD"  # noqa S105
+    """The password for a WEkEO instance.
+    """
+    WEKEO_STORAGE = "WEKEO_STORAGE"
+    """The path where files downloaded via the WEkEO HDA API will be available
+    on the VM, where the processing engine (e.g. Airflow) executes jobs."""
+    DATA_ACCESS_WEKEO = "DATA_ACCESS_WEKEO"
+    """See :attr:`~data.dependencies.settings.SettingKeys.DATA_ACCESS` and description in
+    :attr:`~data.dependencies.settings.SettingKeys.CSW_SERVER_DC`.
+    """
+    WHITELIST_WEKEO = "WHITELIST_WEKEO"
     """See :attr:`~data.dependencies.settings.SettingKeys.WHITELIST` and description in
     :attr:`~data.dependencies.settings.SettingKeys.CSW_SERVER_DC`.
     """
@@ -140,20 +177,22 @@ def initialise_settings() -> None:
     settings.validators.register(
         Validator(SettingKeys.CACHE_PATH.value, must_exist=True, condition=utils.check_create_folder, when=not_doc),
 
-        Validator("IS_CSW_SERVER", default=False),
-        Validator("CSW_SERVER", "DATA_ACCESS", "GROUP_PROPERTY", "WHITELIST",
-                  must_exist=True, when=Validator("IS_CSW_SERVER", eq="True") and not_doc),
+        Validator(SettingKeys.IS_CSW_SERVER.value, default=False),
+        Validator(SettingKeys.CSW_SERVER.value, SettingKeys.DATA_ACCESS.value,
+                  SettingKeys.GROUP_PROPERTY.value, SettingKeys.WHITELIST.value,
+                  must_exist=True, when=Validator(SettingKeys.IS_CSW_SERVER.value, eq="True") and not_doc),
 
-        Validator("IS_CSW_SERVER_DC", default=False),
-        Validator("CSW_SERVER_DC", "DATA_ACCESS_DC", "GROUP_PROPERTY_DC", "WHITELIST_DC",
-                  must_exist=True, when=Validator("IS_CSW_SERVER_DC", eq="True") and not_doc),
+        Validator(SettingKeys.IS_CSW_SERVER_DC.value, default=False),
+        Validator(SettingKeys.CSW_SERVER_DC.value, SettingKeys.DATA_ACCESS_DC.value,
+                  SettingKeys.GROUP_PROPERTY_DC.value, SettingKeys.WHITELIST_DC.value,
+                  must_exist=True, when=Validator(SettingKeys.IS_CSW_SERVER_DC.value, eq="True") and not_doc),
 
-        Validator("IS_HDA_WEKEO", default=False),
-        Validator("WEKEO_API_URL", "WEKEO_STORAGE",
-                  "DATA_ACCESS_WEKEO", "WHITELIST_WEKEO",
-                  must_exist=True, when=Validator("IS_HDA_WEKEO", eq="True") and not_doc),
-        Validator("WEKEO_USER", "WEKEO_PASSWORD",
-                  must_exist=True, when=Validator("IS_HDA_WEKEO", eq="True") and not_doc_unittest),
+        Validator(SettingKeys.IS_HDA_WEKEO.value, default=False),
+        Validator(SettingKeys.WEKEO_API_URL.value, SettingKeys.WEKEO_STORAGE.value,
+                  SettingKeys.DATA_ACCESS_WEKEO.value, SettingKeys.WHITELIST_WEKEO.value,
+                  must_exist=True, when=Validator(SettingKeys.IS_HDA_WEKEO.value, eq="True") and not_doc),
+        Validator(SettingKeys.WEKEO_USER.value, SettingKeys.WEKEO_PASSWORD.value,
+                  must_exist=True, when=Validator(SettingKeys.IS_HDA_WEKEO.value, eq="True") and not_doc_unittest),
 
         Validator(SettingKeys.RABBIT_HOST.value, must_exist=True, when=not_doc_unittest),
         Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc_unittest),
@@ -169,11 +208,12 @@ def initialise_settings() -> None:
                         "following env variables must be true: OEO_IS_CSW_SERVER,"
                         " OEO_IS_CSW_SERVER_DC, OEO_IS_HDA_WEKEO.")
 
-    if settings.IS_CSW_SERVER and settings.ENV_FOR_DYNACONF != "documentation":
-        settings.WHITELIST = settings.WHITELIST.split(",")
-    if settings.IS_CSW_SERVER_DC and settings.ENV_FOR_DYNACONF != "documentation":
-        settings.WHITELIST_DC = settings.WHITELIST_DC.split(",")
-    if settings.IS_HDA_WEKEO and settings.ENV_FOR_DYNACONF != "documentation":
-        settings.WHITELIST_WEKEO = settings.WHITELIST_WEKEO.split(",")
+    if settings.ENV_FOR_DYNACONF != "documentation":
+        if settings.IS_CSW_SERVER:
+            settings.WHITELIST = settings.WHITELIST.split(",")
+        if settings.IS_CSW_SERVER_DC:
+            settings.WHITELIST_DC = settings.WHITELIST_DC.split(",")
+        if settings.IS_HDA_WEKEO:
+            settings.WHITELIST_WEKEO = settings.WHITELIST_WEKEO.split(",")
 
     LOGGER.info("Settings validated")
