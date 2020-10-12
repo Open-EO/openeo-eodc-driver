@@ -276,8 +276,9 @@ class JobService:
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.queued, JobStatus.running]:
-                return ServiceException(400, user["id"], f"Job {job_id} is already {job.status}. Processing must be "
-                                                         f"canceled before restart.", links=[]).to_dict()
+                return ServiceException(400, user["id"],
+                                        f"Job {job_id} is already {job.status}. Processing must be canceled before"
+                                        f" restart.", links=[], internal=False).to_dict()
 
             self.files_service.setup_jobs_result_folder(user_id=user["id"], job_id=job_id)
             # Get all processes
@@ -290,14 +291,16 @@ class JobService:
             if process_graph_response["status"] == "error":
                 return process_graph_response
             process_graph = process_graph_response["data"]["process_graph"]
-            self.dag_writer.write_and_move_job(job_id=job_id,
-                                               user_name=user["id"],
-                                               process_graph_json={"process_graph": process_graph},
-                                               job_data=self.get_new_job_folder(user["id"], job_id),
-                                               vrt_only=job.vrt_flag,
-                                               add_delete_sensor=True,
-                                               add_parallel_sensor=job.add_parallel_sensor,
-                                               process_defs=backend_processes)
+            self.dag_writer.write_and_move_job(
+                job_id=job_id,
+                user_name=user["id"],
+                process_graph_json={"process_graph": process_graph},
+                job_data=self.get_latest_job_folder(user['id'], job_id),
+                vrt_only=job.vrt_flag,
+                add_delete_sensor=True,
+                add_parallel_sensor=job.add_parallel_sensor,
+                process_defs=backend_processes,
+            )
 
             trigger_worked = self.airflow.trigger_dag(dag_id=self.dag_handler.get_preparation_dag_id(job_id))
             if not trigger_worked:
@@ -614,19 +617,6 @@ class JobService:
             self.db.commit()
         LOGGER.debug(f"Job Status of job {job_id} is {job.status}")
 
-    def get_new_job_folder(self, user_id: str, job_id: str) -> str:
-        """Get absolute path to new job_run folder of a user.
-
-        Args:
-            user_id: The identifier of the user.
-            job_id: The id of the job.
-
-        Returns:
-            The complete path to the specific job folder on the file system.
-        """
-        return os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id,
-                            self.files_service.get_new_job_run_folder_name())
-
     def get_latest_job_folder(self, user_id: str, job_id: str) -> str:
         """Get absolute path to latest job_run folder of a user.
 
@@ -638,7 +628,7 @@ class JobService:
             The complete path to the specific job folder on the file system.
         """
         return os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id,
-                            self.files_service.get_latest_job_run_folder_name())
+                            self.files_service.get_latest_job_run_folder_name(user_id, job_id))
 
     def _stop_airflow_job(self, user_id: str, job_id: str) -> None:
         """Trigger the airflow observer to set all running task to failed.

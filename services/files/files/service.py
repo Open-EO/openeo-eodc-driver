@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 from datetime import datetime
+from os.path import dirname
 from typing import Any, Dict, List, Optional, Union
 
 from dynaconf import settings
@@ -379,6 +380,11 @@ class FilesService:
         return to_create
 
     @rpc
+    def get_job_run_folder_from_results(self, job_result_folder: str) -> str:
+        """Return job_run folder from job results folder."""
+        return dirname(job_result_folder)
+
+    @rpc
     def get_job_output(self, user_id: str, job_id: str, internal: bool = False) -> dict:
         """Return the list of output files produced by a job.
 
@@ -514,6 +520,7 @@ class FilesService:
         """
         return os.path.join(self.get_job_id_folder(user_id, job_id), job_run, self.result_folder)
 
+    @rpc
     def get_new_job_results_folder(self, user_id: str, job_id: str) -> str:
         """Return the path to a result folder in a specific job folder for a new job run.
 
@@ -527,6 +534,7 @@ class FilesService:
         return os.path.join(self.get_job_id_folder(user_id, job_id), self.get_new_job_run_folder_name(),
                             self.result_folder)
 
+    @rpc
     def get_latest_job_results_folder(self, user_id: str, job_id: str) -> str:
         """Return the path to the result folder in a specific job folder for the latest existing job run.
 
@@ -546,13 +554,13 @@ class FilesService:
 
         The datetime is used as unique identifier here.
         """
-        return datetime.utcnow().strftime("%Y%m%dT%H%M%S%f")
+        return f"jr-{datetime.utcnow().strftime('%Y%m%dT%H%M%S%f')}"
 
     @rpc
     def get_latest_job_run_folder_name(self, user_id: str, job_id: str) -> str:
         """Get the folder name of the latest job run."""
         job_id_folder = self.get_job_id_folder(user_id, job_id)
-        latest_job_run = sorted(glob.glob(job_id_folder+'/*'))[-1]
+        latest_job_run = sorted(glob.glob(job_id_folder + '/*'))[-1]
         return latest_job_run.split(os.sep)[-1]
 
     def get_job_run_from_job_results_folder(self, job_results_path: str) -> str:
