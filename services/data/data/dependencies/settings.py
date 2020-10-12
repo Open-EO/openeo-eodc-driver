@@ -149,9 +149,11 @@ def initialise_settings() -> None:
                   must_exist=True, when=Validator("IS_CSW_SERVER_DC", eq="True") and not_doc),
 
         Validator("IS_HDA_WEKEO", default=False),
-        Validator("WEKEO_API_URL", "WEKEO_USER", "WEKEO_PASSWORD", "WEKEO_STORAGE",
+        Validator("WEKEO_API_URL", "WEKEO_STORAGE",
                   "DATA_ACCESS_WEKEO", "WHITELIST_WEKEO",
                   must_exist=True, when=Validator("IS_HDA_WEKEO", eq="True") and not_doc),
+        Validator("WEKEO_USER", "WEKEO_PASSWORD",
+                  must_exist=True, when=Validator("IS_HDA_WEKEO", eq="True") and not_doc_unittest),
 
         Validator(SettingKeys.RABBIT_HOST.value, must_exist=True, when=not_doc_unittest),
         Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc_unittest),
