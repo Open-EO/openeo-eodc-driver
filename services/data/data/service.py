@@ -68,7 +68,7 @@ class DataService:
     name = service_name
     if settings.IS_CSW_SERVER:
         csw_session = CSWSession()
-      """CSWHandler dependency injected into the service."""
+        """CSWHandler dependency injected into the service."""
     if settings.IS_CSW_SERVER_DC:
         csw_session_dc = CSWSessionDC()
         """Second CSWHandler dependency also injected into the service.
