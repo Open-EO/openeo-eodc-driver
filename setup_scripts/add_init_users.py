@@ -19,11 +19,6 @@ def get_db_session(db_url: str) -> Session:
 
 
 def main():
-    db_url = f"postgresql://{environ.get('OEO_DB_USER')}:{environ.get('OEO_DB_PASSWORD')}" \
-             f"@{environ.get('OEO_DB_HOST')}:{environ.get('OEO_DB_PORT')}/{environ.get('OEO_DB_NAME')}"
-    print(db_url)
-    session = get_db_session(db_url)
-
     profile_1 = Profiles(
         id='pr-19144eb0-ecde-4821-bc8b-714877203c85',
         name=environ.get("PROFILE_1_NAME"),
@@ -62,9 +57,16 @@ def main():
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
+
+    db_url = f"postgresql://{environ.get('OEO_DB_USER')}:{environ.get('OEO_DB_PASSWORD')}" \
+             f"@{environ.get('OEO_DB_HOST')}:{environ.get('OEO_DB_PORT')}/{environ.get('OEO_DB_NAME')}"
+    session = get_db_session(db_url)
     session.add(profile_1)
     session.add(profile_2)
     session.add(identity_provider)
+    session.commit()
+
+    session = get_db_session(db_url)
     session.add(basic_user)
     session.add(oidc_user)
     session.commit()
