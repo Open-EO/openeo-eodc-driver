@@ -2,7 +2,6 @@
 
 docker cp setup_scripts/add_init_users.py oeo-users-v1.0:/usr/src/app/add_init_users.py
 docker exec \
-  -e BACKEND_URL="http://loclahost:3000/" \
   -e USER_BASIC_ADMIN="my-username" \
   -e PASSWORD_BASIC_ADMIN="my-password" \
   -e EMAIL_OIDC_ADMIN="my-name@sample.com" \

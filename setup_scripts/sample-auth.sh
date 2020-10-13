@@ -6,7 +6,7 @@
 # ========================
 #
 ############################################################################################
-export BACKEND_URL="http://loclahost:3000/"
+export BACKEND_URL="http://localhost:3000/v1.0"
 
 export USER_BASIC_ADMIN="my-username"
 export PASSWORD_BASIC_ADMIN="my-password"

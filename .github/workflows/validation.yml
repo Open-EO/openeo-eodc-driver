@@ -37,6 +37,8 @@ jobs:
         time: '60s'
     - name: Check containers are running
       run: docker ps
+    - name: Check gateway is reachable
+      run: curl http://localhost:3000/v1.0
 
     - name: Initialise databases
       run: chmod 700 setup_scripts/init_dbs.sh && setup_scripts/init_dbs.sh
