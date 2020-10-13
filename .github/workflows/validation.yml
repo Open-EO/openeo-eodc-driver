@@ -30,8 +30,8 @@ jobs:
       run: cp gateway/sample_openapi.yaml gateway/openapi.yaml
     - name: Create docker network
       run: docker network create openeo-v1.0
-    - name: Bring up docker-compose
-      run: docker-compose up -d
+    - name: Start api docker-compose
+      run: docker-compose -f docker-compose.yml up -d
     - name: Wait 1 minute for the docker-compose
       uses: jakejarvis/wait-action@master
       with:
@@ -56,7 +56,7 @@ jobs:
       run: cp -r csw/sample-xml csw/xml
     - name: Get data
       run: echo "no data"
-    - name: Start docker-compsoe
+    - name: Start csw docker-compsoe
       run: docker-compose -f csw/docker-compose.yml up -d
     - name: Wait 1/2 minute for the docker-compose
       uses: jakejarvis/wait-action@master
@@ -65,4 +65,14 @@ jobs:
     - name: Check containers are running
       run: docker ps
     - name: Insert metadata into DB
-      run: docker exec pycsw /bin/bash -c 'pycsw-admin.py -c load_records -f /etc/pycsw/pycsw.cfg -p /home/pycsw/xml'
+      run: docker exec pycsw /bin/sh -c 'pycsw-admin.py -c load_records -f /etc/pycsw/pycsw.cfg -p /home/pycsw/xml'
+
+    # Airflow - Celery
+    - name: Copy env vars
+      run: cp airflow/sample.env airflow/.env
+    - name: Add eoDataReaders deploy key
+      run: echo "no deploy key"
+    - name: Create dags directory
+      run: mkdir airflow/dags
+    - name: Start airflow docker-compose
+      run: docker-compose -f airflow/docker-compose.yml -f airflow/docker-compose_dev.yml up
