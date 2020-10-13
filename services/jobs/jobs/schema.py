@@ -136,6 +136,8 @@ class JobCreateSchema(BaseSchema, MoneyConverter):
     process_graph_id = fields.String(required=True)
     plan = fields.String()
     budget = fields.Method('to_euro_budget', deserialize='to_cent')
+    vrt_flag = fields.Boolean(load_only=True)
+    add_parallel_sensor = fields.Boolean(load_only=True)
 
     @pre_load
     def add_job_id(self, in_data: dict, **kwargs: Any) -> dict:

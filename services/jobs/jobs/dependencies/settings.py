@@ -1,7 +1,7 @@
 """Provide functionality to handle package settings."""
 import logging
 from enum import Enum
-from os import environ, makedirs
+from os import makedirs
 from os.path import isdir
 from urllib.error import URLError
 from urllib.parse import urlparse

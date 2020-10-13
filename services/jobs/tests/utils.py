@@ -7,7 +7,6 @@ from uuid import uuid4
 from nameko.testing.services import worker_factory
 from nameko_sqlalchemy.database_session import Session
 
-from jobs.dependencies.dag_handler import DagHandler
 from jobs.models import Job
 from jobs.service import JobService
 from .mocks import MockedAirflowConnection, MockedDagHandler, MockedDagWriter, MockedFilesService, \
@@ -46,10 +45,6 @@ def add_job(job_service: JobService, user: Dict[str, Any], json_name: str = 'pg'
     job_data = load_json(json_name)
     result = job_service.create(user=user, **job_data)
     assert result['status'] == 'success'
-    dag_handler = DagHandler()
-    assert os.path.isfile(
-        dag_handler.get_dag_path_from_id(
-            dag_handler.get_preparation_dag_id(job_id=result["headers"]["OpenEO-Identifier"])))
     return result['headers']['OpenEO-Identifier']
 
 
