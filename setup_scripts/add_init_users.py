@@ -19,7 +19,7 @@ def get_db_session(db_url: str) -> Session:
 
 
 def main():
-    db_url = f"postgresql://{environ.get('OEO_DB_USERNAME')}:{environ.get('OEO_DB_PASSWORD')}" \
+    db_url = f"postgresql://{environ.get('OEO_DB_USER')}:{environ.get('OEO_DB_PASSWORD')}" \
              f"@{environ.get('OEO_DB_HOST')}:{environ.get('OEO_DB_PORT')}/{environ.get('OEO_DB_NAME')}"
     print(db_url)
     session = get_db_session(db_url)
