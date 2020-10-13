@@ -289,7 +289,6 @@ class JobService:
                 return process_response
             backend_processes = process_response["data"]["processes"]
 
-
             # Get process graph
             process_graph_response = self.processes_service.get_user_defined(user, job.process_graph_id)
             if process_graph_response["status"] == "error":
