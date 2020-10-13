@@ -7,8 +7,8 @@ on:
     branches: [ master ]
 
 jobs:
-  backend_setup:
-    name: Setup complete Backend
+  backend:
+    name: Setup complete back-end
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -21,6 +21,7 @@ jobs:
       with:
         python-version: 3.6
 
+    # API layer
     - name: Copy env vars
       run: cp -r sample-envs envs && cp sample.env .env
     - name: Create local folders
@@ -39,7 +40,6 @@ jobs:
       run: docker ps
     - name: Check gateway is reachable
       run: curl http://localhost:3000/v1.0
-
     - name: Initialise databases
       run: chmod 700 setup_scripts/init_dbs.sh && setup_scripts/init_dbs.sh
     - name: Add initial database users
@@ -47,3 +47,22 @@ jobs:
     - name: Fill processes and collections
       run: pip install requests && source setup_scripts/sample-auth.sh && python setup_scripts/add_collections_and_processes.py
 
+    # CSW Server
+    - name: Copy env vars
+      run: cp csw/sample.env csw/.env
+    - name: Copy pycsw config
+      run: cp csw/sample_pycsw.cfg csw/pycsw.cfg
+    - name: Copy sample metadata xmls
+      run: cp -r csw/sample-xml csw/xml
+    - name: Get data
+      run: echo "no data"
+    - name: Start docker-compsoe
+      run: docker-compose -f csw/docker-compose.yml up -d
+    - name: Wait 1/2 minute for the docker-compose
+      uses: jakejarvis/wait-action@master
+      with:
+        time: '30s'
+    - name: Check containers are running
+      run: docker ps
+    - name: Insert metadata into DB
+      run: docker exec pycsw /bin/bash -c 'pycsw-admin.py -c load_records -f /etc/pycsw/pycsw.cfg -p /home/pycsw/xml'
