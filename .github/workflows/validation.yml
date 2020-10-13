@@ -71,8 +71,8 @@ jobs:
     - name: Copy env vars
       run: cp airflow/sample.env airflow/.env
     - name: Add eoDataReaders deploy key
-      run: echo "no deploy key"
+      run: echo "{{ secrets.EODATAREADER_DEPLOY_KEY }}" > airflow/build/deploy.key
     - name: Create dags directory
-      run: mkdir airflow/dags
+      run: echo `ls airflow` && mkdir airflow/dags
     - name: Start airflow docker-compose
       run: docker-compose -f airflow/docker-compose.yml -f airflow/docker-compose_dev.yml up
