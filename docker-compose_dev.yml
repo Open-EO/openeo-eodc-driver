@@ -17,6 +17,34 @@ services:
     ports:
       - 5435:5432
 
+  openeo-gateway:
+    volumes:
+      - ./gateway:/usr/src/app
+
+  openeo-users:
+    volumes:
+      - ./services/users:/usr/src/app
+
+  openeo-capabilities:
+    volumes:
+      - ./services/capabilities:/usr/src/app
+
+  openeo-data:
+    volumes:
+      - ./services/data:/usr/src/app
+
+  openeo-processes:
+    volumes:
+      - ./services/processes:/usr/src/app
+
+  openeo-jobs:
+    volumes:
+      - ./services/jobs:/usr/src/app
+
+  openeo-files:
+    volumes:
+      - ./services/files:/usr/src/app
+
 networks:
   default:
     external:
