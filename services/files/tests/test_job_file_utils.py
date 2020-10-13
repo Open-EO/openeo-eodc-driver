@@ -59,7 +59,9 @@ def test_upload_stop_file(user_id_folder: Tuple[str, str]) -> None:
     user_folder, user_id = user_id_folder
     file_service.setup_jobs_result_folder(user_id=user_id, job_id='test-job')
     file_service.upload_stop_job_file(user_id=user_id, job_id='test-job')
-    assert isfile(join(user_folder, 'jobs', 'test-job', 'STOP'))
+    job_run_folder = join(user_folder, 'jobs', 'test-job',
+                          file_service.get_latest_job_run_folder_name(user_id, 'test-job'))
+    assert isfile(join(user_folder, 'jobs', 'test-job', job_run_folder, 'STOP'))
 
 
 def create_job(user_folder: str, user_id: str, upload_file: str) -> Tuple[str, str, str]:
