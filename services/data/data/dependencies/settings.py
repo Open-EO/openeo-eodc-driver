@@ -180,19 +180,19 @@ def initialise_settings() -> None:
         Validator(SettingKeys.IS_CSW_SERVER.value, default=False),
         Validator(SettingKeys.CSW_SERVER.value, SettingKeys.DATA_ACCESS.value,
                   SettingKeys.GROUP_PROPERTY.value, SettingKeys.WHITELIST.value,
-                  must_exist=True, when=Validator(SettingKeys.IS_CSW_SERVER.value, eq="True") and not_doc),
+                  must_exist=True, when=Validator(SettingKeys.IS_CSW_SERVER.value, eq="True") & not_doc),
 
         Validator(SettingKeys.IS_CSW_SERVER_DC.value, default=False),
         Validator(SettingKeys.CSW_SERVER_DC.value, SettingKeys.DATA_ACCESS_DC.value,
                   SettingKeys.GROUP_PROPERTY_DC.value, SettingKeys.WHITELIST_DC.value,
-                  must_exist=True, when=Validator(SettingKeys.IS_CSW_SERVER_DC.value, eq="True") and not_doc),
+                  must_exist=True, when=Validator(SettingKeys.IS_CSW_SERVER_DC.value, eq="True") & not_doc),
 
         Validator(SettingKeys.IS_HDA_WEKEO.value, default=False),
         Validator(SettingKeys.WEKEO_API_URL.value, SettingKeys.WEKEO_STORAGE.value,
                   SettingKeys.DATA_ACCESS_WEKEO.value, SettingKeys.WHITELIST_WEKEO.value,
-                  must_exist=True, when=Validator(SettingKeys.IS_HDA_WEKEO.value, eq="True") and not_doc),
+                  must_exist=True, when=Validator(SettingKeys.IS_HDA_WEKEO.value, eq="True") & not_doc),
         Validator(SettingKeys.WEKEO_USER.value, SettingKeys.WEKEO_PASSWORD.value,
-                  must_exist=True, when=Validator(SettingKeys.IS_HDA_WEKEO.value, eq="True") and not_doc_unittest),
+                  must_exist=True, when=Validator(SettingKeys.IS_HDA_WEKEO.value, eq="True") & not_doc_unittest),
 
         Validator(SettingKeys.RABBIT_HOST.value, must_exist=True, when=not_doc_unittest),
         Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc_unittest),
