@@ -157,8 +157,6 @@ def initialise_settings() -> None:
                   when=not_doc),
         Validator(SettingKeys.SYNC_RESULTS_FOLDER.value, must_exist=True, condition=utils.check_create_folder,
                   when=not_doc),
-        # TODO to be removed once new bindings and api version is done
-        Validator(SettingKeys.CSW_SERVER.value, must_exist=True, when=not_doc),
 
         Validator(SettingKeys.RABBIT_HOST.value, must_exist=True, when=not_doc_unittest),
         Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc_unittest),
@@ -176,9 +174,3 @@ def initialise_settings() -> None:
     )
     settings.validators.validate()
     LOGGER.info("Settings validated")
-
-    if settings.ENV_FOR_DYNACONF != "documentation":
-        # TODO to be removed once new bindings and api version is done
-        # needed for eodc-openeo-bindings - should be removed once this is handled in a better way
-        environ["CSW_SERVER"] = settings.CSW_SERVER
-        environ["AIRFLOW_DAGS"] = settings.AIRFLOW_DAGS
