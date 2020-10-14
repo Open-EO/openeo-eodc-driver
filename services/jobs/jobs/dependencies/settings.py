@@ -51,12 +51,11 @@ class SettingKeys(Enum):
 
     If you are running in docker the path needs to be inside the container. E.g.: /usr/src/sync-results
     """
-    # TODO to be removed once new bindings and api version is done
-    CSW_SERVER = "CSW_SERVER"
-    """The url to a running CSW server.
+    WEKEO_STORAGE = "WEKEO_STORAGE"
+    """The path where files downloaded via the WEkEO HDA API will be available
+    on the VM, where the processing engine (e.g. Airflow) executes jobs.
 
-    E.g. eodc's CSW server is reachable under https://csw.eodc.eu
-    If you are running in docker and also have a CSW server in the same docker network it could be http://pycsw:8000
+    e.g. /usr/local/airflow/wekeo_storage
     """
 
     # Connection to RabbitMQ
@@ -150,13 +149,14 @@ def initialise_settings() -> None:
 
         Validator(SettingKeys.OPENEO_VERSION.value, must_exist=True, when=not_doc),
         Validator(SettingKeys.AIRFLOW_HOST.value, must_exist=True, condition=utils.check_parse_url,
-                  when=(not_doc_unittest and not_doc)),
+                  when=(not_doc_unittest & not_doc)),
         Validator(SettingKeys.AIRFLOW_OUTPUT.value, must_exist=True, when=not_doc),
         Validator(SettingKeys.AIRFLOW_DAGS.value, must_exist=True, condition=utils.check_create_folder, when=not_doc),
         Validator(SettingKeys.SYNC_DEL_DELAY.value, must_exist=True, is_type_of=int, condition=utils.check_positive_int,
                   when=not_doc),
         Validator(SettingKeys.SYNC_RESULTS_FOLDER.value, must_exist=True, condition=utils.check_create_folder,
                   when=not_doc),
+        Validator(SettingKeys.WEKEO_STORAGE.value, default="", when=not_doc_unittest),
 
         Validator(SettingKeys.RABBIT_HOST.value, must_exist=True, when=not_doc_unittest),
         Validator(SettingKeys.RABBIT_PORT.value, must_exist=True, is_type_of=int, when=not_doc_unittest),
