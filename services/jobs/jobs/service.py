@@ -720,10 +720,10 @@ class JobService:
                 collection_id = process_graph[node]['arguments']['id']
 
                 spatial_extent = [
-                    process_graph[node]['arguments']['spatial_extent']['west'],
                     process_graph[node]['arguments']['spatial_extent']['south'],
                     process_graph[node]['arguments']['spatial_extent']['east'],
-                    process_graph[node]['arguments']['spatial_extent']['north']
+                    process_graph[node]['arguments']['spatial_extent']['north'],
+                    process_graph[node]['arguments']['spatial_extent']['west']
                 ]
 
                 temporal_extent = process_graph[node]['arguments']['temporal_extent']
