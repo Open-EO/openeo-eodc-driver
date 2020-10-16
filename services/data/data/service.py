@@ -236,7 +236,7 @@ class DataService:
                 filepaths['filepaths'], filepaths['wekeo_job_id'] = \
                     self.hda_session.get_filepaths(collection_id, spatial_extent, temporal_extent)
 
-            if not filepaths:
+            if not filepaths['filepaths']:
                 msg = "No filepaths were found."
                 return ServiceException(500, self._get_user_id(user), msg=msg).to_dict()
 

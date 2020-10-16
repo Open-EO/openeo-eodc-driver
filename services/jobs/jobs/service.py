@@ -241,7 +241,7 @@ class JobService:
 
             self.db.add(job)
             self.db.commit()
-            LOGGER.info(f"Dag file created for job {job_id}")
+            LOGGER.info(f"Added job to database with id: {job_id}")
 
             return {
                 "status": "success",
@@ -297,6 +297,9 @@ class JobService:
 
             # Get input filepaths
             in_filepaths = self._get_in_filepaths(process_graph)
+            if 'status' in in_filepaths and in_filepaths['status'] == 'error':
+                # return data exception now stored in in_filepaths
+                return in_filepaths
 
             self.dag_writer.write_and_move_job(
                 job_id=job_id,
@@ -311,6 +314,7 @@ class JobService:
                 process_defs=backend_processes,
                 in_filepaths=in_filepaths,
             )
+            LOGGER.info(f"Dag file created for job {job_id}")
 
             trigger_worked = self.airflow.trigger_dag(dag_id=self.dag_handler.get_preparation_dag_id(job_id))
             if not trigger_worked:
@@ -707,6 +711,7 @@ class JobService:
 
         Returns:
             in_filepaths -- dict storing lists of in_filepaths, one for each load_collection node
+                         -- OR dict with data_response if the request returns an error
         """
         in_filepaths: dict = {}
         for node in process_graph:
