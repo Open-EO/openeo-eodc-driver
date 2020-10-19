@@ -12,7 +12,7 @@ from .exceptions import get_job_canceled_service_exception, get_job_error_servic
     get_job_not_finished_exception
 
 
-@pytest.mark.usefixtures("set_job_data", "dag_folder")
+@pytest.mark.usefixtures("job_output", "dag_folder")
 class TestJobResults(BaseCase):
     """Test the get_results method."""
 

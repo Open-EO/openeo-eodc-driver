@@ -272,7 +272,7 @@ if settings.ENV_FOR_DYNACONF not in ["documentation"]:
             auth=AuthReq.token_required,
             validate=True,
             methods=["POST"],
-            is_async=True,
+            #is_async=True,
         )
         gateway.add_endpoint(
             f"/{settings.OPENEO_VERSION}/jobs/<job_id>/results",

@@ -86,7 +86,7 @@ services:
     build:
       context: ./services/users
       args:
-      OPENEO_VERSION: $OPENEO_VERSION
+        OPENEO_VERSION: $OPENEO_VERSION
     container_name: oeo-users-$OPENEO_VERSION
     restart: on-failure
     depends_on:

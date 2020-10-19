@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 from datetime import datetime
+from os.path import dirname
 from typing import Any, Dict, List, Optional, Union
 
 from dynaconf import settings
@@ -356,23 +357,32 @@ class FilesService:
 
     # needed for job management
     @rpc
-    def setup_jobs_result_folder(self, user_id: str, job_id: str) -> str:
+    def setup_jobs_result_folder(self, user_id: str, job_id: str, job_run: Optional[str] = None) -> str:
         """Create user folder structure with folder for the given job_id.
 
         Args:
             user_id: The identifier of the user.
             job_id: The identifier for the job.
+            job_run: Whether a specific job_run should be used or a new job_run should be created.
 
         Returns:
             Path to the job results folder for the given user and job id.
         """
         self.setup_user_folder(user_id)
-        to_create = self.get_job_results_folder(user_id, job_id)
+        if job_run:
+            to_create = self.get_defined_job_result_folder(user_id, job_id, job_run)
+        else:
+            to_create = self.get_new_job_results_folder(user_id, job_id)
         if not os.path.exists(to_create):
             LOGGER.debug(f"Creating Job results folder {to_create}.")
             os.makedirs(to_create)
         LOGGER.info(f"Job results folder {to_create} exists.")
         return to_create
+
+    @rpc
+    def get_job_run_folder_from_results(self, job_result_folder: str) -> str:
+        """Return job_run folder from job results folder."""
+        return dirname(job_result_folder)
 
     @rpc
     def get_job_output(self, user_id: str, job_id: str, internal: bool = False) -> dict:
@@ -388,8 +398,9 @@ class FilesService:
             A dictionary containing a list of output files produced by the given job or a serialized service exception.
         """
         try:
-            file_list = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*[!{.dc, .json, .vrt}]'))
-            metadata_file = glob.glob(os.path.join(self.get_job_results_folder(user_id, job_id), '*.json'))[0]
+            file_list = glob.glob(os.path.join(self.get_latest_job_results_folder(user_id, job_id),
+                                               '*[!{.dc, .json, .vrt}]'))
+            metadata_file = glob.glob(os.path.join(self.get_latest_job_results_folder(user_id, job_id), '*.json'))[0]
             if not file_list:
                 return ServiceException(400, user_id, "Job output folder is empty. No files generated.").to_dict()
             if not metadata_file:
@@ -435,8 +446,10 @@ class FilesService:
             job_id: The identifier of the job.
         """
         job_folder = self.get_job_id_folder(user_id, job_id)
-        open(os.path.join(job_folder, 'STOP'), 'a').close()
-        LOGGER.info(f"STOP file added to job folder {job_folder}.")
+        latest_job_run = self.get_latest_job_run_folder_name(user_id, job_id)
+        stop_file = os.path.join(job_folder, latest_job_run, 'STOP')
+        open(stop_file, 'a').close()
+        LOGGER.info(f"STOP file added at {stop_file}.")
 
     @rpc
     def delete_complete_job(self, user_id: str, job_id: str) -> None:
@@ -461,11 +474,12 @@ class FilesService:
         Returns:
             Whether there are results available or not.
         """
-        job_result_folder = self.get_job_results_folder(user_id, job_id)
+        job_result_folder = self.get_latest_job_results_folder(user_id, job_id)
+        job_run = self.get_job_run_from_job_results_folder(job_result_folder)
         if os.listdir(job_result_folder) == 0:
             LOGGER.info(f"No results exist for job {job_id}.")
             self.delete_complete_job(user_id, job_id)
-            self.setup_jobs_result_folder(user_id, job_id)
+            self.setup_jobs_result_folder(user_id, job_id, job_run=job_run)
         else:
             LOGGER.info(f"Job {job_id} has results.")
             bak_result_folder = os.path.join(self.get_user_folder(user_id=user_id), f"{job_id}_backup")
@@ -474,7 +488,7 @@ class FilesService:
 
             os.rename(job_result_folder, bak_result_folder)
             self.delete_complete_job(user_id, job_id)
-            self.setup_jobs_result_folder(user_id, job_id)
+            self.setup_jobs_result_folder(user_id, job_id, job_run=job_run)
             os.rename(bak_result_folder, job_result_folder)
 
             if os.path.isdir(bak_result_folder):
@@ -482,6 +496,20 @@ class FilesService:
             LOGGER.debug(f"Results backup folder delete for job {job_id}.")
 
         return os.listdir(job_result_folder) != 0
+
+    def delete_job_run(self, user_id: str, job_id: str, job_run: str) -> None:
+        """Delete a given job run."""
+        job_id_folder = self.get_job_id_folder(user_id, job_id)
+        job_run_folder = os.path.join(job_id_folder, job_run)
+        shutil.rmtree(job_run_folder)
+        LOGGER.info(f"Job run {job_run} of Job ID {job_id} successfully deleted.")
+
+    @rpc
+    def delete_old_job_runs(self, user_id: str, job_id: str) -> None:
+        """Delete all job runs of a job but the latest."""
+        job_runs = self.get_old_job_run_folder_names(user_id, job_id)
+        for job_run in job_runs:
+            self.delete_job_run(user_id, job_id, job_run)
 
     def get_job_id_folder(self, user_id: str, job_id: str) -> str:
         """Create and return the complete path to a specific job folder.
@@ -495,8 +523,22 @@ class FilesService:
         """
         return os.path.join(self.get_user_folder(user_id), self.jobs_folder, job_id)
 
-    def get_job_results_folder(self, user_id: str, job_id: str) -> str:
-        """Create and return the path to a result folder in a specific job folder.
+    def get_defined_job_result_folder(self, user_id: str, job_id: str, job_run: str) -> str:
+        """Return the path to a result folder in a specific job folder for a given job run.
+
+        Arg:
+            user_id: The identifier of the user.
+            job_id: The  identifier of the job.
+            job_run: The identifier of the job_run.
+
+        Returns:
+            File system path to the results folder of a specific job of a user.
+        """
+        return os.path.join(self.get_job_id_folder(user_id, job_id), job_run, self.result_folder)
+
+    @rpc
+    def get_new_job_results_folder(self, user_id: str, job_id: str) -> str:
+        """Return the path to a result folder in a specific job folder for a new job run.
 
         Arg:
             user_id: The identifier of the user.
@@ -505,4 +547,52 @@ class FilesService:
         Returns:
             File system path to the results folder of a specific job of a user.
         """
-        return os.path.join(self.get_job_id_folder(user_id, job_id), self.result_folder)
+        return os.path.join(self.get_job_id_folder(user_id, job_id), self.get_new_job_run_folder_name(),
+                            self.result_folder)
+
+    @rpc
+    def get_latest_job_results_folder(self, user_id: str, job_id: str) -> str:
+        """Return the path to the result folder in a specific job folder for the latest existing job run.
+
+        Arg:
+            user_id: The identifier of the user.
+            job_id: The  identifier of the job.
+
+        Returns:
+            File system path to the results folder of a specific job of a user.
+        """
+        return os.path.join(self.get_job_id_folder(user_id, job_id),
+                            self.get_latest_job_run_folder_name(user_id, job_id), self.result_folder)
+
+    @rpc
+    def get_new_job_run_folder_name(self) -> str:
+        """Return the folder name of the next job run.
+
+        The datetime is used as unique identifier here.
+        """
+        return f"jr-{datetime.utcnow().strftime('%Y%m%dT%H%M%S%f')}"
+
+    @rpc
+    def get_latest_job_run_folder_name(self, user_id: str, job_id: str) -> str:
+        """Get the folder name of the latest job run."""
+        job_id_folder = self.get_job_id_folder(user_id, job_id)
+        latest_job_run = sorted(glob.glob(job_id_folder + '/*'))[-1]
+        return latest_job_run.split(os.sep)[-1]
+
+    def get_old_job_run_folder_names(self, user_id: str, job_id: str) -> List[str]:
+        """Return a list of all job_run folder names but the latest one."""
+        job_id_folder = self.get_job_id_folder(user_id, job_id)
+        job_runs_folder_paths = sorted(glob.glob(job_id_folder + '/*'))[:-1]
+        return [folder_path.split(os.sep)[-1] for folder_path in job_runs_folder_paths]
+
+    def get_job_run_from_job_results_folder(self, job_results_path: str) -> str:
+        """Get the job_run identifier from the absolute filepath to a results folder.
+
+        Args:
+            job_results_path: The absolute path to a job results folder.
+                e.g. /path/to/<user-id>/jobs/<job-id>/<job-run>/results
+
+        Returns:
+            The job_run identifier. Name <job-run> from example above.
+        """
+        return job_results_path.split(os.sep)[-2]

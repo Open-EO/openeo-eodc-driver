@@ -8,7 +8,7 @@ import threading
 from collections import namedtuple
 from datetime import datetime
 from time import sleep
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from dynaconf import settings
 from eodc_openeo_bindings.job_writer.dag_writer import AirflowDagWriter
@@ -32,6 +32,7 @@ class JobService:
 
     name = service_name
     db = DatabaseSession(Base)
+    data_service = RpcProxy("data")
     """Database connection to jobs database."""
     processes_service = RpcProxy("processes")
     """Rpc connection to processes service."""
@@ -114,20 +115,6 @@ class JobService:
                 if process_response["status"] == "error":
                     return process_response
                 job.process_graph_id = process_graph_id
-
-                # Get all processes
-                process_response = self.processes_service.get_all_predefined()
-                if process_response["status"] == "error":
-                    return process_response
-                backend_processes = process_response["data"]["processes"]
-
-                # handle dag file (remove and recreate it) - only needs to be updated if process graph changes
-                self.dag_handler.remove_all_dags(job_id)
-                self.dag_writer.write_and_move_job(job_id=job_id, user_name=user["id"],
-                                                   process_graph_json=process_graph_args,
-                                                   job_data=self.get_job_folder(user["id"], job_id),
-                                                   vrt_only=True, add_delete_sensor=True,
-                                                   process_defs=backend_processes)
 
             # Maybe there is a better option to do this update? e.g. using marshmallow schemas?
             job.title = job_args.get("title", job.title)
@@ -237,12 +224,6 @@ class JobService:
         """
         try:
             LOGGER.debug("Start creating job...")
-            vrt_flag = True
-            add_parallel_sensor = True
-            if 'vrt_flag' in job_args.keys():
-                vrt_flag = job_args.pop("vrt_flag")
-            if 'add_parallel_sensor' in job_args.keys():
-                add_parallel_sensor = job_args.pop("add_parallel_sensor")
             process = job_args.pop("process")
             process_graph_id = process["id"] if "id" in process else self.generate_alphanumeric_id()
             process_response = self.processes_service.put_user_defined(
@@ -258,24 +239,9 @@ class JobService:
             self.db.commit()
             job_id = str(job.id)
 
-            _ = self.files_service.setup_jobs_result_folder(user_id=user["id"], job_id=job_id)
-
-            # Get all processes
-            process_response = self.processes_service.get_all_predefined()
-            if process_response["status"] == "error":
-                return process_response
-            backend_processes = process_response["data"]["processes"]
-            self.dag_writer.write_and_move_job(job_id=job_id,
-                                               user_name=user["id"],
-                                               process_graph_json=process,
-                                               job_data=self.get_job_folder(user["id"], job_id),
-                                               vrt_only=vrt_flag,
-                                               add_delete_sensor=True,
-                                               add_parallel_sensor=add_parallel_sensor,
-                                               process_defs=backend_processes)
             self.db.add(job)
             self.db.commit()
-            LOGGER.info(f"Dag file created for job {job_id}")
+            LOGGER.info(f"Added job to database with id: {job_id}")
 
             return {
                 "status": "success",
@@ -311,8 +277,44 @@ class JobService:
 
             self._update_job_status(job_id=job_id)
             if job.status in [JobStatus.queued, JobStatus.running]:
-                return ServiceException(400, user["id"], f"Job {job_id} is already {job.status}. Processing must be "
-                                                         f"canceled before restart.", links=[]).to_dict()
+                return ServiceException(400, user["id"],
+                                        f"Job {job_id} is already {job.status}. Processing must be canceled before"
+                                        f" restart.", links=[], internal=False).to_dict()
+
+            self.files_service.setup_jobs_result_folder(user_id=user["id"], job_id=job_id)
+
+            # Get all processes
+            process_response = self.processes_service.get_all_predefined()
+            if process_response["status"] == "error":
+                return process_response
+            backend_processes = process_response["data"]["processes"]
+
+            # Get process graph
+            process_graph_response = self.processes_service.get_user_defined(user, job.process_graph_id)
+            if process_graph_response["status"] == "error":
+                return process_graph_response
+            process_graph = process_graph_response["data"]["process_graph"]
+
+            # Get input filepaths
+            in_filepaths = self._get_in_filepaths(process_graph)
+            if 'status' in in_filepaths and in_filepaths['status'] == 'error':
+                # return data exception now stored in in_filepaths
+                return in_filepaths
+
+            self.dag_writer.write_and_move_job(
+                job_id=job_id,
+                user_name=user["id"],
+                dags_folder=settings.AIRFLOW_DAGS,
+                wekeo_storage=settings.WEKEO_STORAGE,
+                process_graph_json={"process_graph": process_graph},
+                job_data=self.get_latest_job_folder(user['id'], job_id),
+                vrt_only=job.vrt_flag,
+                add_delete_sensor=True,
+                add_parallel_sensor=job.add_parallel_sensor,
+                process_defs=backend_processes,
+                in_filepaths=in_filepaths,
+            )
+            LOGGER.info(f"Dag file created for job {job_id}")
 
             trigger_worked = self.airflow.trigger_dag(dag_id=self.dag_handler.get_preparation_dag_id(job_id))
             if not trigger_worked:
@@ -320,6 +322,9 @@ class JobService:
 
             self._update_job_status(job_id=job_id)
             LOGGER.info(f"Processing successfully started for job {job_id}")
+
+            self.files_service.delete_old_job_runs(user["id"], job_id)
+
             return {
                 "status": "success",
                 "code": 202,
@@ -629,8 +634,8 @@ class JobService:
             self.db.commit()
         LOGGER.debug(f"Job Status of job {job_id} is {job.status}")
 
-    def get_job_folder(self, user_id: str, job_id: str) -> str:
-        """Get absolute path to specific job folder of a user.
+    def get_latest_job_folder(self, user_id: str, job_id: str) -> str:
+        """Get absolute path to latest job_run folder of a user.
 
         Args:
             user_id: The identifier of the user.
@@ -639,7 +644,13 @@ class JobService:
         Returns:
             The complete path to the specific job folder on the file system.
         """
-        return os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id)
+        latest_job_run = self.files_service.get_latest_job_run_folder_name(user_id, job_id)
+        return os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id, latest_job_run)
+
+    def _get_old_job_folders(self, user_id: str, job_id: str) -> List[str]:
+        """Get absolute path to all job_runs but the latest one."""
+        old_job_runs = self.files_service.get_old_job_run_folder_names()
+        return [os.path.join(settings.AIRFLOW_OUTPUT, user_id, "jobs", job_id, job_run) for job_run in old_job_runs]
 
     def _stop_airflow_job(self, user_id: str, job_id: str) -> None:
         """Trigger the airflow observer to set all running task to failed.
@@ -688,3 +699,38 @@ class JobService:
     def generate_alphanumeric_id(self, k: int = 16) -> str:
         """Generate a random alpha numeric value."""
         return ''.join(random.choices(string.ascii_letters + string.digits, k=k))
+
+    def _get_in_filepaths(self, process_graph: dict) -> dict:
+        """Return filepaths for current process_graph.
+
+        Generate a dictionary storing in_filepaths, one for any load_collection
+        call in the current process graph.
+
+        Arguments:
+            process_graph {dict} -- an openEO process graph
+
+        Returns:
+            in_filepaths -- dict storing lists of in_filepaths, one for each load_collection node
+                         -- OR dict with data_response if the request returns an error
+        """
+        in_filepaths: dict = {}
+        for node in process_graph:
+            if process_graph[node]['process_id'] == 'load_collection':
+                in_filepaths[node] = {}
+                collection_id = process_graph[node]['arguments']['id']
+
+                spatial_extent = [
+                    process_graph[node]['arguments']['spatial_extent']['south'],
+                    process_graph[node]['arguments']['spatial_extent']['east'],
+                    process_graph[node]['arguments']['spatial_extent']['north'],
+                    process_graph[node]['arguments']['spatial_extent']['west']
+                ]
+
+                temporal_extent = process_graph[node]['arguments']['temporal_extent']
+
+                data_response = self.data_service.get_filepaths(collection_id, spatial_extent, temporal_extent)
+                if data_response["status"] == "error":
+                    return data_response
+                in_filepaths[node] = data_response["data"]
+
+        return in_filepaths
