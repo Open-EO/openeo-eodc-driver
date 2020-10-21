@@ -1,241 +1,49 @@
 version: '3.4'
 services:
-  openeo-base:
-    build:
-      context: ./base
-    image: oeo-base-$OPENEO_VERSION
-    container_name: oeo-base-$OPENEO_VERSION
-    command: echo
-    network_mode: none
-
   rabbitmq:
-    image: rabbitmq:3.8-management
-    container_name: oeo-rabbitmq-$OPENEO_VERSION
-    hostname: rabbitmq
-    env_file:
-      - ./envs/rabbitmq.env
     ports:
       - 5672:5672
       - 15672:15672
 
   jobs_db:
-    image: postgres
-    container_name: oeo-jobs-db-$OPENEO_VERSION
-    restart: always
-    hostname: jobs_db
-    volumes:
-      - /srv/openeo/$OPENEO_VERSION/data/jobs_db_data:/var/lib/postgresql/data
-    env_file:
-      - ./envs/jobs.env
     ports:
       - 5433:5432
 
   processes_db:
-    image: postgres
-    container_name: oeo-processes-db-$OPENEO_VERSION
-    restart: always
-    hostname: processes_db
-    volumes:
-      - /srv/openeo/$OPENEO_VERSION/data/processes_db_data:/var/lib/postgresql/data
-    env_file:
-      - ./envs/processes.env
     ports:
       - 5434:5432
 
   users_db:
-    image: postgres
-    container_name: oeo-users-db-$OPENEO_VERSION
-    restart: always
-    hostname: users_db
-    volumes:
-        - /srv/openeo/$OPENEO_VERSION/data/users_db_data:/var/lib/postgresql/data
-    env_file:
-      - ./envs/users.env
     ports:
       - 5435:5432
 
   openeo-gateway:
-    image: oeo-gateway-$OPENEO_VERSION
-    build:
-      context: ./gateway
-      args:
-        OPENEO_VERSION: $OPENEO_VERSION
-    container_name: oeo-gateway-$OPENEO_VERSION
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-      - ./envs/gateway.env
-      - ./envs/users.env
-      - ./envs/files.env
     volumes:
       - ./gateway:/usr/src/app
-      - files-data:/usr/src/files
-      - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
-      - $LOG_DIR:/usr/src/logs
-    environment:
-      OEO_OPENEO_VERSION: $OPENEO_VERSION
-      OEO_LOG_DIR: /usr/src/log
-    ports:
-      - $GATEWAY_PORT:3000
 
   openeo-users:
-    image: oeo-users-$OPENEO_VERSION
-    build:
-      context: ./services/users
-      args:
-        OPENEO_VERSION: $OPENEO_VERSION
-    container_name: oeo-users-$OPENEO_VERSION
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-gateway
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-      - ./envs/users.env
     volumes:
       - ./services/users:/usr/src/app
-      - $LOG_DIR:/usr/src/log
-    environment:
-      OEO_OPENEO_VERSION: $OPENEO_VERSION
-      OEO_LOG_DIR: /usr/src/log
 
   openeo-capabilities:
-    build:
-      context: ./services/capabilities
-      args:
-        OPENEO_VERSION: $OPENEO_VERSION
-    image: oeo-capabilities-$OPENEO_VERSION
-    container_name: oeo-capabilities-$OPENEO_VERSION
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-gateway
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-      - ./envs/gateway.env
     volumes:
       - ./services/capabilities:/usr/src/app
-      - $LOG_DIR:/usr/src/logs
-    environment:
-      OEO_OPENEO_VERSION: $OPENEO_VERSION
 
   openeo-data:
-    build:
-      context: ./services/data
-      args:
-        OPENEO_VERSION: $OPENEO_VERSION
-    image: oeo-data-$OPENEO_VERSION
-    container_name: oeo-data-$OPENEO_VERSION
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-gateway
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-      - ./envs/csw.env
-      - ./envs/gateway.env
-      - ./envs/data.env
-    environment:
-      OEO_OPENEO_VERSION: $OPENEO_VERSION
-      OEO_LOG_DIR: /usr/src/logs
     volumes:
-      - eo-discovery-cache:/usr/src/cache
       - ./services/data:/usr/src/app
-      - $LOG_DIR:/usr/src/logs
 
   openeo-processes:
-    build:
-      context: ./services/processes
-      args:
-        OPENEO_VERSION: $OPENEO_VERSION
-    image: oeo-processes-$OPENEO_VERSION
-    container_name: oeo-processes-$OPENEO_VERSION
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-gateway
-      - processes_db
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-      - ./envs/processes.env
-    environment:
-      OEO_OPENEO_VERSION: $OPENEO_VERSION
-      OEO_LOG_DIR: /usr/src/logs
-      PROCESS_API_DIR: /usr/src/api
     volumes:
-      - process-api-data:/usr/src/api
       - ./services/processes:/usr/src/app
-      - $LOG_DIR:/usr/src/logs
 
   openeo-jobs:
-    build: 
-      context: ./services/jobs
-      args:
-        OPENEO_VERSION: $OPENEO_VERSION
-    image: oeo-jobs-$OPENEO_VERSION
-    container_name: oeo-jobs-$OPENEO_VERSION
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-gateway
-      - jobs_db
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-      - ./envs/jobs.env
-      - ./envs/csw.env
-      - ./envs/gateway.env
-    environment:
-      OEO_OPENEO_VERSION: $OPENEO_VERSION
-      OEO_AIRFLOW_DAGS: /usr/src/dags
-      OEO_SYNC_RESULTS_FOLDER: /usr/src/sync-results
-      AIRFLOW_LOG_DIR: /usr/src/logs/airflow
-      OEO_LOG_DIR: /usr/src/logs
     volumes:
       - ./services/jobs:/usr/src/app
-      - $AIRFLOW_DAGS:/usr/src/dags
-      - $SYNC_RESULTS_FOLDER:/usr/src/sync-results
-      - files-data:/usr/src/files
-      - $LOG_DIR:/usr/src/logs
 
   openeo-files:
-    build:
-      context: ./services/files
-      args:
-        OPENEO_VERSION: $OPENEO_VERSION
-    image: oeo-files-$OPENEO_VERSION
-    container_name: oeo-files-$OPENEO_VERSION
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-      - openeo-gateway
-      - openeo-base
-    env_file:
-      - ./envs/rabbitmq.env
-      - ./envs/files.env
-    environment:
-      OEO_OPENEO_VERSION: $OPENEO_VERSION
-      OPENEO_FILES_DIR: /usr/src/files
-      OEO_LOG_DIR: /usr/src/logs
     volumes:
-      - files-data:/usr/src/files
       - ./services/files:/usr/src/app
-      - $LOG_DIR:/usr/src/logs
-
-volumes:
-  process-api-data:
-    name: ${PROJECT_NAME}-${OPENEO_VERSION}-process-api-data
-  eo-discovery-cache:
-    name: ${PROJECT_NAME}-${OPENEO_VERSION}-eo-discovery-cache
-  files-data:
-    name: ${PROJECT_NAME}-${OPENEO_VERSION}-files-data
 
 networks:
   default:
