@@ -151,34 +151,32 @@ class DataService:
         try:
             LOGGER.info("%s product requested", collection_id)
 
+            product_record = None
             if settings.IS_CSW_SERVER and collection_id in settings.WHITELIST:
                 product_record = self.csw_session.get_product(collection_id)
             elif settings.IS_CSW_SERVER_DC and collection_id in settings.WHITELIST_DC:
                 product_record = self.csw_session_dc.get_product(collection_id)
             elif settings.IS_HDA_WEKEO and collection_id in settings.WHITELIST_WEKEO:
                 product_record = self.hda_session.get_product(collection_id)
+            if not product_record:
+                return ServiceException(400, self._get_user_id(user),
+                                        f"The requested collection {collection_id} does not exist on the backend.",
+                                        internal=False, links=[]).to_dict()
 
             # Check user permission
-            # TODO: implement better logc for checking user permissions
-            error_code = None
+            # TODO: implement better logic for checking user permissions
+            # Unauthorized
             if collection_id in ('TUW_SIG0_S1') and not user:
-                error_code = 401  # Unauthorized
-                error_msg = "This collection is not publicly accessible."
-            elif collection_id in ('TUW_SIG0_S1') and \
-                    user and self.csw_session_dc.data_access not in user["profile"]["data_access"]:
-                error_code = 403  # Forbidden (dpes not have permissions)
-                error_msg = "User is not authorized to access this collection."
-            if error_code:
-                return ServiceException(
-                    error_code,
-                    self._get_user_id(user),
-                    error_msg,
-                    internal=False,
-                    links=[],
-                ).to_dict()
+                return ServiceException(401, self._get_user_id(user), "This collection is not publicly accessible.",
+                                        internal=False, links=[]).to_dict()
+            # Forbidden (does not have permissions)
+            elif collection_id == 'TUW_SIG0_S1' and user \
+                    and self.csw_session_dc.data_access not in user["profile"]["data_access"]:
+                return ServiceException(403, self._get_user_id(user),
+                                        "User is not authorized to access this collection.", internal=False,
+                                        links=[]).to_dict()
 
             response = CollectionSchema().dump(product_record)
-
             LOGGER.debug("response:\n%s", pformat(response))
             return {"status": "success", "code": 200, "data": response}
         except Exception as exp:
@@ -238,7 +236,7 @@ class DataService:
                 filepaths['filepaths'], filepaths['wekeo_job_id'] = \
                     self.hda_session.get_filepaths(collection_id, spatial_extent, temporal_extent)
 
-            if not filepaths:
+            if not filepaths['filepaths']:
                 msg = "No filepaths were found."
                 return ServiceException(500, self._get_user_id(user), msg=msg).to_dict()
 

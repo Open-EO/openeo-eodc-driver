@@ -88,7 +88,7 @@ class HDAHandler:
 
         Arguments:
             collecion_id {str} -- identifier of the collection
-            spatial_extent {List[float]} -- bounding box [ymin, xmin, ymax, ymax]
+            spatial_extent {List[float]} -- bounding box [ymin, xmin, ymax, xmax]
             temporal_extent {List[str]} -- e.g. ["2018-06-04", "2018-06-23"]
 
         Returns:

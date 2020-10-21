@@ -69,6 +69,7 @@ function oeo-jobs-service() {
   source envs/rabbitmq.env
   source envs/gateway.env
   source envs/csw.env
+  source envs/wekeo_hda.env
   source envs/jobs.env
   cd services/jobs
   nameko run --config config.yaml jobs.service

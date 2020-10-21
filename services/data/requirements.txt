@@ -3,4 +3,4 @@ defusedxml==0.6.0
 dynaconf==3.1.1
 owslib==0.20.0
 git+git://github.com/Open-EO/openeo-pg-parser-python.git@v2.0.1#egg=openeo-pg-parser-python
-git+git://github.com/eodcgmbh/eodc-openeo-bindings.git@v2.6.0#egg=eodc-openeo-bindings
+git+git://github.com/eodcgmbh/eodc-openeo-bindings.git@v2.6.1#egg=eodc-openeo-bindings

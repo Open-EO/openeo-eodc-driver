@@ -9,7 +9,7 @@ from jobs.models import Job, JobStatus
 from tests.utils import add_job, get_configured_job_service, get_random_user
 
 
-@pytest.mark.usefixtures("set_job_data", "dag_folder")
+@pytest.mark.usefixtures("job_folder", "dag_folder")
 class TestUtils:
     """Test the utility function of the job service."""
 

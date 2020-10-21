@@ -78,3 +78,16 @@ def get_job_locked_exception(user_id: str, job_id: str, job_status: str) -> Dict
         "internal": False,
         "links": [],
     }
+
+
+def get_cannot_start_processing(user_id: str, job_id: str, job_status: str) -> Dict[str, Any]:
+    """Return a cannot-start-processing exception as dictionary."""
+    return {
+        "status": "error",
+        "service": "jobs",
+        "code": 400,
+        "user_id": user_id,
+        "msg": f"Job {job_id} is already {job_status}. Processing must be canceled before restart.",
+        "internal": False,
+        "links": [],
+    }

@@ -10,7 +10,7 @@ servers:
 info:
   title: Your openEO API
   version: 1.0.0
-  description: 'E.g. This API provides access to the EODC services and data, as well as access to the openEO endpoints.'
+  description: 'A description of the backend'
   contact:
     name: Your Name
     url: 'https://openeo.sample.com'
