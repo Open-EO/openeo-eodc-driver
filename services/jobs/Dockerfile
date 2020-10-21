@@ -2,7 +2,8 @@ ARG OPENEO_VERSION
 FROM oeo-base-$OPENEO_VERSION
 COPY requirements.txt .
 COPY run.sh .
-RUN python3 -m pip install -r requirements.txt 
+COPY config.yaml .
+RUN python3 -m pip install -r requirements.txt
+COPY jobs ./jobs
 USER www-openeo
-#CMD alembic upgrade head
 CMD ["./run.sh"]

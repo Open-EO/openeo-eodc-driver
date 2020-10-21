@@ -2,6 +2,9 @@ ARG OPENEO_VERSION
 FROM oeo-base-$OPENEO_VERSION
 COPY requirements.txt .
 COPY run.sh .
+COPY gunicorncfg.py .
+COPY wsgi.py .
+COPY gateway ./gateway
 RUN  python3 -m pip install -r requirements.txt
 USER www-openeo
 CMD ["./run.sh"]
