@@ -12,7 +12,7 @@
         },
         "bands": {
             "type": "bands",
-            "values": ["HH"]
+            "values": ["HH", "VH"]
         },
         "t": {
             "type": "temporal",
