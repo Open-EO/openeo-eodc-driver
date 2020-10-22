@@ -8,6 +8,7 @@ from dynaconf import settings
 from eodc_openeo_bindings.wekeo_utils import get_collection_metadata, get_filepaths
 from nameko.extensions import DependencyProvider
 
+from .cache import cache_json, get_cache_path, get_json_cache
 from .links import LinkHandler
 from .stac_utils import add_non_csw_info
 from ..models import Collection, Collections
@@ -35,7 +36,7 @@ class HDAHandler:
 
         LOGGER.debug("Initialized %s", self)
 
-    def get_all_products(self) -> Collections:
+    def get_all_products(self, use_cache: bool = True) -> Collections:
         """Return all products available at the back-end.
 
         Returns:
@@ -43,14 +44,16 @@ class HDAHandler:
         """
         collection_list = []
         for data_id in settings.WHITELIST_WEKEO:
-            collection_list.append(self.get_product(data_id))
+            col = self.get_product(data_id, use_cache=use_cache)
+            if col:
+                collection_list.append(col)
 
         links = self.link_handler.get_links(collection=True)
         collections = Collections(collections=collection_list, links=links)
 
         return collections
 
-    def get_product(self, data_id: str) -> Collection:
+    def get_product(self, data_id: str, use_cache: bool = True) -> Collection:
         """Return information about a specific product.
 
         Arguments:
@@ -59,29 +62,47 @@ class HDAHandler:
         Returns:
             dict -- The product data
         """
-        wekeo_data_id, _ = self._split_collection_id(data_id)
-        response = get_collection_metadata(self.service_uri, self.service_user, self.service_password,
-                                           wekeo_data_id)
 
-        data = response.json()
-        data["id"] = data_id
-        data = add_non_csw_info([data])
-        data = self.link_handler.get_links(data)[0]
+        path_to_cache = get_cache_path(settings.CACHE_PATH, data_id, False, settings.DATA_ACCESS_WEKEO)
+        if use_cache:
+            data = get_json_cache(path_to_cache)
+        else:
+            wekeo_data_id, _ = self._split_collection_id(data_id)
+            response = get_collection_metadata(self.service_uri, self.service_user, self.service_password,
+                                               wekeo_data_id)
 
-        collection = Collection(
-            stac_version=data["stac_version"],
-            id_=data["id"],
-            description=data["description"],
-            license_=data["userTerms"]["termsId"],
-            extent=data["extent"],
-            links=data["links"],
-            title=data["title"],
-            keywords=data["keywords"],
-            cube_dimensions=data["cube:dimensions"],
-            summaries=data["summaries"],
-        )
+            data = response.json()
+            data["id"] = data_id
+            data = add_non_csw_info([data])
+            data = self.link_handler.get_links(data)[0]
+            cache_json(data, path_to_cache)
+
+        collection = []
+        if data:
+            collection = Collection(
+                stac_version=data["stac_version"],
+                id_=data["id"],
+                description=data["description"],
+                license_=data["userTerms"]["termsId"],
+                extent=data["extent"],
+                links=data["links"],
+                title=data["title"],
+                keywords=data["keywords"],
+                cube_dimensions=data["cube:dimensions"],
+                summaries=data["summaries"],
+            )
 
         return collection
+
+    def refresh_cache(self, use_cache: bool = False) -> None:
+        """Refresh the product cache.
+
+        Args:
+            use_cache: Specifies whether to or not to refresh the cache.
+                A bit redundant because submitted through an additional POST.
+        """
+        LOGGER.debug("Refreshing cache %s", use_cache)
+        _ = self.get_all_products(use_cache=use_cache)
 
     def get_filepaths(self, collection_id: str, spatial_extent: Dict, temporal_extent: List) -> Tuple[List, str]:
         """Retrieve a URL list from the WEkEO HDA according to the specified parameters.

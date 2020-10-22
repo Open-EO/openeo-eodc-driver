@@ -199,6 +199,8 @@ class DataService:
                 self.csw_session.refresh_cache(use_cache)
             if settings.IS_CSW_SERVER_DC:
                 self.csw_session_dc.refresh_cache(use_cache)
+            if settings.IS_HDA_WEKEO:
+                self.hda_session.refresh_cache(use_cache)
 
             return {
                 "status": "success",
