@@ -1,0 +1,44 @@
+stages:
+  - unittest
+
+capabilities-test:
+  stage: unittest
+  image: python:3.6.11
+  script:
+    - pip install nox
+    - cd services/capabilities && nox
+
+data-test:
+  stage: unittest
+  image: python:3.6.11
+  script:
+    - pip install nox
+    - cd services/data && nox
+
+files-test:
+  stage: unittest
+  image: python:3.6.11
+  script:
+    - pip install nox
+    - cd services/files && nox
+
+processes-test:
+  stage: unittest
+  image: python:3.6.11
+  script:
+    - pip install nox
+    - cd services/processes && nox
+
+jobs-test:
+  stage: unittest
+  image: python:3.6.11
+  script:
+    - pip install nox
+    - cd services/jobs && nox
+
+users-test:
+  stage: unittest
+  image: python:3.6.11
+  script:
+    - pip install nox
+    - cd services/users && nox
