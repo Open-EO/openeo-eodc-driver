@@ -54,8 +54,10 @@ jobs:
       run: cp csw/sample_pycsw.cfg csw/pycsw.cfg
     - name: Copy sample metadata xmls
       run: cp -r csw/sample-xml csw/xml
+    - name: Prepare data directory
+      run: mkdir /data
     - name: Get data
-      run: echo "no data"
+      run: python setup_scripts/get_input_data.py
     - name: Start csw docker-compsoe
       run: docker-compose -f csw/docker-compose.yml up -d
     - name: Wait 1/2 minute for the docker-compose
