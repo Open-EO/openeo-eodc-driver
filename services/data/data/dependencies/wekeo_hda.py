@@ -2,7 +2,7 @@
 
 
 import logging
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from dynaconf import settings
 from eodc_openeo_bindings.wekeo_utils import get_collection_metadata, get_filepaths
@@ -53,7 +53,7 @@ class HDAHandler:
 
         return collections
 
-    def get_product(self, data_id: str, use_cache: bool = True) -> Collection:
+    def get_product(self, data_id: str, use_cache: bool = True) -> Optional[Collection]:
         """Return information about a specific product.
 
         Arguments:
@@ -62,24 +62,26 @@ class HDAHandler:
         Returns:
             dict -- The product data
         """
-
         path_to_cache = get_cache_path(settings.CACHE_PATH, data_id, False, settings.DATA_ACCESS_WEKEO)
+        data: Dict[str, Any] = {}
         if use_cache:
-            data = get_json_cache(path_to_cache)
+            datasets = get_json_cache(path_to_cache)
+            if len(datasets) == 1:
+                data = datasets[0]
         else:
             wekeo_data_id, _ = self._split_collection_id(data_id)
             response = get_collection_metadata(self.service_uri, self.service_user, self.service_password,
                                                wekeo_data_id)
 
-            data = response.json()
-            data["id"] = data_id
-            data = add_non_csw_info([data])
-            data = self.link_handler.get_links(data)[0]
-            cache_json(data, path_to_cache)
+            dataset_wekeo = response.json()
+            dataset_wekeo["id"] = data_id
+            datasets_with_static_info: List[Dict[str, Any]] = add_non_csw_info([dataset_wekeo])
+            datasets_with_static_info = self.link_handler.get_links(datasets_with_static_info)
+            cache_json(datasets_with_static_info, path_to_cache)
+            data = datasets_with_static_info[0]
 
-        collection = []
         if data:
-            collection = Collection(
+            return Collection(
                 stac_version=data["stac_version"],
                 id_=data["id"],
                 description=data["description"],
@@ -91,8 +93,7 @@ class HDAHandler:
                 cube_dimensions=data["cube:dimensions"],
                 summaries=data["summaries"],
             )
-
-        return collection
+        return None
 
     def refresh_cache(self, use_cache: bool = False) -> None:
         """Refresh the product cache.
