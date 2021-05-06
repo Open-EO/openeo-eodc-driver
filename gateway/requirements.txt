@@ -2,7 +2,7 @@ alembic==0.9.9
 cryptography==2.3
 dynaconf
 Flask==1.0.2
-Flask-Cors==3.0.4
+Flask-Cors==3.0.9
 flask-nameko==1.4.0
 Flask-Script==2.0.6
 Flask-SQLAlchemy
