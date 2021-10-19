@@ -1,4 +1,4 @@
-nameko==2.12.0
+nameko==2.14.0
 # Eventlet is incompatible with latest dnspython release - needs to be pinned to <2
 # https://github.com/nameko/nameko/issues/688
 dnspython<2
